@@ -11,6 +11,9 @@ import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import Admin from "@/pages/admin";
 import Profile from "@/pages/profile";
+import Orders from "@/pages/orders";
+import Alerts from "@/pages/alerts";
+import Inventory from "@/pages/inventory";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -44,6 +47,9 @@ function Router() {
       <Route path="/login" component={user ? Dashboard : Login} />
       <Route path="/dashboard" component={user ? Dashboard : Login} />
       <Route path="/profile" component={user ? Profile : Login} />
+      <Route path="/orders" component={user ? Orders : Login} />
+      <Route path="/alerts" component={user ? Alerts : Login} />
+      <Route path="/inventory" component={user ? Inventory : Login} />
       <Route path="/admin" component={user && user.role === 'admin' ? Admin : NotFound} />
       <Route component={NotFound} />
     </Switch>

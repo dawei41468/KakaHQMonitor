@@ -101,11 +101,32 @@ export const getQueryFn: <T>(options: {
     const headers = {
       ...getAuthHeaders(),
     };
-    
-    const res = await fetch(queryKey.join("/") as string, {
+
+    let res = await fetch(queryKey.join("/") as string, {
       headers,
       credentials: "include",
     });
+
+    // If we get a 401, try to refresh the token once
+    if (res.status === 401 && localStorage.getItem('accessToken')) {
+      try {
+        await refreshAccessToken();
+        // Retry the original request with new token
+        const newHeaders = {
+          ...getAuthHeaders(),
+        };
+        res = await fetch(queryKey.join("/") as string, {
+          headers: newHeaders,
+          credentials: "include",
+        });
+      } catch (refreshError) {
+        // Refresh failed, handle based on behavior
+        if (unauthorizedBehavior === "returnNull") {
+          return null;
+        }
+        await throwIfResNotOk(res);
+      }
+    }
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

@@ -4,6 +4,8 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Package, AlertTriangle, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useMaterials } from "@/hooks/use-dashboard"
+import type { Material } from "@shared/schema"
 
 interface InventoryItem {
   id: string
@@ -15,54 +17,6 @@ interface InventoryItem {
   category: string
 }
 
-// todo: remove mock data
-const mockInventory: InventoryItem[] = [
-  {
-    id: "1",
-    name: "Balcony Railing Material",
-    currentStock: 12,
-    maxStock: 100,
-    threshold: 20,
-    unit: "units",
-    category: "Railings"
-  },
-  {
-    id: "2",
-    name: "Garden Lighting Components",
-    currentStock: 45,
-    maxStock: 80,
-    threshold: 15,
-    unit: "sets",
-    category: "Lighting"
-  },
-  {
-    id: "3",
-    name: "Balcony Flooring Tiles",
-    currentStock: 234,
-    maxStock: 500,
-    threshold: 50,
-    unit: "sq ft",
-    category: "Flooring"
-  },
-  {
-    id: "4",
-    name: "Privacy Screen Panels",
-    currentStock: 8,
-    maxStock: 60,
-    threshold: 10,
-    unit: "panels",
-    category: "Privacy"
-  },
-  {
-    id: "5",
-    name: "Garden Upgrade Hardware",
-    currentStock: 67,
-    maxStock: 120,
-    threshold: 25,
-    unit: "kits",
-    category: "Hardware"
-  }
-]
 
 interface InventoryOverviewProps {
   onRestockClick?: (itemId: string) => void
@@ -74,8 +28,10 @@ export function InventoryOverview({
   onViewAll = () => console.log("View all inventory")
 }: InventoryOverviewProps) {
   const { t } = useTranslation();
-  const lowStockItems = mockInventory.filter(item => item.currentStock <= item.threshold)
-  const totalItems = mockInventory.length
+  const { data: materialsData = { items: [] } } = useMaterials();
+  const materials: Material[] = (materialsData as { items: Material[] }).items || [];
+  const lowStockItems = materials.filter(item => item.currentStock <= item.threshold)
+  const totalItems = materials.length
   const lowStockCount = lowStockItems.length
 
   return (
@@ -109,7 +65,7 @@ export function InventoryOverview({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockInventory.map((item) => {
+        {materials.map((item) => {
           const stockPercentage = (item.currentStock / item.maxStock) * 100
           const isLowStock = item.currentStock <= item.threshold
           const isCritical = item.currentStock <= item.threshold * 0.5

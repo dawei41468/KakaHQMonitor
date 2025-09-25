@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().default("standard"), // admin | standard
   name: text("name").notNull(),
+  theme: text("theme").notNull().default("system"), // light | dark | system
+  language: text("language").notNull().default("en"), // en | zh
   refreshTokens: jsonb("refresh_tokens").default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

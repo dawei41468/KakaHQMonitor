@@ -49,7 +49,7 @@ export function generateRefreshToken(user: User): string {
       jti
     },
     REFRESH_SECRET!,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' }
   );
 }
 
@@ -101,7 +101,7 @@ export async function revokeToken(jti: string, userId: string, tokenType: 'acces
   // Calculate expiration based on token type
   const expiresAt = tokenType === 'access'
     ? new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
-    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
   await db.insert(revokedTokens).values({
     jti,

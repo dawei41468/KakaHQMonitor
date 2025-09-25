@@ -5,6 +5,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertTriangle, Package, Clock, CheckCircle, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
+import { useAlerts } from "@/hooks/use-dashboard"
+import type { Alert as AlertType } from "@shared/schema"
 
 interface Alert {
   id: string
@@ -16,42 +18,6 @@ interface Alert {
   resolved?: boolean
 }
 
-// todo: remove mock data
-const mockAlerts: Alert[] = [
-  {
-    id: "1",
-    type: "lowStock",
-    title: "Low Inventory Alert",
-    message: "Balcony railing material running low (12 units remaining)",
-    priority: "high",
-    timestamp: "2 hours ago"
-  },
-  {
-    id: "2",
-    type: "delay",
-    title: "Production Delay",
-    message: "Shenzhen order #SZ-2024-0456 delayed by 3 days",
-    priority: "medium",
-    timestamp: "4 hours ago"
-  },
-  {
-    id: "3",
-    type: "critical",
-    title: "Quality Issue",
-    message: "Defective batch reported from Guangzhou dealer",
-    priority: "high",
-    timestamp: "6 hours ago"
-  },
-  {
-    id: "4",
-    type: "info",
-    title: "Delivery Complete",
-    message: "Order #HZ-2024-0234 delivered successfully to Hangzhou",
-    priority: "low",
-    timestamp: "1 day ago",
-    resolved: true
-  }
-]
 
 const alertIcons = {
   lowStock: Package,
@@ -76,8 +42,11 @@ export function AlertsPanel({
   onViewAll = () => console.log("View all alerts")
 }: AlertsPanelProps) {
   const { t } = useTranslation();
-  const activeAlerts = mockAlerts.filter(alert => !alert.resolved)
-  const resolvedAlerts = mockAlerts.filter(alert => alert.resolved)
+  const { data: alertsData = { items: [] } } = useAlerts(false);
+  const alerts: AlertType[] = (alertsData as { items: AlertType[] }).items || [];
+  const formattedAlerts = alerts.map(alert => ({ ...alert, timestamp: new Date(alert.createdAt).toLocaleString() }));
+  const activeAlerts = formattedAlerts.filter(alert => !alert.resolved)
+  const resolvedAlerts = formattedAlerts.filter(alert => alert.resolved)
 
   return (
     <Card className="h-fit">
@@ -103,7 +72,7 @@ export function AlertsPanel({
         <ScrollArea className="h-96">
           <div className="space-y-1 p-4">
             {activeAlerts.map((alert) => {
-              const Icon = alertIcons[alert.type]
+              const Icon = alertIcons[alert.type as keyof typeof alertIcons]
               return (
                 <div
                   key={alert.id}
@@ -126,7 +95,7 @@ export function AlertsPanel({
                         {alert.title}
                       </p>
                       <Badge
-                        variant={priorityColors[alert.priority]}
+                        variant={priorityColors[alert.priority as keyof typeof priorityColors]}
                         className="text-xs"
                       >
                         {t(`admin.${alert.priority}`)}
@@ -161,7 +130,7 @@ export function AlertsPanel({
                   <h4 className="text-sm font-medium text-muted-foreground">{t('alerts.recentResolved')}</h4>
                 </div>
                 {resolvedAlerts.slice(0, 2).map((alert) => {
-                  const Icon = alertIcons[alert.type]
+                  const Icon = alertIcons[alert.type as keyof typeof alertIcons]
                   return (
                     <div
                       key={alert.id}
