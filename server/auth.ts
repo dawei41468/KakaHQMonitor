@@ -1,53 +1,124 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { type User } from '@shared/schema';
+import { db } from './db';
+import { revokedTokens } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kaka-hq-dev-secret-change-in-production';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'kaka-hq-refresh-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
+
+if (!JWT_SECRET || !REFRESH_SECRET) {
+  throw new Error('JWT_SECRET and REFRESH_SECRET environment variables must be set');
+}
 
 export interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  jti?: string;
+}
+
+export interface RefreshPayload {
+  userId: string;
+  email: string;
+  jti: string;
 }
 
 export function generateAccessToken(user: User): string {
+  const jti = randomUUID();
   return jwt.sign(
-    { 
-      userId: user.id, 
-      email: user.email, 
-      role: user.role 
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      jti
     },
-    JWT_SECRET,
+    JWT_SECRET!,
     { expiresIn: '30m' }
   );
 }
 
 export function generateRefreshToken(user: User): string {
+  const jti = randomUUID();
   return jwt.sign(
-    { 
-      userId: user.id, 
-      email: user.email 
+    {
+      userId: user.id,
+      email: user.email,
+      jti
     },
-    REFRESH_SECRET,
+    REFRESH_SECRET!,
     { expiresIn: '7d' }
   );
 }
 
-export function verifyAccessToken(token: string): JWTPayload | null {
+export async function verifyAccessToken(token: string): Promise<JWTPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const payload = jwt.verify(token, JWT_SECRET!) as JWTPayload;
+
+    // Check if token is revoked
+    if (payload.jti) {
+      const [revoked] = await db
+        .select()
+        .from(revokedTokens)
+        .where(eq(revokedTokens.jti, payload.jti))
+        .limit(1);
+
+      if (revoked) {
+        return null;
+      }
+    }
+
+    return payload;
   } catch (error) {
     return null;
   }
 }
 
-export function verifyRefreshToken(token: string): { userId: string; email: string } | null {
+export async function verifyRefreshToken(token: string): Promise<RefreshPayload | null> {
   try {
-    return jwt.verify(token, REFRESH_SECRET) as { userId: string; email: string };
+    const payload = jwt.verify(token, REFRESH_SECRET!) as RefreshPayload;
+
+    // Check if token is revoked
+    const [revoked] = await db
+      .select()
+      .from(revokedTokens)
+      .where(eq(revokedTokens.jti, payload.jti))
+      .limit(1);
+
+    if (revoked) {
+      return null;
+    }
+
+    return payload;
   } catch (error) {
     return null;
   }
+}
+
+export async function revokeToken(jti: string, userId: string, tokenType: 'access' | 'refresh', reason?: string): Promise<void> {
+  // Calculate expiration based on token type
+  const expiresAt = tokenType === 'access'
+    ? new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await db.insert(revokedTokens).values({
+    jti,
+    userId,
+    tokenType,
+    expiresAt,
+    reason: reason || 'revoked'
+  });
+
+  // Log the revocation
+  console.log(`[AUTH AUDIT] Token revoked - User: ${userId}, JTI: ${jti}, Type: ${tokenType}, Reason: ${reason || 'revoked'}`);
+}
+
+// Audit logging function
+export function logAuthEvent(event: string, userId?: string, details?: Record<string, any>): void {
+  const timestamp = new Date().toISOString();
+  console.log(`[AUTH AUDIT] ${timestamp} - ${event}${userId ? ` - User: ${userId}` : ''}`, details || '');
 }
 
 export async function hashPassword(password: string): Promise<string> {

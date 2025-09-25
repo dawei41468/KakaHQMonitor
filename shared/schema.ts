@@ -22,6 +22,7 @@ export const dealers = pgTable("dealers", {
   territory: text("territory").notNull(),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -68,6 +69,17 @@ export const alerts = pgTable("alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+// Revoked tokens table for token blacklisting
+export const revokedTokens = pgTable("revoked_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jti: varchar("jti").notNull().unique(), // JWT ID
+  userId: varchar("user_id").notNull(),
+  tokenType: text("token_type").notNull(), // access | refresh
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at").defaultNow().notNull(),
+  reason: text("reason"), // logout | rotation | admin
+});
+
 // Relations
 export const dealersRelations = relations(dealers, ({ many }) => ({
   orders: many(orders),
@@ -94,6 +106,10 @@ export const alertsRelations = relations(alerts, ({ one }) => ({
     fields: [alerts.relatedMaterialId],
     references: [materials.id],
   }),
+}));
+
+export const revokedTokensRelations = relations(revokedTokens, ({}) => ({
+  // No relations needed for revoked tokens
 }));
 
 // Zod schemas for validation
@@ -127,6 +143,11 @@ export const insertAlertSchema = createInsertSchema(alerts).omit({
   resolvedAt: true,
 });
 
+export const insertRevokedTokenSchema = createInsertSchema(revokedTokens).omit({
+  id: true,
+  revokedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -138,6 +159,8 @@ export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
 export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
+export type RevokedToken = typeof revokedTokens.$inferSelect;
+export type InsertRevokedToken = z.infer<typeof insertRevokedTokenSchema>;
 
 // Login schema for authentication
 export const loginSchema = z.object({

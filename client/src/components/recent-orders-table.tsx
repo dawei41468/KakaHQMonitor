@@ -20,17 +20,7 @@ import {
 import { Search, Eye, Package } from "lucide-react"
 import { useState } from "react"
 import { useOrders, useDealers } from "@/hooks/use-dashboard"
-
-interface Order {
-  id: string
-  dealerId: string
-  orderNumber: string
-  status: "received" | "sentToFactory" | "inProduction" | "delivered"
-  items: { item: string; quantity: number }[]
-  totalValue: string
-  estimatedDelivery: string | null
-  createdAt: string
-}
+import { Order } from "@shared/schema"
 
 interface Dealer {
   id: string
@@ -82,8 +72,10 @@ export function RecentOrdersTable({
     return items.map(item => `${item.item} x${item.quantity}`).join(', ')
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return 'TBD'
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -99,12 +91,12 @@ export function RecentOrdersTable({
   }
 
   // Filter orders based on search term and status
-  const filteredOrders = (orders as Order[] || []).filter((order: Order) => {
+  const filteredOrders = (orders?.items || []).filter((order: Order) => {
     const dealerName = dealerMap[order.dealerId]?.name || 'Unknown'
-    const itemsText = formatItems(order.items)
+    const itemsText = formatItems(order.items as { item: string; quantity: number }[])
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         itemsText.toLowerCase().includes(searchTerm.toLowerCase())
+                          dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          itemsText.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -199,7 +191,7 @@ export function RecentOrdersTable({
                 >
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
                   <TableCell>{dealerMap[order.dealerId]?.name || 'Unknown'}</TableCell>
-                  <TableCell className="max-w-40 truncate">{formatItems(order.items)}</TableCell>
+                  <TableCell className="max-w-40 truncate">{formatItems(order.items as { item: string; quantity: number }[])}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
                   <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : 'TBD'}</TableCell>
