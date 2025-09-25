@@ -19,65 +19,26 @@ import {
 } from "@/components/ui/select"
 import { Search, Eye, Package } from "lucide-react"
 import { useState } from "react"
+import { useOrders, useDealers } from "@/hooks/use-dashboard"
 
 interface Order {
   id: string
-  dealerName: string
+  dealerId: string
+  orderNumber: string
   status: "received" | "sentToFactory" | "inProduction" | "delivered"
-  items: string
-  value: number
-  eta: string
+  items: { item: string; quantity: number }[]
+  totalValue: string
+  estimatedDelivery: string | null
   createdAt: string
 }
 
-// todo: remove mock data
-const mockOrders: Order[] = [
-  {
-    id: "SZ-2024-0456",
-    dealerName: "Shenzhen",
-    status: "inProduction",
-    items: "Balcony Railing Set x3",
-    value: 45000,
-    eta: "2024-09-28",
-    createdAt: "2024-09-20"
-  },
-  {
-    id: "GZ-2024-0234",
-    dealerName: "Guangzhou",
-    status: "sentToFactory",
-    items: "Garden Upgrade Kit x2",
-    value: 32000,
-    eta: "2024-09-30",
-    createdAt: "2024-09-21"
-  },
-  {
-    id: "FS-2024-0789",
-    dealerName: "Foshan",
-    status: "received",
-    items: "Balcony Flooring x5",
-    value: 28500,
-    eta: "2024-10-05",
-    createdAt: "2024-09-22"
-  },
-  {
-    id: "HZ-2024-0567",
-    dealerName: "Hangzhou",
-    status: "delivered",
-    items: "Garden Lighting Set x1",
-    value: 15000,
-    eta: "2024-09-25",
-    createdAt: "2024-09-18"
-  },
-  {
-    id: "CD-2024-0123",
-    dealerName: "Chengdu",
-    status: "inProduction",
-    items: "Balcony Privacy Screen x4",
-    value: 22000,
-    eta: "2024-09-29",
-    createdAt: "2024-09-19"
-  }
-]
+interface Dealer {
+  id: string
+  name: string
+  territory: string
+}
+
+// Now using real API data instead of mock data
 
 const statusColors = {
   received: "secondary",
@@ -105,10 +66,45 @@ export function RecentOrdersTable({
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.items.toLowerCase().includes(searchTerm.toLowerCase())
+  const { data: orders, isLoading: ordersLoading } = useOrders(50)
+  const { data: dealers, isLoading: dealersLoading } = useDealers()
+  
+  const isLoading = ordersLoading || dealersLoading
+
+  // Create dealer lookup map
+  const dealerMap = (dealers as Dealer[] || []).reduce((acc: Record<string, Dealer>, dealer: Dealer) => {
+    acc[dealer.id] = dealer
+    return acc
+  }, {})
+
+  // Helper functions
+  const formatItems = (items: { item: string; quantity: number }[]) => {
+    return items.map(item => `${item.item} x${item.quantity}`).join(', ')
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getStatusBadge = (status: string) => {
+    return (
+      <Badge variant={statusColors[status as keyof typeof statusColors]}>
+        {statusLabels[status as keyof typeof statusLabels]}
+      </Badge>
+    )
+  }
+
+  // Filter orders based on search term and status
+  const filteredOrders = (orders as Order[] || []).filter((order: Order) => {
+    const dealerName = dealerMap[order.dealerId]?.name || 'Unknown'
+    const itemsText = formatItems(order.items)
+    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         itemsText.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -175,48 +171,58 @@ export function RecentOrdersTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow 
-                key={order.id} 
-                className="hover-elevate cursor-pointer"
-                onClick={() => onOrderClick(order.id)}
-                data-testid={`order-row-${order.id}`}
-              >
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>{order.dealerName}</TableCell>
-                <TableCell className="max-w-40 truncate">{order.items}</TableCell>
-                <TableCell>
-                  <Badge variant={statusColors[order.status]}>
-                    {statusLabels[order.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">¥{order.value.toLocaleString()}</TableCell>
-                <TableCell>{order.eta}</TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onOrderClick(order.id)
-                    }}
-                    data-testid={`button-view-order-${order.id}`}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                  <TableCell><div className="h-4 bg-muted animate-pulse rounded"></div></TableCell>
+                </TableRow>
+              ))
+            ) : filteredOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  No orders found
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredOrders.map((order: Order) => (
+                <TableRow 
+                  key={order.id} 
+                  className="hover-elevate cursor-pointer"
+                  onClick={() => onOrderClick(order.orderNumber)}
+                  data-testid={`order-row-${order.orderNumber}`}
+                >
+                  <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                  <TableCell>{dealerMap[order.dealerId]?.name || 'Unknown'}</TableCell>
+                  <TableCell className="max-w-40 truncate">{formatItems(order.items)}</TableCell>
+                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+                  <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
+                  <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : 'TBD'}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOrderClick(order.orderNumber)
+                      }}
+                      data-testid={`button-view-order-${order.orderNumber}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
         
-        {filteredOrders.length === 0 && (
-          <div className="text-center py-8">
-            <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No orders found</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   )

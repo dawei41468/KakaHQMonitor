@@ -35,20 +35,10 @@ export function LoginForm({
 
     setIsLoading(true)
     
-    // Simulate login attempt
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      onLogin(email, password)
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Kaka HQ Dashboard"
-      })
+      await onLogin(email, password)
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
-        variant: "destructive"
-      })
+      // Error handling is done in the parent component
     } finally {
       setIsLoading(false)
     }

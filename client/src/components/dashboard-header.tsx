@@ -1,4 +1,4 @@
-import { Building2, Bell, User } from "lucide-react"
+import { Building2, Bell, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "./theme-toggle"
+import { useAuth } from "@/lib/auth"
 
 interface DashboardHeaderProps {
   userName?: string
@@ -21,12 +22,12 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({
-  userName = "Admin User",
-  userRole = "HQ Team",
   alertCount = 3,
-  onProfileClick = () => console.log("Profile clicked"),
-  onLogoutClick = () => console.log("Logout clicked")
-}: DashboardHeaderProps) {
+  onProfileClick = () => console.log("Profile clicked")
+}: Partial<DashboardHeaderProps> = {}) {
+  const { user, logout } = useAuth();
+  const userName = user?.name || "Admin User";
+  const userRole = user?.role === 'admin' ? 'Administrator' : 'HQ Team';
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center px-4">
@@ -90,7 +91,8 @@ export function DashboardHeader({
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogoutClick} data-testid="menu-logout">
+                <DropdownMenuItem onClick={logout} data-testid="menu-logout">
+                  <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
