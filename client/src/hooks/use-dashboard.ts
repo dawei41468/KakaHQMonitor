@@ -28,8 +28,17 @@ export function useDashboardOverview() {
   });
 }
 
+interface DealerWithPerformance extends Dealer {
+  performance?: {
+    totalOrders: number;
+    completedOrders: number;
+    revenue: number;
+    onTimeRate: number;
+  };
+}
+
 export function useDealers() {
-  return useQuery<Dealer[]>({
+  return useQuery<DealerWithPerformance[]>({
     queryKey: ['/api/dealers'],
   });
 }

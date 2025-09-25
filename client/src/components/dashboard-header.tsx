@@ -11,13 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ThemeToggle } from "./theme-toggle"
+import { LanguageToggle } from "./language-toggle"
 import { useAuth } from "@/lib/auth"
 import { useLocation } from "wouter"
 import { useTranslation } from "react-i18next"
@@ -53,34 +52,34 @@ export function DashboardHeader({
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-4 w-4" />
-              {alertCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative cursor-pointer"
+                  onClick={() => navigate('/alerts')}
+                  data-testid="button-notifications"
                 >
-                  {alertCount}
-                </Badge>
-              )}
-            </Button>
+                  <Bell className="h-4 w-4" />
+                  {alertCount > 0 && (
+                    <Badge
+                      variant="default"
+                      className="absolute -top-0.5 -right-0.5 h-5 w-5 min-w-5 rounded-full flex items-center justify-center p-0 text-xs"
+                    >
+                      {alertCount}
+                    </Badge>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('header.activeAlerts', { count: alertCount })}</p>
+              </TooltipContent>
+            </Tooltip>
             
             <ThemeToggle />
 
-            <Select value={i18n.language} onValueChange={(value) => i18n.changeLanguage(value)}>
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">EN</SelectItem>
-                <SelectItem value="zh">中文</SelectItem>
-              </SelectContent>
-            </Select>
+            <LanguageToggle />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

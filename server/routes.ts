@@ -29,14 +29,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const refreshToken = generateRefreshToken(user);
 
       // Store single refresh token (replace any existing ones)
-      await storage.updateUserRefreshTokens(user.id, [{ token: refreshToken, expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }]);
+      await storage.updateUserRefreshTokens(user.id, [{ token: refreshToken, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }]);
 
       // Set refresh token as httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
 
       logAuthEvent('LOGIN_SUCCESS', user.id, { email: user.email, role: user.role });
@@ -46,7 +46,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
+          role: user.role,
+          theme: user.theme,
+          language: user.language
         },
         accessToken
       });
@@ -81,14 +83,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newRefreshToken = generateRefreshToken(user);
 
       // Store new refresh token
-      await storage.updateUserRefreshTokens(user.id, [{ token: newRefreshToken, expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }]);
+      await storage.updateUserRefreshTokens(user.id, [{ token: newRefreshToken, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }]);
 
       // Set new refresh token cookie
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
 
       logAuthEvent('TOKEN_REFRESH', user.id);
@@ -138,7 +140,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        theme: user.theme,
+        language: user.language
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch user" });
@@ -160,10 +164,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        theme: user.theme,
+        language: user.language
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  app.put("/api/user/preferences", async (req, res) => {
+    try {
+      const { theme, language } = req.body;
+      if (theme && !['light', 'dark', 'system'].includes(theme)) {
+        return res.status(400).json({ error: "Invalid theme" });
+      }
+      if (language && !['en', 'zh'].includes(language)) {
+        return res.status(400).json({ error: "Invalid language" });
+      }
+
+      const updates: any = {};
+      if (theme) updates.theme = theme;
+      if (language) updates.language = language;
+
+      const user = await storage.updateUser(req.user!.userId, updates);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        theme: user.theme,
+        language: user.language
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update preferences" });
     }
   });
 
@@ -195,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes
   app.get("/api/dashboard/overview", async (req, res) => {
     try {
-      const orders = await storage.getAllOrders(100);
+      const orders = await storage.getAllOrders(); // Get all orders, not just 100
       const dealers = await storage.getAllDealers();
       const alerts = await storage.getActiveAlerts();
       const materials = await storage.getAllMaterials();
@@ -458,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
     try {
-      const dealerData = req.body;
+      const dealerData = insertDealerSchema.partial().parse(req.body);
       const dealer = await storage.updateDealer(req.params.id, dealerData);
       if (!dealer) {
         return res.status(404).json({ error: "Dealer not found" });

@@ -50,7 +50,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader onProfileClick={() => navigate('/profile')} />
+      <DashboardHeader alertCount={metrics?.activeAlerts || 0} onProfileClick={() => navigate('/profile')} />
       
       <main className="container mx-auto p-6 space-y-6">
         {/* Key Metrics Row */}
@@ -106,13 +106,13 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Orders Table - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <RecentOrdersTable />
+            <RecentOrdersTable onViewAll={() => navigate('/orders')} />
           </div>
-          
+
           {/* Sidebar with Alerts and Inventory */}
           <div className="space-y-6">
-            <AlertsPanel />
-            <InventoryOverview />
+            <AlertsPanel onViewAll={() => navigate('/alerts')} />
+            <InventoryOverview onViewAll={() => navigate('/inventory')} />
           </div>
         </div>
       </main>

@@ -34,7 +34,9 @@
     "completed": "Completed",
     "unknown": "Unknown",
     "tbd": "TBD",
-    "morePages": "More pages"
+    "morePages": "More pages",
+    "backToDashboard": "Back to Dashboard",
+    "comingSoon": "Coming Soon"
   },
   "login": {
     "welcomeBack": "Welcome Back",
@@ -81,12 +83,14 @@
     "profile": "Profile",
     "adminDashboard": "Admin Dashboard",
     "logOut": "Log out",
-    "toggleTheme": "Toggle theme"
+    "toggleTheme": "Toggle theme",
+    "activeAlerts": "{{count}} active alerts"
   },
   "orders": {
     "recentOrders": "Recent Orders",
     "latestOrders": "Latest orders from all dealers",
     "viewAll": "View All",
+    "allOrders": "All Orders",
     "searchOrders": "Search orders...",
     "filterByStatus": "Filter by status",
     "allStatus": "All Status",
@@ -115,6 +119,7 @@
   },
   "inventory": {
     "inventoryOverview": "Inventory Overview",
+    "allInventory": "All Inventory",
     "itemsBelowThreshold": "{{count}} items below threshold",
     "allStocked": "All items adequately stocked",
     "critical": "Critical",
@@ -127,6 +132,7 @@
   "alerts": {
     "alertsNotifications": "Alerts & Notifications",
     "viewAll": "View All",
+    "allAlerts": "All Alerts",
     "recentResolved": "Recent Resolved",
     "resolvedAt": "Resolved • {{timestamp}}",
     "noActiveAlerts": "No active alerts",

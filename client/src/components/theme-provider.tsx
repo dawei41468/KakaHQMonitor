@@ -48,6 +48,18 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const stored = localStorage.getItem(storageKey) as Theme
+      if (stored && stored !== theme) {
+        setTheme(stored)
+      }
+    }
+
+    window.addEventListener('themeChange', handleThemeChange)
+    return () => window.removeEventListener('themeChange', handleThemeChange)
+  }, [theme, storageKey])
+
   const value = {
     theme,
     setTheme: (theme: Theme) => {

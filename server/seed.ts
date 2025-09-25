@@ -27,24 +27,23 @@ export async function seedDatabase() {
       console.log('✅ Admin user already exists, skipping');
     }
 
-    // Create dealers for the 5 territories
-    const existingDealers = await db.select().from(dealers);
-    let createdDealers;
-    if (existingDealers.length === 0) {
-      const dealerData = [
-        { name: 'Shenzhen', territory: 'Shenzhen', contactEmail: 'shenzhen@kaka.com', contactPhone: '+86-755-1234567' },
-        { name: 'Guangzhou', territory: 'Guangzhou', contactEmail: 'guangzhou@kaka.com', contactPhone: '+86-20-1234567' },
-        { name: 'Foshan', territory: 'Foshan', contactEmail: 'foshan@kaka.com', contactPhone: '+86-757-1234567' },
-        { name: 'Hangzhou', territory: 'Hangzhou', contactEmail: 'hangzhou@kaka.com', contactPhone: '+86-571-1234567' },
-        { name: 'Chengdu', territory: 'Chengdu', contactEmail: 'chengdu@kaka.com', contactPhone: '+86-28-1234567' }
-      ];
+    // Clear existing dealers, orders and related alerts to reseed fresh data
+    await db.delete(alerts).where(sql`${alerts.relatedOrderId} IS NOT NULL`);
+    await db.delete(orders);
+    await db.delete(dealers);
+    console.log('✅ Cleared existing dealers, orders and related alerts');
 
-      createdDealers = await db.insert(dealers).values(dealerData).returning();
-      console.log('✅ Created dealers');
-    } else {
-      createdDealers = existingDealers;
-      console.log('✅ Dealers already exist, skipping');
-    }
+    // Create dealers for the 5 territories
+    const dealerData = [
+      { name: '佛山', territory: '佛山', contactEmail: 'foshan@kaka.com', contactPhone: '+86-757-1234567' },
+      { name: '广州', territory: '广州', contactEmail: 'guangzhou@kaka.com', contactPhone: '+86-20-1234567' },
+      { name: '成都', territory: '成都', contactEmail: 'chengdu@kaka.com', contactPhone: '+86-28-1234567' },
+      { name: '杭州', territory: '杭州', contactEmail: 'hangzhou@kaka.com', contactPhone: '+86-571-1234567' },
+      { name: '深圳', territory: '深圳', contactEmail: 'shenzhen@kaka.com', contactPhone: '+86-755-1234567' }
+    ];
+
+    const createdDealers = await db.insert(dealers).values(dealerData).returning();
+    console.log('✅ Created fresh dealers');
 
     // Create materials inventory
     let createdMaterials = await db.select().from(materials);
@@ -63,8 +62,13 @@ export async function seedDatabase() {
       console.log('✅ Materials already exist, skipping');
     }
 
+    // Clear existing orders and related alerts to reseed fresh data
+    await db.delete(alerts).where(sql`${alerts.relatedOrderId} IS NOT NULL`);
+    await db.delete(orders);
+    console.log('✅ Cleared existing orders and related alerts');
+
     // Create sample orders
-    const orderData = [
+    const baseOrderData = [
       {
         dealerId: createdDealers[0].id, // Shenzhen
         orderNumber: 'SZ-2024-0456',
@@ -187,15 +191,65 @@ export async function seedDatabase() {
       }
     ];
 
-    const existingOrders = await db.select().from(orders);
-    let createdOrders;
-    if (existingOrders.length === 0) {
-      createdOrders = await db.insert(orders).values(orderData).returning();
-      console.log('✅ Created orders');
-    } else {
-      createdOrders = existingOrders;
-      console.log('✅ Orders already exist, skipping');
+    // Generate additional orders to match mock data totals
+    const additionalOrders = [];
+    const statuses = ['received', 'sentToFactory', 'inProduction', 'delivered'];
+    const items = [
+      { item: 'Balcony Railing Set', quantity: 2, value: '30000.00' },
+      { item: 'Garden Upgrade Kit', quantity: 1, value: '16000.00' },
+      { item: 'Balcony Flooring', quantity: 3, value: '17100.00' },
+      { item: 'Garden Lighting Set', quantity: 1, value: '15000.00' },
+      { item: 'Balcony Privacy Screen', quantity: 2, value: '11000.00' }
+    ];
+
+    // Target orders per dealer (matching mock data)
+    const targets = [
+      { dealerIndex: 0, targetOrders: 167, current: 3 }, // Foshan
+      { dealerIndex: 1, targetOrders: 198, current: 3 }, // Guangzhou
+      { dealerIndex: 2, targetOrders: 123, current: 2 }, // Chengdu
+      { dealerIndex: 3, targetOrders: 134, current: 2 }, // Hangzhou
+      { dealerIndex: 4, targetOrders: 245, current: 3 }  // Shenzhen
+    ];
+
+    let orderCounter = 459; // Starting after existing orders
+
+    for (const target of targets) {
+      const toAdd = target.targetOrders - target.current;
+      for (let i = 0; i < toAdd; i++) {
+        const item = items[Math.floor(Math.random() * items.length)];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const prefix = ['SZ', 'GZ', 'FS', 'HZ', 'CD'][target.dealerIndex];
+        const orderNumber = `${prefix}-2024-${String(orderCounter++).padStart(4, '0')}`;
+
+        const estimatedDelivery = new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000); // Random date within 30 days
+        const order: any = {
+          dealerId: createdDealers[target.dealerIndex].id,
+          orderNumber,
+          status,
+          items: [item],
+          totalValue: item.value,
+          estimatedDelivery
+        };
+
+        if (status === 'delivered') {
+          // Randomly make some deliveries late (matching mock onTimeRate)
+          const isLate = Math.random() < 0.15; // 15% late deliveries
+          if (isLate) {
+            order.actualDelivery = new Date(estimatedDelivery.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000); // 0-5 days late
+          } else {
+            order.actualDelivery = new Date(estimatedDelivery.getTime() - Math.random() * 2 * 24 * 60 * 60 * 1000); // 0-2 days early
+          }
+        }
+
+        additionalOrders.push(order);
+      }
     }
+
+    const orderData = [...baseOrderData, ...additionalOrders];
+
+    // Insert fresh orders
+    const createdOrders = await db.insert(orders).values(orderData).returning();
+    console.log(`✅ Created ${createdOrders.length} fresh orders`);
 
     // Create alerts
     const existingAlerts = await db.select().from(alerts);

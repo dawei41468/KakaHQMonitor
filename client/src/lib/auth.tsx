@@ -1,11 +1,14 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { apiRequest } from './queryClient';
+import i18n from './i18n';
 
 interface User {
   id: string;
   email: string;
   name: string;
   role: string;
+  theme: string;
+  language: string;
 }
 
 interface AuthContextType {
@@ -50,12 +53,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(data.user));
 
     setUser(data.user);
+
+    // Set user preferences
+    localStorage.setItem('vite-ui-theme', data.user.theme);
+    i18n.changeLanguage(data.user.language);
+    localStorage.setItem('i18nextLng', data.user.language);
+
+    // Dispatch custom event to update theme
+    window.dispatchEvent(new CustomEvent('themeChange'));
   };
 
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     setUser(null);
+
+    // Reset to default preferences
+    localStorage.setItem('vite-ui-theme', 'system');
+    i18n.changeLanguage('en');
+    localStorage.setItem('i18nextLng', 'en');
+
+    // Dispatch custom event to update theme
+    window.dispatchEvent(new CustomEvent('themeChange'));
   };
 
   const refreshToken = async () => {
