@@ -1,4 +1,4 @@
-import { Building2, Bell, User, LogOut } from "lucide-react"
+import { Building2, Bell, User, LogOut, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/lib/auth"
+import { useLocation } from "wouter"
 
 interface DashboardHeaderProps {
   userName?: string
@@ -26,6 +27,7 @@ export function DashboardHeader({
   onProfileClick = () => console.log("Profile clicked")
 }: Partial<DashboardHeaderProps> = {}) {
   const { user, logout } = useAuth();
+  const [, navigate] = useLocation();
   const userName = user?.name || "Admin User";
   const userRole = user?.role === 'admin' ? 'Administrator' : 'HQ Team';
   return (
@@ -90,6 +92,15 @@ export function DashboardHeader({
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
+                {user?.role === 'admin' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/admin')} data-testid="menu-admin">
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Admin Dashboard</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} data-testid="menu-logout">
                   <LogOut className="mr-2 h-4 w-4" />

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Order, Dealer } from '@shared/schema';
 
 interface DashboardOverview {
   metrics: {
@@ -15,6 +16,11 @@ interface DashboardOverview {
   alerts: any[];
 }
 
+interface OrdersResponse {
+  items: Order[];
+  total: number;
+}
+
 export function useDashboardOverview() {
   return useQuery<DashboardOverview>({
     queryKey: ['/api/dashboard/overview'],
@@ -23,13 +29,13 @@ export function useDashboardOverview() {
 }
 
 export function useDealers() {
-  return useQuery({
+  return useQuery<Dealer[]>({
     queryKey: ['/api/dealers'],
   });
 }
 
 export function useOrders(limit = 50) {
-  return useQuery({
+  return useQuery<OrdersResponse>({
     queryKey: [`/api/orders?limit=${limit}`],
   });
 }

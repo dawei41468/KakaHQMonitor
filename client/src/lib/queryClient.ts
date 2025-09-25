@@ -7,6 +7,43 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Global flag to prevent multiple concurrent refresh attempts
+let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshAccessToken(): Promise<void> {
+  if (isRefreshing) {
+    return refreshPromise!;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('accessToken', data.accessToken);
+      } else {
+        // Refresh failed, logout
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        throw new Error('Session expired');
+      }
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 // Get auth token for API requests
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('accessToken');
@@ -22,13 +59,34 @@ export async function apiRequest(
     ...getAuthHeaders(),
     ...(data ? { "Content-Type": "application/json" } : {}),
   };
-  
-  const res = await fetch(url, {
+
+  let res = await fetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  // If we get a 401, try to refresh the token once
+  if (res.status === 401 && localStorage.getItem('accessToken')) {
+    try {
+      await refreshAccessToken();
+      // Retry the original request with new token
+      const newHeaders = {
+        ...getAuthHeaders(),
+        ...(data ? { "Content-Type": "application/json" } : {}),
+      };
+      res = await fetch(url, {
+        method,
+        headers: newHeaders,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+      });
+    } catch (refreshError) {
+      // Refresh failed, throw the original error
+      await throwIfResNotOk(res);
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;

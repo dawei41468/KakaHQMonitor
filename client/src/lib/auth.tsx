@@ -14,6 +14,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,37 +45,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const response = await apiRequest('POST', '/api/auth/login', { email, password });
     const data = await response.json();
-    
+
     localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('user', JSON.stringify(data.user));
-    
+
     setUser(data.user);
   };
 
   const logout = () => {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
   };
 
   const refreshToken = async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      logout();
-      return;
-    }
-
     try {
-      const response = await apiRequest('POST', '/api/auth/refresh', { refreshToken });
+      const response = await apiRequest('POST', '/api/auth/refresh');
       const data = await response.json();
-      
+
       localStorage.setItem('accessToken', data.accessToken);
     } catch (error) {
       logout();
       throw error;
     }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    await apiRequest('PUT', '/api/user/password', { currentPassword, newPassword });
   };
 
   return (
@@ -82,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       logout,
-      refreshToken
+      refreshToken,
+      changePassword,
+      setUser
     }}>
       {children}
     </AuthContext.Provider>

@@ -7,8 +7,10 @@ import { InventoryOverview } from "@/components/inventory-overview"
 import { useDashboardOverview } from "@/hooks/use-dashboard"
 import { DollarSign, Package, Clock, Users, AlertTriangle, Boxes } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useLocation } from "wouter"
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
   const { data: overview, isLoading, error } = useDashboardOverview();
 
   if (isLoading) {
@@ -46,7 +48,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader />
+      <DashboardHeader onProfileClick={() => navigate('/profile')} />
       
       <main className="container mx-auto p-6 space-y-6">
         {/* Key Metrics Row */}
