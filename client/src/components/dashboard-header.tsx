@@ -10,9 +10,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/lib/auth"
 import { useLocation } from "wouter"
+import { useTranslation } from "react-i18next"
 
 interface DashboardHeaderProps {
   userName?: string
@@ -26,16 +34,17 @@ export function DashboardHeader({
   alertCount = 3,
   onProfileClick = () => console.log("Profile clicked")
 }: Partial<DashboardHeaderProps> = {}) {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const userName = user?.name || "Admin User";
-  const userRole = user?.role === 'admin' ? 'Administrator' : 'HQ Team';
+  const userName = user?.name || t('header.adminUser');
+  const userRole = user?.role === 'admin' ? t('header.administrator') : t('header.hqTeam');
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center px-4">
         <div className="mr-4 flex items-center space-x-2">
           <Building2 className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">Kaka HQ</span>
+          <span className="font-bold text-lg">{t('common.kakaHq')}</span>
         </div>
         
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
@@ -62,7 +71,17 @@ export function DashboardHeader({
             </Button>
             
             <ThemeToggle />
-            
+
+            <Select value={i18n.language} onValueChange={(value) => i18n.changeLanguage(value)}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">EN</SelectItem>
+                <SelectItem value="zh">中文</SelectItem>
+              </SelectContent>
+            </Select>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -90,21 +109,21 @@ export function DashboardHeader({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onProfileClick} data-testid="menu-profile">
                   <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                  <span>{t('header.profile')}</span>
                 </DropdownMenuItem>
                 {user?.role === 'admin' && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin')} data-testid="menu-admin">
                       <Shield className="mr-2 h-4 w-4" />
-                      <span>Admin Dashboard</span>
+                      <span>{t('header.adminDashboard')}</span>
                     </DropdownMenuItem>
                   </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} data-testid="menu-logout">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{t('header.logOut')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

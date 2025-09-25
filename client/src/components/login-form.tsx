@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Building2, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "react-i18next"
 
 interface LoginFormProps {
   onLogin?: (email: string, password: string) => void
@@ -15,6 +16,7 @@ export function LoginForm({
   onLogin = (email, password) => console.log("Login attempt:", { email, password }),
   onForgotPassword = () => console.log("Forgot password clicked")
 }: LoginFormProps) {
+  const { t } = useTranslation()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -26,8 +28,8 @@ export function LoginForm({
     
     if (!email || !password) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all fields",
+        title: t('login.validationError'),
+        description: t('login.fillAllFields'),
         variant: "destructive"
       })
       return
@@ -50,21 +52,21 @@ export function LoginForm({
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Building2 className="h-8 w-8 text-primary" />
-            <span className="font-bold text-2xl">Kaka HQ</span>
+            <span className="font-bold text-2xl">{t('common.kakaHq')}</span>
           </div>
-          <CardTitle className="text-xl">Welcome Back</CardTitle>
+          <CardTitle className="text-xl">{t('login.welcomeBack')}</CardTitle>
           <CardDescription>
-            Sign in to your headquarters dashboard
+            {t('login.signInToDashboard')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('common.email')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@kaka-hq.com"
+                placeholder={t('login.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -72,14 +74,14 @@ export function LoginForm({
                 data-testid="input-email"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('common.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -111,17 +113,17 @@ export function LoginForm({
                 onClick={onForgotPassword}
                 data-testid="button-forgot-password"
               >
-                Forgot password?
+                {t('login.forgotPassword')}
               </Button>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading}
               data-testid="button-login"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? t('login.signingIn') : t('login.signIn')}
             </Button>
           </form>
         </CardContent>

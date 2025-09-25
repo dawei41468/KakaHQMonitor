@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertTriangle, Package, Clock, CheckCircle, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
 
 interface Alert {
   id: string
@@ -70,10 +71,11 @@ interface AlertsPanelProps {
   onViewAll?: () => void
 }
 
-export function AlertsPanel({ 
+export function AlertsPanel({
   onResolveAlert = (id) => console.log(`Resolving alert ${id}`),
   onViewAll = () => console.log("View all alerts")
 }: AlertsPanelProps) {
+  const { t } = useTranslation();
   const activeAlerts = mockAlerts.filter(alert => !alert.resolved)
   const resolvedAlerts = mockAlerts.filter(alert => alert.resolved)
 
@@ -82,18 +84,18 @@ export function AlertsPanel({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Alerts & Notifications</CardTitle>
+            <CardTitle className="text-lg">{t('alerts.alertsNotifications')}</CardTitle>
             <CardDescription>
-              {activeAlerts.length} active alerts requiring attention
+              {activeAlerts.length} {t('alerts.requireAttention')}
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onViewAll}
             data-testid="button-view-all-alerts"
           >
-            View All
+            {t('alerts.viewAll')}
           </Button>
         </div>
       </CardHeader>
@@ -123,11 +125,11 @@ export function AlertsPanel({
                       <p className="text-sm font-medium leading-none">
                         {alert.title}
                       </p>
-                      <Badge 
+                      <Badge
                         variant={priorityColors[alert.priority]}
                         className="text-xs"
                       >
-                        {alert.priority}
+                        {t(`admin.${alert.priority}`)}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -145,7 +147,7 @@ export function AlertsPanel({
                         data-testid={`button-resolve-${alert.id}`}
                       >
                         <X className="h-3 w-3 mr-1" />
-                        Resolve
+                        {t('alerts.resolve')}
                       </Button>
                     </div>
                   </div>
@@ -156,7 +158,7 @@ export function AlertsPanel({
             {resolvedAlerts.length > 0 && (
               <>
                 <div className="pt-4 pb-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Recent Resolved</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground">{t('alerts.recentResolved')}</h4>
                 </div>
                 {resolvedAlerts.slice(0, 2).map((alert) => {
                   const Icon = alertIcons[alert.type]
@@ -175,7 +177,7 @@ export function AlertsPanel({
                           {alert.message}
                         </p>
                         <span className="text-xs text-muted-foreground">
-                          Resolved • {alert.timestamp}
+                          {t('alerts.resolvedAt', { timestamp: alert.timestamp })}
                         </span>
                       </div>
                     </div>
@@ -187,7 +189,7 @@ export function AlertsPanel({
             {activeAlerts.length === 0 && (
               <div className="text-center py-8">
                 <CheckCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No active alerts</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.noActiveAlerts')}</p>
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Package, AlertTriangle, Plus } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface InventoryItem {
   id: string
@@ -72,6 +73,7 @@ export function InventoryOverview({
   onRestockClick = (id) => console.log(`Restocking item ${id}`),
   onViewAll = () => console.log("View all inventory")
 }: InventoryOverviewProps) {
+  const { t } = useTranslation();
   const lowStockItems = mockInventory.filter(item => item.currentStock <= item.threshold)
   const totalItems = mockInventory.length
   const lowStockCount = lowStockItems.length
@@ -83,26 +85,26 @@ export function InventoryOverview({
           <div>
             <CardTitle className="flex items-center space-x-2">
               <Package className="h-5 w-5" />
-              <span>Inventory Overview</span>
+              <span>{t('inventory.inventoryOverview')}</span>
             </CardTitle>
             <CardDescription>
               {lowStockCount > 0 ? (
                 <span className="flex items-center space-x-1 text-destructive">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>{lowStockCount} items below threshold</span>
+                  <span>{t('inventory.itemsBelowThreshold', { count: lowStockCount })}</span>
                 </span>
               ) : (
-                <span className="text-green-600">All items adequately stocked</span>
+                <span className="text-green-600">{t('inventory.allStocked')}</span>
               )}
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onViewAll}
             data-testid="button-view-all-inventory"
           >
-            View All
+            {t('inventory.viewAll')}
           </Button>
         </div>
       </CardHeader>
@@ -124,7 +126,7 @@ export function InventoryOverview({
                     <h4 className="text-sm font-medium">{item.name}</h4>
                     {isLowStock && (
                       <Badge variant={isCritical ? "destructive" : "secondary"}>
-                        {isCritical ? "Critical" : "Low Stock"}
+                        {isCritical ? t('inventory.critical') : t('inventory.lowStock')}
                       </Badge>
                     )}
                   </div>
@@ -135,7 +137,7 @@ export function InventoryOverview({
                     {item.currentStock} / {item.maxStock} {item.unit}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Threshold: {item.threshold}
+                    {t('inventory.threshold', { value: item.threshold })}
                   </p>
                 </div>
               </div>
@@ -147,7 +149,7 @@ export function InventoryOverview({
                 />
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">
-                    {stockPercentage.toFixed(1)}% capacity
+                    {t('inventory.capacity', { percentage: stockPercentage.toFixed(1) })}
                   </span>
                   {isLowStock && (
                     <Button 
@@ -158,7 +160,7 @@ export function InventoryOverview({
                       data-testid={`button-restock-${item.id}`}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      Restock
+                      {t('inventory.restock')}
                     </Button>
                   )}
                 </div>

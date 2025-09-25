@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { useTranslation } from "react-i18next"
 
 // todo: remove mock data
 const mockDealerData = [
@@ -17,15 +18,16 @@ interface DealerPerformanceChartProps {
   onDealerClick?: (dealerName: string) => void
 }
 
-export function DealerPerformanceChart({ 
-  onDealerClick = (dealer) => console.log(`Clicked on ${dealer}`) 
+export function DealerPerformanceChart({
+  onDealerClick = (dealer) => console.log(`Clicked on ${dealer}`)
 }: DealerPerformanceChartProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Revenue by Territory</CardTitle>
-          <CardDescription>Monthly revenue comparison across dealers</CardDescription>
+          <CardTitle>{t('dashboard.revenueByTerritory')}</CardTitle>
+          <CardDescription>{t('dashboard.monthlyRevenueComparison')}</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -42,8 +44,8 @@ export function DealerPerformanceChart({
                 tick={{ fontSize: 12 }}
                 tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}K`}
               />
-              <Tooltip 
-                formatter={(value: number) => [`¥${value.toLocaleString()}`, "Revenue"]}
+              <Tooltip
+                formatter={(value: number) => [`¥${value.toLocaleString()}`, t('dashboard.totalRevenue')]}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
                 contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
@@ -65,8 +67,8 @@ export function DealerPerformanceChart({
 
       <Card>
         <CardHeader>
-          <CardTitle>Order Distribution</CardTitle>
-          <CardDescription>Order volume by territory</CardDescription>
+          <CardTitle>{t('dashboard.orderDistribution')}</CardTitle>
+          <CardDescription>{t('dashboard.orderVolumeByTerritory')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,8 +88,8 @@ export function DealerPerformanceChart({
                     <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [`${value}`, "Orders"]}
+                <Tooltip
+                  formatter={(value: number) => [`${value}`, t('dashboard.totalOrders')]}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                   contentStyle={{
                     backgroundColor: "hsl(var(--popover))",
