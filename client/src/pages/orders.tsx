@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrdersDataTable } from "@/components/orders-data-table";
+import { CreateOrderForm } from "@/components/create-order-form";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import * as React from "react";
 
 export default function Orders() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const [dataTable, setDataTable] = React.useState<any>(null);
 
   return (
     <div className="container mx-auto p-6">
@@ -21,16 +24,10 @@ export default function Orders() {
           {t('common.backToDashboard')}
         </Button>
         <h1 className="text-2xl font-bold">{t('orders.allOrders')}</h1>
+        <CreateOrderForm onOrderCreated={() => dataTable?.fetchData()} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('orders.allOrders')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{t('common.comingSoon')}</p>
-        </CardContent>
-      </Card>
+      <OrdersDataTable onReady={(table) => setDataTable(table)} />
     </div>
   );
 }

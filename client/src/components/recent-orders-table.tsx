@@ -58,7 +58,7 @@ export function RecentOrdersTable({
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  const { data: orders, isLoading: ordersLoading } = useOrders(50)
+  const { data: orders, isLoading: ordersLoading } = useOrders(20)
   const { data: dealers, isLoading: dealersLoading } = useDealers()
   
   const isLoading = ordersLoading || dealersLoading

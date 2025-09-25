@@ -17,7 +17,7 @@ A full-stack web application for monitoring and managing orders from dealers at 
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui
 - **Backend:** Node.js, Express, TypeScript, Drizzle ORM
 - **Database:** PostgreSQL
-- **Authentication:** JWT with Passport.js
+- **Authentication:** Custom JWT implementation with refresh token rotation
 
 ## Installation
 
