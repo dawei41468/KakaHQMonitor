@@ -77,13 +77,13 @@ The backend is a robust Node.js application built with Express and TypeScript. I
 - **Framework:** Express.js
 - **Language:** TypeScript
 - **ORM:** Drizzle for type-safe SQL database interactions.
-- **Authentication:** Passport.js with JWT for secure, session-based authentication.
+- **Authentication:** Custom JWT implementation with refresh token rotation for enhanced security.
 
 ### Structure & Key Files:
 - `index.ts`: The application's entry point, responsible for setting up the Express server, middleware, and Vite integration for development.
 - `routes.ts`: Comprehensive API endpoints covering authentication, dashboard metrics, dealer management, order lifecycle, inventory control, and admin operations.
 - `storage.ts`: Data access layer with full CRUD operations for all entities (users, dealers, orders, materials, alerts) using Drizzle ORM.
-- `auth.ts` & `middleware.ts`: JWT-based authentication with Passport.js, including refresh token handling and role-based access control.
+- `auth.ts` & `middleware.ts`: Custom JWT-based authentication, including token generation, refresh token rotation, and role-based access control middleware.
 - `db.ts`: Database connection setup using PostgreSQL with Drizzle ORM.
 - `seed.ts`: Database seeding script that populates initial data including admin user, dealers, sample orders, materials, and alerts.
 
