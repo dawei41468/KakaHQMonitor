@@ -13,25 +13,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { apiRequest } from "@/lib/queryClient";
 
-const getAuthHeaders = (): Record<string, string> => {
-  const token = localStorage.getItem('accessToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
 
 /**
  * User Management Component
  * Handles user CRUD operations with pagination
  */
 function UserManagement() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const limit = 10;
   const { data: result, isLoading } = useQuery({
     queryKey: ['/api/admin/users', page],
-    queryFn: () => fetch(`/api/admin/users?limit=${limit}&offset=${(page - 1) * limit}`, {
-      headers: getAuthHeaders(),
-    }).then(res => res.json()),
+    queryFn: () => apiRequest('GET', `/api/admin/users?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
   });
   const users = result?.items || [];
   const total = result?.total || 0;
@@ -41,15 +38,7 @@ function UserManagement() {
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: any) => {
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(userData),
-      });
-      if (!response.ok) throw new Error('Failed to create user');
+      const response = await apiRequest('POST', '/api/admin/users', userData);
       return response.json();
     },
     onSuccess: () => {
@@ -61,15 +50,7 @@ function UserManagement() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/admin/users/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update user');
+      const response = await apiRequest('PUT', `/api/admin/users/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -79,11 +60,7 @@ function UserManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/users/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error('Failed to delete user');
+      const response = await apiRequest('DELETE', `/api/admin/users/${id}`);
       return response.json();
     },
     onSuccess: () => {
@@ -91,26 +68,26 @@ function UserManagement() {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Users: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalUsers', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add User
+              {t('admin.addUser')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
+              <DialogTitle>{t('admin.addNewUser')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('common.email')}</Label>
                 <Input
                   id="email"
                   value={newUser.email}
@@ -118,7 +95,7 @@ function UserManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('common.password')}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -127,7 +104,7 @@ function UserManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t('common.name')}</Label>
                 <Input
                   id="name"
                   value={newUser.name}
@@ -135,19 +112,19 @@ function UserManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">{t('common.role')}</Label>
                 <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="standard">{t('admin.standard')}</SelectItem>
+                    <SelectItem value="admin">{t('admin.adminRole')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <Button onClick={() => createUserMutation.mutate(newUser)} disabled={createUserMutation.isPending}>
-                {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+                {createUserMutation.isPending ? t('admin.creating') : t('admin.createUser')}
               </Button>
             </div>
           </DialogContent>
@@ -156,11 +133,11 @@ function UserManagement() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead>{t('common.name')}</TableHead>
+            <TableHead>{t('common.email')}</TableHead>
+            <TableHead>{t('common.role')}</TableHead>
+            <TableHead>{t('admin.created')}</TableHead>
+            <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -170,7 +147,7 @@ function UserManagement() {
               <TableCell>{user.email}</TableCell>
               <TableCell>
                 <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                  {user.role}
+                  {t(`admin.${user.role}`)}
                 </Badge>
               </TableCell>
               <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
@@ -184,7 +161,7 @@ function UserManagement() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Edit Role</DialogTitle>
+                        <DialogTitle>{t('admin.editRole')}</DialogTitle>
                       </DialogHeader>
                       <Select
                         value={user.role}
@@ -194,8 +171,8 @@ function UserManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="standard">{t('admin.standard')}</SelectItem>
+                          <SelectItem value="admin">{t('admin.adminRole')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </DialogContent>
@@ -208,15 +185,15 @@ function UserManagement() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                        <AlertDialogTitle>{t('admin.deleteUser')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete {user.name}? This action cannot be undone.
+                          {t('admin.confirmDeleteUser', { user: user.name })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteUserMutation.mutate(user.id)}>
-                          Delete
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -265,14 +242,13 @@ function UserManagement() {
  * Handles dealer CRUD operations with pagination
  */
 function DealerManagement() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const limit = 10;
   const { data: result, isLoading } = useQuery({
     queryKey: ['/api/admin/dealers', page],
-    queryFn: () => fetch(`/api/admin/dealers?limit=${limit}&offset=${(page - 1) * limit}`, {
-      headers: getAuthHeaders(),
-    }).then(res => res.json()),
+    queryFn: () => apiRequest('GET', `/api/admin/dealers?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
   });
   const dealers = result?.items || [];
   const total = result?.total || 0;
@@ -282,15 +258,7 @@ function DealerManagement() {
 
   const createDealerMutation = useMutation({
     mutationFn: async (dealerData: any) => {
-      const response = await fetch('/api/admin/dealers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(dealerData),
-      });
-      if (!response.ok) throw new Error('Failed to create dealer');
+      const response = await apiRequest('POST', '/api/admin/dealers', dealerData);
       return response.json();
     },
     onSuccess: () => {
@@ -302,15 +270,7 @@ function DealerManagement() {
 
   const updateDealerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/admin/dealers/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update dealer');
+      const response = await apiRequest('PUT', `/api/admin/dealers/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -320,11 +280,7 @@ function DealerManagement() {
 
   const deleteDealerMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/dealers/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (!response.ok) throw new Error('Failed to delete dealer');
+      const response = await apiRequest('DELETE', `/api/admin/dealers/${id}`);
       return response.json();
     },
     onSuccess: () => {
@@ -332,26 +288,26 @@ function DealerManagement() {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Dealers: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalDealers', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Dealer
+              {t('admin.addDealer')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Dealer</DialogTitle>
+              <DialogTitle>{t('admin.addNewDealer')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t('common.name')}</Label>
                 <Input
                   id="name"
                   value={newDealer.name}
@@ -359,7 +315,7 @@ function DealerManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="territory">Territory</Label>
+                <Label htmlFor="territory">{t('admin.territory')}</Label>
                 <Input
                   id="territory"
                   value={newDealer.territory}
@@ -367,7 +323,7 @@ function DealerManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Label htmlFor="contactEmail">{t('admin.contactEmail')}</Label>
                 <Input
                   id="contactEmail"
                   value={newDealer.contactEmail}
@@ -375,7 +331,7 @@ function DealerManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Label htmlFor="contactPhone">{t('admin.contactPhone')}</Label>
                 <Input
                   id="contactPhone"
                   value={newDealer.contactPhone}
@@ -383,7 +339,7 @@ function DealerManagement() {
                 />
               </div>
               <Button onClick={() => createDealerMutation.mutate(newDealer)} disabled={createDealerMutation.isPending}>
-                {createDealerMutation.isPending ? 'Creating...' : 'Create Dealer'}
+                {createDealerMutation.isPending ? t('admin.creating') : t('admin.createDealer')}
               </Button>
             </div>
           </DialogContent>
@@ -392,12 +348,12 @@ function DealerManagement() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Territory</TableHead>
-            <TableHead>Contact Email</TableHead>
-            <TableHead>Contact Phone</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead>{t('common.name')}</TableHead>
+            <TableHead>{t('admin.territory')}</TableHead>
+            <TableHead>{t('admin.contactEmail')}</TableHead>
+            <TableHead>{t('admin.contactPhone')}</TableHead>
+            <TableHead>{t('admin.created')}</TableHead>
+            <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -411,38 +367,38 @@ function DealerManagement() {
               <TableCell>
                 <div className="flex space-x-2">
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Dealer</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input defaultValue={dealer.name} onChange={(e) => dealer.name = e.target.value} />
-                        </div>
-                        <div>
-                          <Label>Territory</Label>
-                          <Input defaultValue={dealer.territory} onChange={(e) => dealer.territory = e.target.value} />
-                        </div>
-                        <div>
-                          <Label>Contact Email</Label>
-                          <Input defaultValue={dealer.contactEmail} onChange={(e) => dealer.contactEmail = e.target.value} />
-                        </div>
-                        <div>
-                          <Label>Contact Phone</Label>
-                          <Input defaultValue={dealer.contactPhone} onChange={(e) => dealer.contactPhone = e.target.value} />
-                        </div>
-                        <Button onClick={() => updateDealerMutation.mutate({ id: dealer.id, data: dealer })}>
-                          Update
-                        </Button>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t('admin.editDealer')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>{t('common.name')}</Label>
+                        <Input defaultValue={dealer.name} onChange={(e) => dealer.name = e.target.value} />
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                      <div>
+                        <Label>{t('admin.territory')}</Label>
+                        <Input defaultValue={dealer.territory} onChange={(e) => dealer.territory = e.target.value} />
+                      </div>
+                      <div>
+                        <Label>{t('admin.contactEmail')}</Label>
+                        <Input defaultValue={dealer.contactEmail} onChange={(e) => dealer.contactEmail = e.target.value} />
+                      </div>
+                      <div>
+                        <Label>{t('admin.contactPhone')}</Label>
+                        <Input defaultValue={dealer.contactPhone} onChange={(e) => dealer.contactPhone = e.target.value} />
+                      </div>
+                      <Button onClick={() => updateDealerMutation.mutate({ id: dealer.id, data: dealer })}>
+                        {t('admin.update')}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -451,15 +407,15 @@ function DealerManagement() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Dealer</AlertDialogTitle>
+                        <AlertDialogTitle>{t('admin.deleteDealer')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete {dealer.name}? This action cannot be undone.
+                          {t('admin.confirmDeleteDealer', { dealer: dealer.name })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteDealerMutation.mutate(dealer.id)}>
-                          Delete
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -508,29 +464,20 @@ function DealerManagement() {
  * Handles order status updates with pagination
  */
 function OrderManagement() {
+   const { t } = useTranslation();
    const queryClient = useQueryClient();
    const [page, setPage] = useState(1);
    const limit = 10;
    const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
      queryKey: ['/api/admin/orders', page],
-     queryFn: () => fetch(`/api/admin/orders?limit=${limit}&offset=${(page - 1) * limit}`, {
-       headers: getAuthHeaders(),
-     }).then(res => res.json()),
+     queryFn: () => apiRequest('GET', `/api/admin/orders?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
    });
    const orders = result?.items || [];
    const total = result?.total || 0;
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/admin/orders/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update order');
+      const response = await apiRequest('PUT', `/api/admin/orders/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -538,7 +485,7 @@ function OrderManagement() {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
     <div>
@@ -546,12 +493,12 @@ function OrderManagement() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Order Number</TableHead>
-            <TableHead>Dealer</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Total Value</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead>{t('admin.orderNumber')}</TableHead>
+            <TableHead>{t('orders.dealer')}</TableHead>
+            <TableHead>{t('common.status')}</TableHead>
+            <TableHead>{t('admin.totalValue')}</TableHead>
+            <TableHead>{t('admin.created')}</TableHead>
+            <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -561,7 +508,7 @@ function OrderManagement() {
               <TableCell>{order.dealer?.name || order.dealerId}</TableCell>
               <TableCell>
                 <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
-                  {order.status}
+                  {t(`orders.${order.status}`)}
                 </Badge>
               </TableCell>
               <TableCell>${order.totalValue}</TableCell>
@@ -576,10 +523,10 @@ function OrderManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="received">Received</SelectItem>
-                      <SelectItem value="sentToFactory">Sent to Factory</SelectItem>
-                      <SelectItem value="inProduction">In Production</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="received">{t('orders.received')}</SelectItem>
+                      <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
+                      <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
+                      <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Dialog>
@@ -590,15 +537,15 @@ function OrderManagement() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Edit Order Details</DialogTitle>
+                        <DialogTitle>{t('admin.editOrderDetails')}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label>Notes</Label>
+                          <Label>{t('admin.notes')}</Label>
                           <Input defaultValue={order.notes} onChange={(e) => order.notes = e.target.value} />
                         </div>
                         <Button onClick={() => updateOrderMutation.mutate({ id: order.id, data: { notes: order.notes } })}>
-                          Update
+                          {t('admin.update')}
                         </Button>
                       </div>
                     </DialogContent>
@@ -647,14 +594,13 @@ function OrderManagement() {
  * Handles material CRUD operations with pagination
  */
 function MaterialManagement() {
-   const queryClient = useQueryClient();
-   const [page, setPage] = useState(1);
-   const limit = 10;
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
+    const limit = 10;
    const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
      queryKey: ['/api/admin/materials', page],
-     queryFn: () => fetch(`/api/admin/materials?limit=${limit}&offset=${(page - 1) * limit}`, {
-       headers: getAuthHeaders(),
-     }).then(res => res.json()),
+     queryFn: () => apiRequest('GET', `/api/admin/materials?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
    });
    const materials = result?.items || [];
    const total = result?.total || 0;
@@ -664,15 +610,7 @@ function MaterialManagement() {
 
   const createMaterialMutation = useMutation({
     mutationFn: async (materialData: any) => {
-      const response = await fetch('/api/admin/materials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(materialData),
-      });
-      if (!response.ok) throw new Error('Failed to create material');
+      const response = await apiRequest('POST', '/api/admin/materials', materialData);
       return response.json();
     },
     onSuccess: () => {
@@ -684,15 +622,7 @@ function MaterialManagement() {
 
   const updateMaterialMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/admin/materials/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update material');
+      const response = await apiRequest('PUT', `/api/admin/materials/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -713,50 +643,50 @@ function MaterialManagement() {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Materials: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalMaterials', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Material
+              {t('admin.addMaterial')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Material</DialogTitle>
+              <DialogTitle>{t('admin.addNewMaterial')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('common.name')}</Label>
                 <Input value={newMaterial.name} onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })} />
               </div>
               <div>
-                <Label>Category</Label>
+                <Label>{t('admin.category')}</Label>
                 <Input value={newMaterial.category} onChange={(e) => setNewMaterial({ ...newMaterial, category: e.target.value })} />
               </div>
               <div>
-                <Label>Current Stock</Label>
+                <Label>{t('admin.currentStock')}</Label>
                 <Input type="number" value={newMaterial.currentStock} onChange={(e) => setNewMaterial({ ...newMaterial, currentStock: Number(e.target.value) })} />
               </div>
               <div>
-                <Label>Max Stock</Label>
+                <Label>{t('admin.maxStock')}</Label>
                 <Input type="number" value={newMaterial.maxStock} onChange={(e) => setNewMaterial({ ...newMaterial, maxStock: Number(e.target.value) })} />
               </div>
               <div>
-                <Label>Threshold</Label>
+                <Label>{t('admin.threshold')}</Label>
                 <Input type="number" value={newMaterial.threshold} onChange={(e) => setNewMaterial({ ...newMaterial, threshold: Number(e.target.value) })} />
               </div>
               <div>
-                <Label>Unit</Label>
+                <Label>{t('admin.unit')}</Label>
                 <Input value={newMaterial.unit} onChange={(e) => setNewMaterial({ ...newMaterial, unit: e.target.value })} />
               </div>
               <Button onClick={() => createMaterialMutation.mutate(newMaterial)} disabled={createMaterialMutation.isPending}>
-                {createMaterialMutation.isPending ? 'Creating...' : 'Create Material'}
+                {createMaterialMutation.isPending ? t('admin.creating') : t('admin.createMaterial')}
               </Button>
             </div>
           </DialogContent>
@@ -765,12 +695,12 @@ function MaterialManagement() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Current Stock</TableHead>
-            <TableHead>Max Stock</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead>{t('common.name')}</TableHead>
+            <TableHead>{t('admin.category')}</TableHead>
+            <TableHead>{t('admin.currentStock')}</TableHead>
+            <TableHead>{t('admin.maxStock')}</TableHead>
+            <TableHead>{t('admin.unit')}</TableHead>
+            <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -791,31 +721,31 @@ function MaterialManagement() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Edit Material</DialogTitle>
+                        <DialogTitle>{t('admin.editMaterial')}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label>Name</Label>
+                          <Label>{t('common.name')}</Label>
                           <Input defaultValue={material.name} onChange={(e) => material.name = e.target.value} />
                         </div>
                         <div>
-                          <Label>Category</Label>
+                          <Label>{t('admin.category')}</Label>
                           <Input defaultValue={material.category} onChange={(e) => material.category = e.target.value} />
                         </div>
                         <div>
-                          <Label>Max Stock</Label>
+                          <Label>{t('admin.maxStock')}</Label>
                           <Input type="number" defaultValue={material.maxStock} onChange={(e) => material.maxStock = Number(e.target.value)} />
                         </div>
                         <div>
-                          <Label>Threshold</Label>
+                          <Label>{t('admin.threshold')}</Label>
                           <Input type="number" defaultValue={material.threshold} onChange={(e) => material.threshold = Number(e.target.value)} />
                         </div>
                         <div>
-                          <Label>Unit</Label>
+                          <Label>{t('admin.unit')}</Label>
                           <Input defaultValue={material.unit} onChange={(e) => material.unit = e.target.value} />
                         </div>
                         <Button onClick={() => updateMaterialMutation.mutate({ id: material.id, data: material })}>
-                          Update
+                          {t('admin.update')}
                         </Button>
                       </div>
                     </DialogContent>
@@ -823,12 +753,12 @@ function MaterialManagement() {
                   <div className="flex items-center space-x-2">
                     <Input
                       type="number"
-                      placeholder="New stock"
+                      placeholder={t('admin.newStock')}
                       className="w-20"
                       onChange={(e) => material.newStock = Number(e.target.value)}
                     />
                     <Button variant="outline" size="sm" onClick={() => updateMaterialMutation.mutate({ id: material.id, data: { currentStock: material.newStock } })}>
-                      Update Stock
+                      {t('admin.updateStock')}
                     </Button>
                   </div>
                   <AlertDialog>
@@ -839,15 +769,15 @@ function MaterialManagement() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Material</AlertDialogTitle>
+                        <AlertDialogTitle>{t('admin.deleteMaterial')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete {material.name}? This action cannot be undone.
+                          {t('admin.confirmDeleteMaterial', { material: material.name })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteMaterialMutation.mutate(material.id)}>
-                          Delete
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -896,14 +826,13 @@ function MaterialManagement() {
  * Handles alert CRUD operations with pagination
  */
 function AlertManagement() {
-   const queryClient = useQueryClient();
-   const [page, setPage] = useState(1);
-   const limit = 10;
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
+    const limit = 10;
    const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
      queryKey: ['/api/admin/alerts?includeResolved=true', page],
-     queryFn: () => fetch(`/api/admin/alerts?includeResolved=true&limit=${limit}&offset=${(page - 1) * limit}`, {
-       headers: getAuthHeaders(),
-     }).then(res => res.json()),
+     queryFn: () => apiRequest('GET', `/api/admin/alerts?includeResolved=true&limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
    });
    const alerts = result?.items || [];
    const total = result?.total || 0;
@@ -913,12 +842,7 @@ function AlertManagement() {
 
   const createAlertMutation = useMutation({
     mutationFn: async (alertData: any) => {
-      const response = await fetch('/api/admin/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(alertData),
-      });
-      if (!response.ok) throw new Error('Failed to create alert');
+      const response = await apiRequest('POST', '/api/admin/alerts', alertData);
       return response.json();
     },
     onSuccess: () => {
@@ -930,12 +854,7 @@ function AlertManagement() {
 
   const updateAlertMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/admin/alerts/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update alert');
+      const response = await apiRequest('PUT', `/api/admin/alerts/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -945,10 +864,7 @@ function AlertManagement() {
 
   const deleteAlertMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/alerts/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete alert');
+      const response = await apiRequest('DELETE', `/api/admin/alerts/${id}`);
       return response.json();
     },
     onSuccess: () => {
@@ -956,61 +872,61 @@ function AlertManagement() {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Alerts: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalAlerts', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Create Alert
+              {t('admin.createAlert')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Manual Alert</DialogTitle>
+              <DialogTitle>{t('admin.createManualAlert')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Type</Label>
+                <Label>{t('admin.type')}</Label>
                 <Select value={newAlert.type} onValueChange={(value) => setNewAlert({ ...newAlert, type: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lowStock">Low Stock</SelectItem>
-                    <SelectItem value="delay">Delay</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                    <SelectItem value="info">Info</SelectItem>
+                    <SelectItem value="lowStock">{t('admin.lowStock')}</SelectItem>
+                    <SelectItem value="delay">{t('admin.delay')}</SelectItem>
+                    <SelectItem value="critical">{t('admin.critical')}</SelectItem>
+                    <SelectItem value="info">{t('admin.info')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Title</Label>
+                <Label>{t('admin.title')}</Label>
                 <Input value={newAlert.title} onChange={(e) => setNewAlert({ ...newAlert, title: e.target.value })} />
               </div>
               <div>
-                <Label>Message</Label>
+                <Label>{t('admin.message')}</Label>
                 <Input value={newAlert.message} onChange={(e) => setNewAlert({ ...newAlert, message: e.target.value })} />
               </div>
               <div>
-                <Label>Priority</Label>
+                <Label>{t('admin.priority')}</Label>
                 <Select value={newAlert.priority} onValueChange={(value) => setNewAlert({ ...newAlert, priority: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="low">{t('admin.low')}</SelectItem>
+                    <SelectItem value="medium">{t('admin.medium')}</SelectItem>
+                    <SelectItem value="high">{t('admin.high')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <Button onClick={() => createAlertMutation.mutate(newAlert)} disabled={createAlertMutation.isPending}>
-                {createAlertMutation.isPending ? 'Creating...' : 'Create Alert'}
+                {createAlertMutation.isPending ? t('admin.creating') : t('admin.createAlert')}
               </Button>
             </div>
           </DialogContent>
@@ -1019,31 +935,31 @@ function AlertManagement() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Type</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Resolved</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead>{t('admin.type')}</TableHead>
+            <TableHead>{t('admin.title')}</TableHead>
+            <TableHead>{t('admin.priority')}</TableHead>
+            <TableHead>{t('admin.resolved')}</TableHead>
+            <TableHead>{t('admin.created')}</TableHead>
+            <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {alerts?.map((alert: any) => (
             <TableRow key={alert.id}>
-              <TableCell>{alert.type}</TableCell>
+              <TableCell>{t(`admin.${alert.type}`)}</TableCell>
               <TableCell>{alert.title}</TableCell>
               <TableCell>
                 <Badge variant={alert.priority === 'high' ? 'destructive' : alert.priority === 'medium' ? 'default' : 'secondary'}>
-                  {alert.priority}
+                  {t(`admin.${alert.priority}`)}
                 </Badge>
               </TableCell>
-              <TableCell>{alert.resolved ? 'Yes' : 'No'}</TableCell>
+              <TableCell>{alert.resolved ? t('admin.resolved') : t('common.active')}</TableCell>
               <TableCell>{new Date(alert.createdAt).toLocaleDateString()}</TableCell>
               <TableCell>
                 <div className="flex space-x-2">
                   {!alert.resolved && (
                     <Button variant="outline" size="sm" onClick={() => updateAlertMutation.mutate({ id: alert.id, data: { resolved: true } })}>
-                      Resolve
+                      {t('alerts.resolve')}
                     </Button>
                   )}
                   <AlertDialog>
@@ -1054,15 +970,15 @@ function AlertManagement() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Alert</AlertDialogTitle>
+                        <AlertDialogTitle>{t('admin.deleteAlert')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete this alert? This action cannot be undone.
+                          {t('admin.confirmDeleteAlert')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => deleteAlertMutation.mutate(alert.id)}>
-                          Delete
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -1111,35 +1027,36 @@ function AlertManagement() {
  * Main admin interface with tabbed navigation for different management sections
  */
 export default function Admin() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
 
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">{t('admin.adminDashboard')}</h1>
           <p className="text-muted-foreground">
-            Manage users, dealers, orders, inventory, and alerts.
+            {t('admin.manageUsers')}
           </p>
         </div>
         <Button onClick={() => navigate('/dashboard')} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
+          {t('admin.backToDashboard')}
         </Button>
       </div>
 
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="dealers">Dealers</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+          <TabsTrigger value="users">{t('admin.users')}</TabsTrigger>
+          <TabsTrigger value="dealers">{t('admin.dealers')}</TabsTrigger>
+          <TabsTrigger value="orders">{t('admin.orders')}</TabsTrigger>
+          <TabsTrigger value="materials">{t('admin.materials')}</TabsTrigger>
+          <TabsTrigger value="alerts">{t('admin.alerts')}</TabsTrigger>
         </TabsList>
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>User Management</CardTitle>
+              <CardTitle>{t('admin.userManagement')}</CardTitle>
             </CardHeader>
             <CardContent>
               <UserManagement />
@@ -1149,7 +1066,7 @@ export default function Admin() {
         <TabsContent value="dealers">
           <Card>
             <CardHeader>
-              <CardTitle>Dealer Management</CardTitle>
+              <CardTitle>{t('admin.dealerManagement')}</CardTitle>
             </CardHeader>
             <CardContent>
               <DealerManagement />
@@ -1159,7 +1076,7 @@ export default function Admin() {
         <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <CardTitle>Order Management</CardTitle>
+              <CardTitle>{t('admin.orderManagement')}</CardTitle>
             </CardHeader>
             <CardContent>
               <OrderManagement />
@@ -1169,7 +1086,7 @@ export default function Admin() {
         <TabsContent value="materials">
           <Card>
             <CardHeader>
-              <CardTitle>Inventory Control</CardTitle>
+              <CardTitle>{t('admin.inventoryControl')}</CardTitle>
             </CardHeader>
             <CardContent>
               <MaterialManagement />
@@ -1179,7 +1096,7 @@ export default function Admin() {
         <TabsContent value="alerts">
           <Card>
             <CardHeader>
-              <CardTitle>Alert Management</CardTitle>
+              <CardTitle>{t('admin.alertManagement')}</CardTitle>
             </CardHeader>
             <CardContent>
               <AlertManagement />

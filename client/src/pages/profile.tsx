@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { user, setUser, changePassword, logout } = useAuth();
   const [, navigate] = useLocation();
   const [name, setName] = useState(user?.name || "");
@@ -65,27 +67,27 @@ export default function Profile() {
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          {t('profile.backToDashboard')}
         </Button>
-        <h1 className="text-2xl font-bold">Profile Settings</h1>
+        <h1 className="text-2xl font-bold">{t('profile.profileSettings')}</h1>
       </div>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle>{t('profile.personalInfo')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('common.email')}</Label>
               <Input id="email" value={user.email} readOnly />
             </div>
             <div>
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">{t('common.role')}</Label>
               <Input id="role" value={user.role} readOnly />
             </div>
             <div>
-              <Label htmlFor="name">Display Name</Label>
+              <Label htmlFor="name">{t('common.displayName')}</Label>
               <Input
                 id="name"
                 value={name}
@@ -97,18 +99,18 @@ export default function Profile() {
               disabled={isUpdating || name.trim() === user.name}
               className="w-full"
             >
-              {isUpdating ? "Updating..." : "Update Name"}
+              {isUpdating ? t('profile.updating') : t('profile.updateName')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Security</CardTitle>
+            <CardTitle>{t('profile.security')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword">{t('profile.currentPassword')}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -117,7 +119,7 @@ export default function Profile() {
               />
             </div>
             <div>
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">{t('common.newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -126,7 +128,7 @@ export default function Profile() {
               />
             </div>
             <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">{t('common.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -139,7 +141,7 @@ export default function Profile() {
               disabled={isChangingPassword || !currentPassword.trim() || !newPassword.trim() || newPassword !== confirmPassword}
               className="w-full"
             >
-              {isChangingPassword ? "Changing..." : "Change Password"}
+              {isChangingPassword ? t('profile.changing') : t('profile.changePassword')}
             </Button>
           </CardContent>
         </Card>

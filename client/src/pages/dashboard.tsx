@@ -8,8 +8,10 @@ import { useDashboardOverview } from "@/hooks/use-dashboard"
 import { DollarSign, Package, Clock, Users, AlertTriangle, Boxes } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLocation } from "wouter"
+import { useTranslation } from "react-i18next"
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { data: overview, isLoading, error } = useDashboardOverview();
 
@@ -33,10 +35,10 @@ export default function Dashboard() {
         <main className="container mx-auto p-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+              <CardTitle className="text-destructive">{t('dashboard.errorLoading')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>Failed to load dashboard data. Please try refreshing the page.</p>
+              <p>{t('dashboard.failedToLoad')}</p>
             </CardContent>
           </Card>
         </main>
@@ -54,28 +56,28 @@ export default function Dashboard() {
         {/* Key Metrics Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            title="Total Revenue"
+            title={t('dashboard.totalRevenue')}
             value={`¥${metrics?.totalRevenue?.toLocaleString() || '0'}`}
             icon={DollarSign}
-            description={`From ${metrics?.totalOrders || 0} orders`}
+            description={t('dashboard.fromOrders', { count: metrics?.totalOrders || 0 })}
           />
           <MetricCard
-            title="Total Orders"
+            title={t('dashboard.totalOrders')}
             value={metrics?.totalOrders?.toString() || '0'}
             icon={Package}
-            description={`${metrics?.activeOrders || 0} active orders`}
+            description={t('dashboard.activeOrders', { count: metrics?.activeOrders || 0 })}
           />
           <MetricCard
-            title="Avg Lead Time"
-            value={`${metrics?.avgLeadTime || 0} days`}
+            title={t('dashboard.avgLeadTime')}
+            value={t('dashboard.days', { count: metrics?.avgLeadTime || 0 })}
             icon={Clock}
-            description="Target: 10 days"
+            description={t('dashboard.targetDays')}
           />
           <MetricCard
-            title="Active Dealers"
+            title={t('dashboard.activeDealers')}
             value={metrics?.activeDealers?.toString() || '0'}
             icon={Users}
-            description="All territories covered"
+            description={t('dashboard.territoriesCovered')}
           />
         </div>
 
@@ -83,16 +85,16 @@ export default function Dashboard() {
         {(metrics?.activeAlerts || 0) > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <MetricCard
-              title="Active Alerts"
+              title={t('dashboard.activeAlerts')}
               value={metrics?.activeAlerts?.toString() || '0'}
               icon={AlertTriangle}
-              description="Require attention"
+              description={t('dashboard.requireAttention')}
             />
             <MetricCard
-              title="Low Stock Items"
+              title={t('dashboard.lowStockItems')}
               value={metrics?.lowStockItems?.toString() || '0'}
               icon={Boxes}
-              description="Below threshold"
+              description={t('dashboard.belowThreshold')}
             />
           </div>
         )}

@@ -18,7 +18,7 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 
   const payload = await verifyAccessToken(token);
   if (!payload) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
   req.user = payload;

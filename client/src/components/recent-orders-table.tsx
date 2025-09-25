@@ -21,6 +21,7 @@ import { Search, Eye, Package } from "lucide-react"
 import { useState } from "react"
 import { useOrders, useDealers } from "@/hooks/use-dashboard"
 import { Order } from "@shared/schema"
+import { useTranslation } from "react-i18next"
 
 interface Dealer {
   id: string
@@ -53,6 +54,7 @@ export function RecentOrdersTable({
   onOrderClick = (id) => console.log(`Viewing order ${id}`),
   onViewAll = () => console.log("View all orders")
 }: RecentOrdersTableProps) {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
@@ -83,9 +85,15 @@ export function RecentOrdersTable({
   }
 
   const getStatusBadge = (status: string) => {
+    const translatedLabels = {
+      received: t('orders.received'),
+      sentToFactory: t('orders.sentToFactory'),
+      inProduction: t('orders.inProduction'),
+      delivered: t('orders.delivered')
+    }
     return (
       <Badge variant={statusColors[status as keyof typeof statusColors]}>
-        {statusLabels[status as keyof typeof statusLabels]}
+        {translatedLabels[status as keyof typeof translatedLabels] || status}
       </Badge>
     )
   }
@@ -108,19 +116,19 @@ export function RecentOrdersTable({
           <div>
             <CardTitle className="flex items-center space-x-2">
               <Package className="h-5 w-5" />
-              <span>Recent Orders</span>
+              <span>{t('orders.recentOrders')}</span>
             </CardTitle>
             <CardDescription>
-              Latest orders from all dealers
+              {t('orders.latestOrders')}
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onViewAll}
             data-testid="button-view-all-orders"
           >
-            View All
+            {t('orders.viewAll')}
           </Button>
         </div>
         
@@ -128,7 +136,7 @@ export function RecentOrdersTable({
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search orders..."
+              placeholder={t('orders.searchOrders')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -137,14 +145,14 @@ export function RecentOrdersTable({
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-48" data-testid="select-status-filter">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('orders.filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="received">Received</SelectItem>
-              <SelectItem value="sentToFactory">Sent to Factory</SelectItem>
-              <SelectItem value="inProduction">In Production</SelectItem>
-              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="all">{t('orders.allStatus')}</SelectItem>
+              <SelectItem value="received">{t('orders.received')}</SelectItem>
+              <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
+              <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
+              <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -153,12 +161,12 @@ export function RecentOrdersTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Dealer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead>ETA</TableHead>
+              <TableHead>{t('orders.orderId')}</TableHead>
+              <TableHead>{t('orders.dealer')}</TableHead>
+              <TableHead>{t('orders.items')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead className="text-right">{t('common.value')}</TableHead>
+              <TableHead>{t('orders.eta')}</TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
@@ -178,23 +186,23 @@ export function RecentOrdersTable({
             ) : filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No orders found
+                  {t('orders.noOrdersFound')}
                 </TableCell>
               </TableRow>
             ) : (
               filteredOrders.map((order: Order) => (
-                <TableRow 
-                  key={order.id} 
+                <TableRow
+                  key={order.id}
                   className="hover-elevate cursor-pointer"
                   onClick={() => onOrderClick(order.orderNumber)}
                   data-testid={`order-row-${order.orderNumber}`}
                 >
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                  <TableCell>{dealerMap[order.dealerId]?.name || 'Unknown'}</TableCell>
+                  <TableCell>{dealerMap[order.dealerId]?.name || t('common.unknown')}</TableCell>
                   <TableCell className="max-w-40 truncate">{formatItems(order.items as { item: string; quantity: number }[])}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
-                  <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : 'TBD'}</TableCell>
+                  <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : t('common.tbd')}</TableCell>
                   <TableCell>
                     <Button 
                       variant="ghost" 
