@@ -19,9 +19,17 @@ async function refreshAccessToken(): Promise<void> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
         credentials: 'include',
       });
 
@@ -31,6 +39,7 @@ async function refreshAccessToken(): Promise<void> {
       } else {
         // Refresh failed, logout
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         window.location.href = '/';
         throw new Error('Session expired');
