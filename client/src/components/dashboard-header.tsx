@@ -1,4 +1,4 @@
-import { Building2, Bell, User, LogOut, Shield } from "lucide-react"
+import { Building2, Bell, User, LogOut, Shield, ClipboardList, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -45,7 +45,26 @@ export function DashboardHeader({
           <Building2 className="h-6 w-6 text-primary" />
           <span className="font-bold text-lg">{t('common.kakaHq')}</span>
         </div>
-        
+
+        <nav className="hidden md:flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/orders')}
+            className="flex items-center space-x-2"
+          >
+            <ClipboardList className="h-4 w-4" />
+            <span>{t('nav.orders')}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/inventory')}
+            className="flex items-center space-x-2"
+          >
+            <Package className="h-4 w-4" />
+            <span>{t('nav.inventory')}</span>
+          </Button>
+        </nav>
+
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
             {/* Search could go here in the future */}

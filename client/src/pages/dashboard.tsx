@@ -106,7 +106,10 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Orders Table - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <RecentOrdersTable onViewAll={() => navigate('/orders')} />
+            <RecentOrdersTable
+              onViewAll={() => navigate('/orders')}
+              onOrderClick={(id) => navigate(`/orders/${id}`)}
+            />
           </div>
 
           {/* Sidebar with Alerts and Inventory */}

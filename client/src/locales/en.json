@@ -86,6 +86,10 @@
     "toggleTheme": "Toggle theme",
     "activeAlerts": "{{count}} active alerts"
   },
+  "nav": {
+    "orders": "Orders",
+    "inventory": "Inventory"
+  },
   "orders": {
     "recentOrders": "Recent Orders",
     "latestOrders": "Latest orders from all dealers",
