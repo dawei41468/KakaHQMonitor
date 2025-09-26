@@ -194,7 +194,7 @@ export function RecentOrdersTable({
                 <TableRow
                   key={order.id}
                   className="hover-elevate cursor-pointer"
-                  onClick={() => onOrderClick(order.orderNumber)}
+                  onClick={() => onOrderClick(order.id)}
                   data-testid={`order-row-${order.orderNumber}`}
                 >
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
@@ -204,13 +204,13 @@ export function RecentOrdersTable({
                   <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
                   <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : t('common.tbd')}</TableCell>
                   <TableCell>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       className="h-8 w-8"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onOrderClick(order.orderNumber)
+                        onOrderClick(order.id)
                       }}
                       data-testid={`button-view-order-${order.orderNumber}`}
                     >

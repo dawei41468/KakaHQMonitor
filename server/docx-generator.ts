@@ -10,6 +10,7 @@ import {
   ShadingType,
   Table,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   VerticalAlign,
@@ -200,46 +201,60 @@ function createTableCell(text: string, options: TableCellConfig = {}): TableCell
 }
 
 function createHeaderTable(contractData: ContractData): Table {
+  const cellMargins = {
+    marginUnitType: WidthType.DXA,
+    top: 50,
+    bottom: 50,
+    left: 100,
+    right: 100,
+  };
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [5200, 3800],
+    columnWidths: [2000, 4000, 3000],
     borders: NO_TABLE_BORDERS,
     rows: [
       new TableRow({
-        children: [
-          new TableCell({
-            margins: DEFAULT_CELL_MARGINS,
-            borders: NO_TABLE_BORDERS,
-            children: [
-              createParagraph('agio', {
-                run: { bold: true, size: 48 },
-                spacing: { after: 80 },
-              }),
-              createParagraph('咖咖时光阳台花园项目销售合同', {
-                run: { bold: true, size: 28 },
-              }),
-            ],
-          }),
-          new TableCell({
-            margins: DEFAULT_CELL_MARGINS,
-            borders: NO_TABLE_BORDERS,
-            children: [
-              createParagraph(`合同编号 Contract No.: ${contractData.contractNumber}`, {
-                alignment: AlignmentType.RIGHT,
-                run: { size: 22 },
-              }),
-              createParagraph(`签订日期 Signing Date: ${formatDate(contractData.signingDate)}`, {
-                alignment: AlignmentType.RIGHT,
-                run: { size: 22 },
-              }),
-              createParagraph(`预计发货日期 Estimated Ship Date: ${formatDate(contractData.estimatedDelivery)}`, {
-                alignment: AlignmentType.RIGHT,
-                run: { size: 22 },
-              }),
-            ],
-          }),
-        ],
-      }),
+         children: [
+           new TableCell({
+             margins: cellMargins,
+             borders: NO_TABLE_BORDERS,
+             children: [],
+           }),
+           new TableCell({
+             margins: cellMargins,
+             borders: NO_TABLE_BORDERS,
+             children: [
+               createParagraph('', { spacing: { after: 40 } }),
+               createParagraph('', { spacing: { after: 40 } }),
+               createParagraph('agio咖咖时光阳台花园项目经销合同', {
+                 run: { bold: true, size: 24 },
+                 alignment: AlignmentType.RIGHT,
+               }),
+             ],
+           }),
+           new TableCell({
+             margins: cellMargins,
+             borders: NO_TABLE_BORDERS,
+             children: [
+               createParagraph(`合同编号：${contractData.contractNumber}`, {
+                 alignment: AlignmentType.RIGHT,
+                 run: { size: 18 },
+                 spacing: { after: 40 },
+               }),
+               createParagraph(`签订日期：${formatDate(contractData.signingDate)}`, {
+                 alignment: AlignmentType.RIGHT,
+                 run: { size: 18 },
+                 spacing: { after: 40 },
+               }),
+               createParagraph(`预计发货日期：${formatDate(contractData.estimatedDelivery)}`, {
+                 alignment: AlignmentType.RIGHT,
+                 run: { size: 18 },
+                 spacing: { after: 40 },
+               }),
+             ],
+           }),
+         ],
+       }),
     ],
   });
 }
@@ -249,20 +264,22 @@ function createSummaryRow(label: string, value: string, label2: string, value2: 
     children: [
       createTableCell(label, {
         width: { size: 1800, type: WidthType.DXA },
-        paragraph: { run: { bold: true } },
+        paragraph: { run: { bold: true, size: 16 }, spacing: { before: 56, after: 56 } },
         verticalAlign: VerticalAlign.CENTER,
       }),
       createTableCell(value || '-', {
-        width: { size: 3200, type: WidthType.DXA },
+        width: { size: 2600, type: WidthType.DXA },
+        paragraph: { run: { size: 16 }, spacing: { before: 56, after: 56 } },
         verticalAlign: VerticalAlign.CENTER,
       }),
       createTableCell(label2, {
         width: { size: 1800, type: WidthType.DXA },
-        paragraph: { run: { bold: true } },
+        paragraph: { run: { bold: true, size: 16 }, spacing: { before: 56, after: 56 } },
         verticalAlign: VerticalAlign.CENTER,
       }),
       createTableCell(value2 || '-', {
-        width: { size: 3200, type: WidthType.DXA },
+        width: { size: 3800, type: WidthType.DXA },
+        paragraph: { run: { size: 16 }, spacing: { before: 56, after: 56 } },
         verticalAlign: VerticalAlign.CENTER,
       }),
     ],
@@ -272,34 +289,31 @@ function createSummaryRow(label: string, value: string, label2: string, value2: 
 function createSummaryTable(contractData: ContractData): Table {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [1800, 3200, 1800, 3200],
+    columnWidths: [1800, 2600, 1800, 3800],
     borders: OUTLINE_TABLE_BORDERS,
     rows: [
-      createSummaryRow('项目名称 Project Name', contractData.projectName, '买方 Buyer', contractData.buyerCompanyName),
-      createSummaryRow('设计师 Designer', contractData.designer, '业务代表 Sales Rep', contractData.salesRep),
-      createSummaryRow('签订日期 Signing Date', formatDate(contractData.signingDate), '预计发货日期 Estimated Ship Date', formatDate(contractData.estimatedDelivery)),
-      createSummaryRow('联系电话 Phone', contractData.buyerPhone ?? '-', '纳税人识别号 Tax ID', contractData.buyerTaxNumber ?? '-'),
-      createSummaryRow('联系地址 Address', contractData.buyerAddress ?? '-', '项目合同金额 Contract Total', formatCurrency(contractData.totalAmount)),
+      createSummaryRow('项目名称', contractData.projectName, '甲方', contractData.buyerCompanyName),
+      createSummaryRow('设计师', contractData.designer, '乙方', '佛山市顺德区西山家居科技有限公司'),
+      createSummaryRow('业务代表', contractData.salesRep, '统一社会信用代码', '914406060621766268'),
     ],
   });
 }
 
 function createItemsTable(contractData: ContractData): Table {
   const headerCells = [
-    { text: '序号', width: 600 },
-    { text: '区域', width: 900 },
-    { text: '分项', width: 900 },
-    { text: '产品名称或编号', width: 1600 },
-    { text: '产品细分', width: 1200 },
-    { text: '产品规格', width: 1500 },
-    { text: '颜色', width: 900 },
-    { text: '数量', width: 700 },
-    { text: '单位', width: 600 },
-    { text: '零售单价', width: 1100 },
-    { text: '零售总价', width: 1100 },
-    { text: '成交单价', width: 1100 },
-    { text: '成交金额 (RMB)', width: 1300 },
-    { text: '备注', width: 800 },
+    { text: '区域', width: 470 },
+    { text: '分项', width: 470 },
+    { text: '产品名称或编号', width: 2168 },
+    { text: '产品细分', width: 470 },
+    { text: '产品规格', width: 1130 },
+    { text: '颜色', width: 693 },
+    { text: '数量', width: 470 },
+    { text: '单位', width: 470 },
+    { text: '零售单价', width: 838 },
+    { text: '零售总价', width: 838 },
+    { text: '成交单价', width: 838 },
+    { text: '成交金额 (RMB)', width: 984 },
+    { text: '备注', width: 620 },
   ];
 
   const headerRow = new TableRow({
@@ -308,7 +322,7 @@ function createItemsTable(contractData: ContractData): Table {
         width: { size: cell.width, type: WidthType.DXA },
         paragraph: {
           alignment: AlignmentType.CENTER,
-          run: { bold: true },
+          run: { bold: true, size: 16 },
         },
         shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'f2f2f2' },
         verticalAlign: VerticalAlign.CENTER,
@@ -316,44 +330,40 @@ function createItemsTable(contractData: ContractData): Table {
     ),
   });
 
-  const itemRows = contractData.items.map((item, index) =>
+  const itemRows = contractData.items.map((item) =>
     new TableRow({
       children: [
-        createTableCell((index + 1).toString(), {
-          width: { size: headerCells[0].width, type: WidthType.DXA },
-          paragraph: { alignment: AlignmentType.CENTER },
-        }),
-        createTableCell(item.region ?? '', { width: { size: headerCells[1].width, type: WidthType.DXA } }),
-        createTableCell(item.category ?? '', { width: { size: headerCells[2].width, type: WidthType.DXA } }),
-        createTableCell(item.productName ?? '', { width: { size: headerCells[3].width, type: WidthType.DXA } }),
-        createTableCell(item.productDetail ?? '', { width: { size: headerCells[4].width, type: WidthType.DXA } }),
-        createTableCell(item.specification ?? '', { width: { size: headerCells[5].width, type: WidthType.DXA } }),
-        createTableCell(item.color ?? '', { width: { size: headerCells[6].width, type: WidthType.DXA } }),
+        createTableCell(item.region ?? '', { width: { size: headerCells[0].width, type: WidthType.DXA } }),
+        createTableCell(item.category ?? '', { width: { size: headerCells[1].width, type: WidthType.DXA } }),
+        createTableCell(item.productName ?? '', { width: { size: headerCells[2].width, type: WidthType.DXA } }),
+        createTableCell(item.productDetail ?? '', { width: { size: headerCells[3].width, type: WidthType.DXA } }),
+        createTableCell(item.specification ?? '', { width: { size: headerCells[4].width, type: WidthType.DXA } }),
+        createTableCell(item.color ?? '', { width: { size: headerCells[5].width, type: WidthType.DXA } }),
         createTableCell(item.quantity != null ? String(item.quantity) : '', {
-          width: { size: headerCells[7].width, type: WidthType.DXA },
+          width: { size: headerCells[6].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.unit ?? '', {
-          width: { size: headerCells[8].width, type: WidthType.DXA },
+          width: { size: headerCells[7].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.CENTER },
         }),
         createTableCell(item.retailPrice != null ? formatCurrency(item.retailPrice) : '', {
-          width: { size: headerCells[9].width, type: WidthType.DXA },
+          width: { size: headerCells[8].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.retailTotal != null ? formatCurrency(item.retailTotal) : '', {
-          width: { size: headerCells[10].width, type: WidthType.DXA },
+          width: { size: headerCells[9].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.dealPrice != null ? formatCurrency(item.dealPrice) : '', {
-          width: { size: headerCells[11].width, type: WidthType.DXA },
+          width: { size: headerCells[10].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.dealTotal != null ? formatCurrency(item.dealTotal) : '', {
-          width: { size: headerCells[12].width, type: WidthType.DXA },
+          width: { size: headerCells[11].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
-        createTableCell(item.remarks ?? '', { width: { size: headerCells[13].width, type: WidthType.DXA } }),
+        createTableCell(item.remarks ?? '', { width: { size: headerCells[12].width, type: WidthType.DXA } }),
       ],
     }),
   );
@@ -366,7 +376,7 @@ function createItemsTable(contractData: ContractData): Table {
         children: [
           createParagraph('合计 Total (RMB)', {
             alignment: AlignmentType.RIGHT,
-            run: { bold: true },
+            run: { bold: true, size: 16 },
           }),
         ],
       }),
@@ -376,7 +386,7 @@ function createItemsTable(contractData: ContractData): Table {
         children: [
           createParagraph(formatCurrency(contractData.totalAmount), {
             alignment: AlignmentType.RIGHT,
-            run: { bold: true },
+            run: { bold: true, size: 16 },
           }),
         ],
       }),
@@ -384,9 +394,10 @@ function createItemsTable(contractData: ContractData): Table {
   });
 
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: 10459, type: WidthType.DXA },
     rows: [headerRow, ...itemRows, totalRow],
     borders: OUTLINE_TABLE_BORDERS,
+    layout: TableLayoutType.FIXED,
   });
 }
 
@@ -416,7 +427,7 @@ function createRemarkParagraphs(): Paragraph[] {
   );
 }
 
-function createSignatureTable(): Table {
+function createSignatureTable(contractData: ContractData): Table {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     columnWidths: [4500, 4500],
@@ -468,6 +479,20 @@ function createSignatureTable(): Table {
           }),
         ],
       }),
+      new TableRow({
+        children: [
+          new TableCell({
+            margins: DEFAULT_CELL_MARGINS,
+            borders: NO_TABLE_BORDERS,
+            children: createBuyerInfoParagraphs(contractData),
+          }),
+          new TableCell({
+            margins: DEFAULT_CELL_MARGINS,
+            borders: NO_TABLE_BORDERS,
+            children: createSellerInfoParagraphs(),
+          }),
+        ],
+      }),
     ],
   });
 }
@@ -514,7 +539,7 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
             document: {
               run: {
                 font: DEFAULT_FONT,
-                size: 22,
+                size: 16,
               },
               paragraph: {
                 spacing: { line: 276 },
@@ -523,7 +548,7 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
             heading1: {
               run: {
                 font: { ascii: DEFAULT_FONT, eastAsia: DEFAULT_FONT, hAnsi: DEFAULT_FONT },
-                size: 36,
+                size: 32,
                 bold: true,
               },
               paragraph: { alignment: AlignmentType.CENTER },
@@ -542,6 +567,9 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
               new Paragraph({ text: '', spacing: { after: 120 } }),
               createSummaryTable(contractData),
               new Paragraph({ text: '', spacing: { after: 200 } }),
+              createParagraph('根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守', {
+                spacing: { after: 100 },
+              }),
               createItemsTable(contractData),
               createParagraph(`（大写）人民币 ${numberToChinese(contractData.totalAmount)}`, {
                 spacing: { before: 200, after: 200 },
@@ -553,11 +581,7 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
               }),
               ...createRemarkParagraphs(),
               new Paragraph({ text: '', spacing: { after: 200 } }),
-              createSignatureTable(),
-              new Paragraph({ text: '', spacing: { after: 120 } }),
-              ...createBuyerInfoParagraphs(contractData),
-              new Paragraph({ text: '', spacing: { after: 120 } }),
-              ...createSellerInfoParagraphs(),
+              createSignatureTable(contractData),
             ],
           },
         ],
