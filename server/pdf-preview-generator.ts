@@ -23,7 +23,7 @@ interface ContractData {
   signingDate: Date;
   designer: string;
   salesRep: string;
-  estimatedShipDate: Date;
+  estimatedDelivery: Date;
   buyerCompanyName: string;
   buyerAddress?: string;
   buyerPhone?: string;
@@ -162,7 +162,7 @@ export function generateContractPDFPreview(contractData: ContractData): Promise<
       doc.text('签订日期 Signing Date:', 50, startY + rowHeight);
       doc.text(formatDate(contractData.signingDate), 170, startY + rowHeight);
       doc.text('预计发货日期 Estimated Ship Date:', 330, startY + rowHeight);
-      doc.text(formatDate(contractData.estimatedShipDate), 450, startY + rowHeight);
+      doc.text(formatDate(contractData.estimatedDelivery), 450, startY + rowHeight);
 
       // Row 3
       doc.text('设计师 Designer:', 50, startY + rowHeight * 2);

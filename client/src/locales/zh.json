@@ -128,7 +128,10 @@
     "failedToLoadOrder": "加载订单详情失败",
     "orderNumber": "订单号",
     "statusUpdated": "状态已更新",
-    "statusUpdateDescription": "订单状态已成功更新。"
+    "statusUpdateDescription": "订单状态已成功更新。",
+    "downloadDocx": "下载 DOCX",
+    "documentNotFound": "文档未找到",
+    "downloadFailed": "下载失败"
   },
   "profile": {
     "backToDashboard": "返回仪表板",
@@ -254,7 +257,7 @@
     "signingDate": "签订日期",
     "designer": "设计师",
     "salesRep": "业务代表",
-    "estimatedShipDate": "预计发货日期",
+    "estimatedShipDate": "预计交付日期",
     "buyerCompany": "买方公司",
     "buyerAddress": "买方地址",
     "buyerPhone": "买方电话",

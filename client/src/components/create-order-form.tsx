@@ -56,7 +56,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
   const [signingDate, setSigningDate] = React.useState("");
   const [designer, setDesigner] = React.useState("");
   const [salesRep, setSalesRep] = React.useState("");
-  const [estimatedShipDate, setEstimatedShipDate] = React.useState("");
+  const [estimatedDelivery, setEstimatedDelivery] = React.useState("");
 
   // Buyer info state
   const [dealerId, setDealerId] = React.useState("");
@@ -148,7 +148,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       signingDate: signingDate ? new Date(signingDate) : new Date(),
       designer,
       salesRep,
-      estimatedShipDate: estimatedShipDate ? new Date(estimatedShipDate) : new Date(),
+      estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : new Date(),
       buyerCompanyName,
       buyerAddress: buyerAddress || undefined,
       buyerPhone: buyerPhone || undefined,
@@ -195,7 +195,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       signingDate: signingDate ? new Date(signingDate) : null,
       designer,
       salesRep,
-      estimatedShipDate: estimatedShipDate ? new Date(estimatedShipDate) : null,
+      estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null,
       buyerCompanyName,
       buyerAddress: buyerAddress || null,
       buyerPhone: buyerPhone || null,
@@ -302,14 +302,14 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="estimatedShipDate">
+                <Label htmlFor="estimatedDelivery">
                   {t('createOrder.estimatedShipDate')}
                 </Label>
                 <Input
-                  id="estimatedShipDate"
+                  id="estimatedDelivery"
                   type="date"
-                  value={estimatedShipDate}
-                  onChange={(e) => setEstimatedShipDate(e.target.value)}
+                  value={estimatedDelivery}
+                  onChange={(e) => setEstimatedDelivery(e.target.value)}
                 />
               </div>
               <div>

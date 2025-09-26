@@ -38,7 +38,7 @@ interface ContractData {
   signingDate: Date;
   designer: string;
   salesRep: string;
-  estimatedShipDate: Date;
+  estimatedDelivery: Date;
   buyerCompanyName: string;
   buyerAddress?: string;
   buyerPhone?: string;
@@ -232,7 +232,7 @@ function createHeaderTable(contractData: ContractData): Table {
                 alignment: AlignmentType.RIGHT,
                 run: { size: 22 },
               }),
-              createParagraph(`预计发货日期 Estimated Ship Date: ${formatDate(contractData.estimatedShipDate)}`, {
+              createParagraph(`预计发货日期 Estimated Ship Date: ${formatDate(contractData.estimatedDelivery)}`, {
                 alignment: AlignmentType.RIGHT,
                 run: { size: 22 },
               }),
@@ -277,7 +277,7 @@ function createSummaryTable(contractData: ContractData): Table {
     rows: [
       createSummaryRow('项目名称 Project Name', contractData.projectName, '买方 Buyer', contractData.buyerCompanyName),
       createSummaryRow('设计师 Designer', contractData.designer, '业务代表 Sales Rep', contractData.salesRep),
-      createSummaryRow('签订日期 Signing Date', formatDate(contractData.signingDate), '预计发货日期 Estimated Ship Date', formatDate(contractData.estimatedShipDate)),
+      createSummaryRow('签订日期 Signing Date', formatDate(contractData.signingDate), '预计发货日期 Estimated Ship Date', formatDate(contractData.estimatedDelivery)),
       createSummaryRow('联系电话 Phone', contractData.buyerPhone ?? '-', '纳税人识别号 Tax ID', contractData.buyerTaxNumber ?? '-'),
       createSummaryRow('联系地址 Address', contractData.buyerAddress ?? '-', '项目合同金额 Contract Total', formatCurrency(contractData.totalAmount)),
     ],
