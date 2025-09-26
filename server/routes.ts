@@ -13,6 +13,8 @@ import {
   comparePassword
 } from "./auth";
 import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema } from "@shared/schema";
+import { generateContractDOCX } from "./docx-generator";
+import { convertDocxToPdf } from "./pdf-generator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -128,6 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Protected routes - require authentication
   app.use("/api", authenticateToken);
+
 
   // User routes
   app.get("/api/user", async (req, res) => {
@@ -321,7 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
-      res.json(order);
+      const dealer = order.dealerId ? await storage.getDealerById(order.dealerId) : null;
+      res.json({ ...order, dealer });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
     }
@@ -345,13 +349,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/orders/preview", async (req, res) => {
+    try {
+      console.log('Preview request received');
+      console.log('Auth header present:', !!req.headers.authorization);
+      console.log('Contract data keys:', Object.keys(req.body));
+      console.log('Contract number:', req.body.contractNumber);
+      console.log('Items count:', req.body.items?.length || 0);
+
+      const contractData = req.body;
+
+      // Validate required fields
+      if (!contractData.contractNumber) {
+        throw new Error('Contract number is required');
+      }
+      if (!contractData.items || !Array.isArray(contractData.items) || contractData.items.length === 0) {
+        throw new Error('At least one contract item is required');
+      }
+
+      const docxBuffer = await generateContractDOCX(contractData);
+      const pdfBuffer = await convertDocxToPdf(docxBuffer);
+
+      const base64DOCX = docxBuffer.toString('base64');
+      const base64PDF = pdfBuffer.toString('base64');
+
+      res.json({
+        docxData: base64DOCX,
+        pdfPreview: base64PDF,
+        fileName: `${contractData.contractNumber}_contract.docx`
+      });
+    } catch (error) {
+      console.error('DOCX/PDF preview generation error:', error);
+      res.status(500).json({ error: "Failed to generate DOCX/PDF preview", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.post("/api/orders", async (req, res) => {
     try {
-      const orderData = insertOrderSchema.parse(req.body);
+      console.log('Order creation request body:', JSON.stringify(req.body, null, 2));
+
+      // Convert date strings to Date objects
+      const processedBody = {
+        ...req.body,
+        signingDate: req.body.signingDate ? new Date(req.body.signingDate) : null,
+        estimatedShipDate: req.body.estimatedShipDate ? new Date(req.body.estimatedShipDate) : null,
+      };
+
+      const orderData = insertOrderSchema.parse(processedBody);
+      console.log('Order data after validation:', JSON.stringify(orderData, null, 2));
       const order = await storage.createOrder(orderData);
-      res.status(201).json(order);
+
+      let docxData = null;
+  
+      // Generate PDF if contract data is provided
+      if (orderData.contractItems && Array.isArray(orderData.contractItems) && orderData.contractItems.length > 0) {
+        const contractData = {
+          contractNumber: orderData.orderNumber,
+          projectName: orderData.projectName || '',
+          signingDate: orderData.signingDate || new Date(),
+          designer: orderData.designer || '',
+          salesRep: orderData.salesRep || '',
+          estimatedShipDate: orderData.estimatedShipDate || new Date(),
+          buyerCompanyName: orderData.buyerCompanyName || '',
+          buyerAddress: orderData.buyerAddress || undefined,
+          buyerPhone: orderData.buyerPhone || undefined,
+          buyerTaxNumber: orderData.buyerTaxNumber || undefined,
+          items: orderData.contractItems as any[],
+          totalAmount: Number(orderData.totalValue)
+        };
+  
+        const docxBuffer = await generateContractDOCX(contractData);
+        const base64DOCX = docxBuffer.toString('base64');
+        docxData = base64DOCX;
+  
+        // Save DOCX to order_documents table
+        await storage.createOrderDocument({
+          orderId: order.id,
+          documentType: 'contract',
+          fileName: `${orderData.orderNumber}_contract.docx`,
+          fileData: base64DOCX,
+          fileSize: docxBuffer.length,
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+      }
+  
+      res.status(201).json({ ...order, docxData });
     } catch (error) {
-      res.status(400).json({ error: "Invalid order data" });
+      console.error('Order creation error:', error);
+      res.status(400).json({ error: "Invalid order data", details: error instanceof Error ? error.message : String(error) });
     }
   });
 

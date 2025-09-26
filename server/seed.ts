@@ -36,10 +36,10 @@ export async function seedDatabase() {
     // Create dealers for the 5 territories
     const dealerData = [
       { name: '佛山', territory: '佛山', contactEmail: 'foshan@kaka.com', contactPhone: '+86-757-1234567' },
-      { name: '广州', territory: '广州', contactEmail: 'guangzhou@kaka.com', contactPhone: '+86-20-1234567' },
-      { name: '成都', territory: '成都', contactEmail: 'chengdu@kaka.com', contactPhone: '+86-28-1234567' },
-      { name: '杭州', territory: '杭州', contactEmail: 'hangzhou@kaka.com', contactPhone: '+86-571-1234567' },
-      { name: '深圳', territory: '深圳', contactEmail: 'shenzhen@kaka.com', contactPhone: '+86-755-1234567' }
+      { name: '广州芊丝软装设计有限公司', territory: '广州', contactEmail: 'guangzhou@kaka.com', contactPhone: '+86-20-1234567' },
+      { name: '四川合久晟建筑科技有限公司', territory: '成都', contactEmail: 'chengdu@kaka.com', contactPhone: '+86-28-1234567' },
+      { name: '杭州乔耐经销商', territory: '杭州', contactEmail: 'hangzhou@kaka.com', contactPhone: '+86-571-1234567' },
+      { name: '深圳虹米经销商', territory: '深圳', contactEmail: 'shenzhen@kaka.com', contactPhone: '+86-755-1234567' }
     ];
 
     const createdDealers = await db.insert(dealers).values(dealerData).returning();

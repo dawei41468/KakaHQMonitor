@@ -1,8 +1,8 @@
 import {
-  users, dealers, orders, materials, alerts,
+  users, dealers, orders, materials, alerts, orderDocuments,
   type User, type InsertUser, type Dealer, type InsertDealer,
   type Order, type InsertOrder, type Material, type InsertMaterial,
-  type Alert, type InsertAlert
+  type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
@@ -32,6 +32,9 @@ export interface IStorage {
   updateOrder(id: string, order: Partial<InsertOrder>): Promise<Order | undefined>;
   deleteOrder(id: string): Promise<boolean>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+
+  // Order document management
+  createOrderDocument(document: InsertOrderDocument): Promise<OrderDocument>;
 
   // Material management
   getAllMaterials(limit?: number, offset?: number): Promise<{ items: Material[], total: number }>;
@@ -159,8 +162,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Order methods
-  async getAllOrders(limit?: number, offset?: number): Promise<{ items: Order[], total: number }> {
-    const query = db.select().from(orders).orderBy(desc(orders.createdAt));
+  async getAllOrders(limit?: number, offset?: number): Promise<{ items: any[], total: number }> {
+    const query = db.select({
+      id: orders.id,
+      dealerId: orders.dealerId,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      items: orders.items,
+      totalValue: orders.totalValue,
+      productionLeadTime: orders.productionLeadTime,
+      estimatedDelivery: orders.estimatedDelivery,
+      actualDelivery: orders.actualDelivery,
+      notes: orders.notes,
+      projectName: orders.projectName,
+      signingDate: orders.signingDate,
+      designer: orders.designer,
+      salesRep: orders.salesRep,
+      estimatedShipDate: orders.estimatedShipDate,
+      buyerCompanyName: orders.buyerCompanyName,
+      buyerAddress: orders.buyerAddress,
+      buyerPhone: orders.buyerPhone,
+      buyerTaxNumber: orders.buyerTaxNumber,
+      contractItems: orders.contractItems,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+      dealerName: dealers.name
+    }).from(orders).leftJoin(dealers, eq(orders.dealerId, dealers.id)).orderBy(desc(orders.createdAt));
     if (limit) query.limit(limit);
     if (offset) query.offset(offset);
     const items = await query;
@@ -221,6 +248,18 @@ export class DatabaseStorage implements IStorage {
   async deleteOrder(id: string): Promise<boolean> {
     const result = await db.delete(orders).where(eq(orders.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  // Order document methods
+  async createOrderDocument(insertDocument: InsertOrderDocument): Promise<OrderDocument> {
+    const [document] = await db
+      .insert(orderDocuments)
+      .values({
+        ...insertDocument,
+        createdAt: new Date()
+      })
+      .returning();
+    return document;
   }
 
   // Material methods

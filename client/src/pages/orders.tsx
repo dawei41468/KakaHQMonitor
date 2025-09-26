@@ -27,7 +27,7 @@ export default function Orders() {
         <CreateOrderForm onOrderCreated={() => dataTable?.fetchData()} />
       </div>
 
-      <OrdersDataTable onReady={(table) => setDataTable(table)} />
+      <OrdersDataTable onOrderClick={(id) => navigate(`/orders/${id}`)} onReady={(table) => setDataTable(table)} />
     </div>
   );
 }

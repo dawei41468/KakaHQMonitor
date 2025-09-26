@@ -15,7 +15,9 @@ import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,6 +30,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -43,9 +52,10 @@ export type Order = {
   status: "received" | "sentToFactory" | "inProduction" | "delivered";
   totalValue: number;
   createdAt: string;
+  estimatedShipDate: string;
 };
 
-export const columns: ColumnDef<Order>[] = [
+const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element): ColumnDef<Order>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -70,19 +80,17 @@ export const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: "dealer",
-    header: "Dealer",
+    header: t('orders.dealer'),
     cell: ({ row }) => <div>{row.getValue("dealer")}</div>,
   },
   {
     accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
-    ),
+    header: t('common.status'),
+    cell: ({ row }) => getStatusBadge(row.getValue("status")),
   },
   {
     accessorKey: "totalValue",
-    header: () => <div className="text-right">Amount</div>,
+    header: () => <div className="text-right">{t('orders.amount')}</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("totalValue"));
 
@@ -96,6 +104,21 @@ export const columns: ColumnDef<Order>[] = [
     },
   },
   {
+    accessorKey: "estimatedShipDate",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          {t('orders.estimatedDelivery')}
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <div>{row.getValue("estimatedShipDate")}</div>,
+  },
+  {
     accessorKey: "createdAt",
     header: ({ column }) => {
       return (
@@ -103,12 +126,12 @@ export const columns: ColumnDef<Order>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Created At
+          {t('orders.createdAt')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("createdAt")}</div>,
+    cell: ({ row }) => <div>{row.getValue("createdAt")}</div>,
   },
   {
     id: "actions",
@@ -143,9 +166,10 @@ export const columns: ColumnDef<Order>[] = [
 
 interface OrdersDataTableProps {
   onReady: (table: any) => void;
+  onOrderClick?: (orderId: string) => void;
 }
 
-export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
+export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -156,13 +180,36 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
   const [totalOrders, setTotalOrders] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  const { data: dealers = [] } = useQuery<any[]>({
+    queryKey: ['/api/dealers'],
+  });
+
   const fetchData = async () => {
     if (!user) return;
     setIsLoading(true);
     try {
       const response = await apiRequest("GET", "/api/orders");
       const result = await response.json();
-      setData(result.items || []);
+
+      // Transform orders data
+      const transformedData = (result.items || []).map((order: any) => ({
+        id: order.id,
+        dealer: order.dealerName || order.dealerId || 'Unknown',
+        status: order.status,
+        totalValue: Number(order.totalValue),
+        estimatedShipDate: order.estimatedShipDate ? new Date(order.estimatedShipDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }) : 'TBD',
+        createdAt: new Date(order.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })
+      }));
+
+      setData(transformedData);
       setTotalOrders(result.total || 0);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
@@ -181,7 +228,41 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
         fetchData,
       });
     }
-  }, [user]);
+  }, [user, dealers]);
+
+  const statusColors = {
+    received: "secondary",
+    sentToFactory: "outline",
+    inProduction: "default",
+    delivered: "default"
+  } as const;
+  
+  const statusLabels = {
+    received: t('orders.received'),
+    sentToFactory: t('orders.sentToFactory'),
+    inProduction: t('orders.inProduction'),
+    delivered: t('orders.delivered')
+  };
+  
+  const getStatusBadge = (status: string) => {
+    return (
+      <Badge variant={statusColors[status as keyof typeof statusColors]}>
+        {statusLabels[status as keyof typeof statusLabels] || status}
+      </Badge>
+    );
+  };
+
+  const columns = getColumns(t, statusLabels, getStatusBadge);
+
+  const columnLabels: Record<string, string> = {
+    select: t('orders.columnSelect'),
+    dealer: t('orders.columnDealer'),
+    status: t('orders.columnStatus'),
+    totalValue: t('orders.columnTotalValue'),
+    estimatedShipDate: t('orders.columnEstimatedShipDate'),
+    createdAt: t('orders.columnCreatedAt'),
+    actions: t('orders.columnActions'),
+  };
 
   const table = useReactTable({
     data,
@@ -202,26 +283,101 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
     },
   });
 
+  const currentPage = table.getState().pagination.pageIndex + 1;
+  const totalPages = table.getPageCount();
+
+  const getVisiblePages = (current: number, totalPages: number, maxVisible: number = 5) => {
+    const pages: (number | string)[] = [];
+    const half = Math.floor(maxVisible / 2);
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      let start = Math.max(2, current - half);
+      let end = Math.min(totalPages - 1, current + half);
+
+      if (start > 2) {
+        pages.push('...');
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
+  const visiblePages = getVisiblePages(currentPage, totalPages);
+
+  React.useEffect(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }, [currentPage]);
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
         <div className="text-sm text-muted-foreground">
-          Total Orders: {totalOrders}
+          {t('orders.totalOrdersCount', { count: totalOrders })}
         </div>
       </div>
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter orders..."
-          value={(table.getColumn("dealer")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("dealer")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+      <div className="flex items-center py-4 space-x-2">
+        <Select
+          value={(table.getColumn("dealer")?.getFilterValue() as string) ? dealers.find((d: any) => d.name === table.getColumn("dealer")?.getFilterValue())?.id || "all" : "all"}
+          onValueChange={(value) => {
+            if (value === "all") {
+              table.getColumn("dealer")?.setFilterValue("");
+            } else {
+              const dealer = dealers.find((d: any) => d.id === value);
+              table.getColumn("dealer")?.setFilterValue(dealer?.name || "");
+            }
+          }}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder={t('orders.filterByDealer')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('orders.allDealers')}</SelectItem>
+            {dealers.map((dealer: any) => (
+              <SelectItem key={dealer.id} value={dealer.id}>
+                {dealer.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={(table.getColumn("status")?.getFilterValue() as string) ?? ""}
+          onValueChange={(value) => {
+            table.getColumn("status")?.setFilterValue(value === "all" ? "" : value);
+          }}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder={t('orders.filterByStatus')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('orders.allStatus')}</SelectItem>
+            <SelectItem value="received">{t('orders.received')}</SelectItem>
+            <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
+            <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
+            <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
+          </SelectContent>
+        </Select>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+              {t('orders.columns')} <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -238,7 +394,7 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {columnLabels[column.id] || column.id}
                   </DropdownMenuCheckboxItem>
                 );
               })}
@@ -271,6 +427,8 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => onOrderClick?.(row.original.id)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -288,7 +446,7 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t('orders.noOrdersFound')}
                 </TableCell>
               </TableRow>
             )}
@@ -300,7 +458,7 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-        <div className="space-x-2">
+        <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
@@ -309,6 +467,22 @@ export function OrdersDataTable({ onReady }: OrdersDataTableProps) {
           >
             Previous
           </Button>
+          {visiblePages.map((p, index) => (
+            <div key={index} className="flex items-center">
+              {p === '...' ? (
+                <span className="px-3 py-2">...</span>
+              ) : (
+                <Button
+                  variant={p === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => table.setPageIndex(p as number - 1)}
+                  className="cursor-pointer"
+                >
+                  {p}
+                </Button>
+              )}
+            </div>
+          ))}
           <Button
             variant="outline"
             size="sm"
