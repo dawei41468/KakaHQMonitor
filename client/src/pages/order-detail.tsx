@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { Order } from "@shared/schema";
@@ -22,6 +22,11 @@ export default function OrderDetail() {
     enabled: !!id,
   });
 
+  const { data: pdfPreview } = useQuery<string>({
+    queryKey: [`/api/orders/${id}/pdf-preview`],
+    enabled: !!id && !!order,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
       const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status });
@@ -35,6 +40,27 @@ export default function OrderDetail() {
       });
     },
   });
+
+  const handleDownloadDocx = async () => {
+    try {
+      const response = await apiRequest("GET", `/api/orders/${id}/document`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${order.orderNumber}_contract.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error && error.message.includes('404') ? t('orders.documentNotFound') : t('orders.downloadFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -90,107 +116,94 @@ export default function OrderDetail() {
           <ArrowLeft className="h-4 w-4" />
           {t('orders.backToOrders')}
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownloadDocx}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          {t('orders.downloadDocx')}
+        </Button>
         <h1 className="text-2xl font-bold">{t('orders.orderNumber')} {order.orderNumber}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>{t('orders.orderInformation')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">{t('orders.orderNumber')}</label>
-              <p>{order.orderNumber}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('common.status')}</label>
-              <div className="mt-1">
-                <Select
-                  value={order.status}
-                  onValueChange={(value) => updateStatusMutation.mutate(value)}
-                  disabled={updateStatusMutation.isPending}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="received">{t('orders.received')}</SelectItem>
-                    <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
-                    <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
-                    <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('orders.dealer')}</label>
-              <p>{order.dealer?.name || 'Unknown'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('orders.totalValue')}</label>
-              <p>¥{Number(order.totalValue).toLocaleString()}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">{t('orders.createdAt')}</label>
-              <p>{new Date(order.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })}</p>
-            </div>
-            {order.estimatedDelivery && (
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">{t('orders.estimatedDelivery')}</label>
-                <p>{new Date(order.estimatedDelivery).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric'
-                })}</p>
+                <label className="text-sm font-medium">{t('orders.orderNumber')}</label>
+                <p>{order.orderNumber}</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('orders.contractDetails')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {order.projectName && (
               <div>
                 <label className="text-sm font-medium">{t('createOrder.projectName')}</label>
-                <p>{order.projectName}</p>
+                <p>{order.projectName || t('common.tbd')}</p>
               </div>
-            )}
-            {order.signingDate && (
               <div>
                 <label className="text-sm font-medium">{t('createOrder.signingDate')}</label>
-                <p>{new Date(order.signingDate).toLocaleDateString('en-US', {
+                <p>{order.signingDate ? new Date(order.signingDate).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                }) : t('common.tbd')}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('orders.estimatedDelivery')}</label>
+                <p>{order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                }) : t('common.tbd')}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('createOrder.designer')}</label>
+                <p>{order.designer || t('common.tbd')}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('createOrder.salesRep')}</label>
+                <p>{order.salesRep || t('common.tbd')}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('createOrder.buyerCompany')}</label>
+                <p>{order.buyerCompanyName || t('common.tbd')}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('common.status')}</label>
+                <div className="mt-1">
+                  <Select
+                    value={order.status}
+                    onValueChange={(value) => updateStatusMutation.mutate(value)}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="received">{t('orders.received')}</SelectItem>
+                      <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
+                      <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
+                      <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('orders.totalValue')}</label>
+                <p>¥{Number(order.totalValue).toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">{t('orders.createdAt')}</label>
+                <p>{new Date(order.createdAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
                   day: 'numeric'
                 })}</p>
               </div>
-            )}
-            {order.designer && (
-              <div>
-                <label className="text-sm font-medium">{t('createOrder.designer')}</label>
-                <p>{order.designer}</p>
-              </div>
-            )}
-            {order.salesRep && (
-              <div>
-                <label className="text-sm font-medium">{t('createOrder.salesRep')}</label>
-                <p>{order.salesRep}</p>
-              </div>
-            )}
-            {order.buyerCompanyName && (
-              <div>
-                <label className="text-sm font-medium">{t('createOrder.buyerCompany')}</label>
-                <p>{order.buyerCompanyName}</p>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -207,6 +220,21 @@ export default function OrderDetail() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {pdfPreview && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('createOrder.contractPreview')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <iframe
+                src={`data:application/pdf;base64,${pdfPreview}`}
+                className="w-full h-[2000px] border"
+                title={t('createOrder.contractPreview')}
+              />
             </CardContent>
           </Card>
         )}

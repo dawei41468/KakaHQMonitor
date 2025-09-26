@@ -45,7 +45,6 @@ export const orders = pgTable("orders", {
   signingDate: timestamp("signing_date"), // 签订日期
   designer: text("designer"), // 设计师
   salesRep: text("sales_rep"), // 业务代表
-  estimatedShipDate: timestamp("estimated_ship_date"), // 预计发货日期
   buyerCompanyName: text("buyer_company_name"), // 甲方公司名称
   buyerAddress: text("buyer_address"), // 甲方地址
   buyerPhone: text("buyer_phone"), // 甲方电话

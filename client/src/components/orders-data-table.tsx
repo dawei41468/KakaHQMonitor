@@ -48,11 +48,13 @@ import {
 
 export type Order = {
   id: string;
+  orderNumber: string;
   dealer: string;
   status: "received" | "sentToFactory" | "inProduction" | "delivered";
   totalValue: number;
   createdAt: string;
-  estimatedShipDate: string;
+  estimatedDelivery: string;
+  signingDate: string;
 };
 
 const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element): ColumnDef<Order>[] => [
@@ -79,6 +81,11 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
     enableHiding: false,
   },
   {
+    accessorKey: "orderNumber",
+    header: t('orders.orderNumber'),
+    cell: ({ row }) => <div className="text-left">{row.getValue("orderNumber")}</div>,
+  },
+  {
     accessorKey: "dealer",
     header: t('orders.dealer'),
     cell: ({ row }) => <div>{row.getValue("dealer")}</div>,
@@ -90,7 +97,7 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
   },
   {
     accessorKey: "totalValue",
-    header: () => <div className="text-right">{t('orders.amount')}</div>,
+    header: t('orders.amount'),
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("totalValue"));
 
@@ -100,38 +107,23 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
         currency: "USD",
       }).format(amount);
 
-      return <div className="text-right font-medium">{formatted}</div>;
+      return <div className="text-left font-medium">{formatted}</div>;
     },
   },
   {
-    accessorKey: "estimatedShipDate",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          {t('orders.estimatedDelivery')}
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => <div>{row.getValue("estimatedShipDate")}</div>,
+    accessorKey: "signingDate",
+    header: t('createOrder.signingDate'),
+    cell: ({ row }) => <div className="text-left">{row.getValue("signingDate")}</div>,
+  },
+  {
+    accessorKey: "estimatedDelivery",
+    header: t('orders.estimatedDelivery'),
+    cell: ({ row }) => <div className="text-left">{row.getValue("estimatedDelivery")}</div>,
   },
   {
     accessorKey: "createdAt",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          {t('orders.createdAt')}
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => <div>{row.getValue("createdAt")}</div>,
+    header: t('orders.createdAt'),
+    cell: ({ row }) => <div className="text-left">{row.getValue("createdAt")}</div>,
   },
   {
     id: "actions",
@@ -194,10 +186,16 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
       // Transform orders data
       const transformedData = (result.items || []).map((order: any) => ({
         id: order.id,
+        orderNumber: order.orderNumber,
         dealer: order.dealerName || order.dealerId || 'Unknown',
         status: order.status,
         totalValue: Number(order.totalValue),
-        estimatedShipDate: order.estimatedShipDate ? new Date(order.estimatedShipDate).toLocaleDateString('en-US', {
+        estimatedDelivery: order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }) : 'TBD',
+        signingDate: order.signingDate ? new Date(order.signingDate).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
@@ -256,10 +254,12 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
 
   const columnLabels: Record<string, string> = {
     select: t('orders.columnSelect'),
+    orderNumber: t('orders.orderNumber'),
     dealer: t('orders.columnDealer'),
     status: t('orders.columnStatus'),
     totalValue: t('orders.columnTotalValue'),
-    estimatedShipDate: t('orders.columnEstimatedShipDate'),
+    estimatedDelivery: t('orders.columnEstimatedShipDate'),
+    signingDate: t('createOrder.signingDate'),
     createdAt: t('orders.columnCreatedAt'),
     actions: t('orders.columnActions'),
   };

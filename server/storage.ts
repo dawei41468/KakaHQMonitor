@@ -34,6 +34,7 @@ export interface IStorage {
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
 
   // Order document management
+  getOrderDocument(orderId: string): Promise<OrderDocument | undefined>;
   createOrderDocument(document: InsertOrderDocument): Promise<OrderDocument>;
 
   // Material management
@@ -178,7 +179,6 @@ export class DatabaseStorage implements IStorage {
       signingDate: orders.signingDate,
       designer: orders.designer,
       salesRep: orders.salesRep,
-      estimatedShipDate: orders.estimatedShipDate,
       buyerCompanyName: orders.buyerCompanyName,
       buyerAddress: orders.buyerAddress,
       buyerPhone: orders.buyerPhone,
@@ -251,6 +251,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Order document methods
+  async getOrderDocument(orderId: string): Promise<OrderDocument | undefined> {
+    const [document] = await db
+      .select()
+      .from(orderDocuments)
+      .where(eq(orderDocuments.orderId, orderId))
+      .orderBy(desc(orderDocuments.createdAt));
+    return document || undefined;
+  }
+
   async createOrderDocument(insertDocument: InsertOrderDocument): Promise<OrderDocument> {
     const [document] = await db
       .insert(orderDocuments)

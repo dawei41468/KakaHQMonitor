@@ -128,7 +128,10 @@
     "failedToLoadOrder": "Failed to load order details",
     "orderNumber": "Order Number",
     "statusUpdated": "Status Updated",
-    "statusUpdateDescription": "The order status has been successfully updated."
+    "statusUpdateDescription": "The order status has been successfully updated.",
+    "downloadDocx": "Download DOCX",
+    "documentNotFound": "Document not found",
+    "downloadFailed": "Download failed"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",
@@ -255,7 +258,7 @@
     "signingDate": "Signing Date",
     "designer": "Designer",
     "salesRep": "Sales Rep",
-    "estimatedShipDate": "Est. Ship Date",
+    "estimatedShipDate": "Est. Delivery Date",
     "buyerCompany": "Buyer Company",
     "buyerAddress": "Buyer Address",
     "buyerPhone": "Buyer Phone",

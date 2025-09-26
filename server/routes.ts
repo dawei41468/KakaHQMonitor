@@ -349,6 +349,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/orders/:id/document", async (req, res) => {
+    try {
+      const document = await storage.getOrderDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const buffer = Buffer.from(document.fileData, 'base64');
+      res.setHeader('Content-Type', document.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+      res.send(buffer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve document" });
+    }
+  });
+
+  app.get("/api/orders/:id/pdf-preview", async (req, res) => {
+    try {
+      const order = await storage.getOrderById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Construct contract data from order
+      const contractData = {
+        contractNumber: order.orderNumber,
+        projectName: order.projectName || '',
+        signingDate: order.signingDate || new Date(),
+        designer: order.designer || '',
+        salesRep: order.salesRep || '',
+        estimatedDelivery: order.estimatedDelivery || new Date(),
+        buyerCompanyName: order.buyerCompanyName || '',
+        buyerAddress: order.buyerAddress || undefined,
+        buyerPhone: order.buyerPhone || undefined,
+        buyerTaxNumber: order.buyerTaxNumber || undefined,
+        items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as any[]).map((item: any) => ({
+          ...item,
+          productName: item.item,
+          quantity: item.quantity,
+          unit: '个', // default
+          dealPrice: 0, // not available
+          dealTotal: 0,
+          retailPrice: 0,
+          retailTotal: 0,
+          colorType: '',
+          colorCode: '',
+          specification: '',
+          productDetail: '',
+          region: '',
+          category: '',
+          remarks: ''
+        })) : []),
+        totalAmount: Number(order.totalValue)
+      };
+
+      const docxBuffer = await generateContractDOCX(contractData);
+      const pdfBuffer = await convertDocxToPdf(docxBuffer);
+
+      const base64PDF = pdfBuffer.toString('base64');
+
+      res.json(base64PDF);
+    } catch (error) {
+      console.error('PDF preview generation error:', error);
+      res.status(500).json({ error: "Failed to generate PDF preview" });
+    }
+  });
+
   app.post("/api/orders/preview", async (req, res) => {
     try {
       console.log('Preview request received');
@@ -392,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const processedBody = {
         ...req.body,
         signingDate: req.body.signingDate ? new Date(req.body.signingDate) : null,
-        estimatedShipDate: req.body.estimatedShipDate ? new Date(req.body.estimatedShipDate) : null,
+        estimatedDelivery: req.body.estimatedDelivery ? new Date(req.body.estimatedDelivery) : null,
       };
 
       const orderData = insertOrderSchema.parse(processedBody);
@@ -409,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           signingDate: orderData.signingDate || new Date(),
           designer: orderData.designer || '',
           salesRep: orderData.salesRep || '',
-          estimatedShipDate: orderData.estimatedShipDate || new Date(),
+          estimatedDelivery: orderData.estimatedDelivery || new Date(),
           buyerCompanyName: orderData.buyerCompanyName || '',
           buyerAddress: orderData.buyerAddress || undefined,
           buyerPhone: orderData.buyerPhone || undefined,
