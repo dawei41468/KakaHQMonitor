@@ -202,7 +202,7 @@ export function RecentOrdersTable({
                   <TableCell className="max-w-40 truncate">{formatItems(order.items as { item: string; quantity: number }[])}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
-                  <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : t('common.tbd')}</TableCell>
+                  <TableCell>{order.estimatedShipDate ? formatDate(order.estimatedShipDate) : t('common.tbd')}</TableCell>
                   <TableCell>
                     <Button 
                       variant="ghost" 

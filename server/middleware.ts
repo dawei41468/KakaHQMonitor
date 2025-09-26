@@ -13,11 +13,13 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
   const token = extractTokenFromHeader(req.headers.authorization);
 
   if (!token) {
+    console.log('No token in request');
     return res.status(401).json({ error: 'Access token required' });
   }
 
   const payload = await verifyAccessToken(token);
   if (!payload) {
+    console.log('Token verification failed for token:', token.substring(0, 20) + '...');
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 

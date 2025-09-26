@@ -40,6 +40,18 @@ export const orders = pgTable("orders", {
   estimatedDelivery: timestamp("estimated_delivery"),
   actualDelivery: timestamp("actual_delivery"),
   notes: text("notes"),
+  // Contract-specific fields
+  projectName: text("project_name"), // 项目名称
+  signingDate: timestamp("signing_date"), // 签订日期
+  designer: text("designer"), // 设计师
+  salesRep: text("sales_rep"), // 业务代表
+  estimatedShipDate: timestamp("estimated_ship_date"), // 预计发货日期
+  buyerCompanyName: text("buyer_company_name"), // 甲方公司名称
+  buyerAddress: text("buyer_address"), // 甲方地址
+  buyerPhone: text("buyer_phone"), // 甲方电话
+  buyerTaxNumber: text("buyer_tax_number"), // 甲方税号
+  // Detailed product line items for contract generation
+  contractItems: jsonb("contract_items"), // Array of detailed product items
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -71,6 +83,18 @@ export const alerts = pgTable("alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+// Order documents table for storing generated PDFs
+export const orderDocuments = pgTable("order_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id),
+  documentType: text("document_type").notNull().default("contract"), // contract | invoice | etc.
+  fileName: text("file_name").notNull(),
+  fileData: text("file_data").notNull(), // Base64 encoded PDF data
+  fileSize: integer("file_size").notNull(), // Size in bytes
+  mimeType: text("mime_type").notNull().default("application/pdf"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Revoked tokens table for token blacklisting
 export const revokedTokens = pgTable("revoked_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -93,6 +117,14 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [dealers.id],
   }),
   alerts: many(alerts),
+  documents: many(orderDocuments),
+}));
+
+export const orderDocumentsRelations = relations(orderDocuments, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderDocuments.orderId],
+    references: [orders.id],
+  }),
 }));
 
 export const materialsRelations = relations(materials, ({ many }) => ({
@@ -133,6 +165,11 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   updatedAt: true,
 });
 
+export const insertOrderDocumentSchema = createInsertSchema(orderDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertMaterialSchema = createInsertSchema(materials).omit({
   id: true,
   createdAt: true,
@@ -157,6 +194,8 @@ export type Dealer = typeof dealers.$inferSelect;
 export type InsertDealer = z.infer<typeof insertDealerSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type OrderDocument = typeof orderDocuments.$inferSelect;
+export type InsertOrderDocument = z.infer<typeof insertOrderDocumentSchema>;
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
 export type Alert = typeof alerts.$inferSelect;

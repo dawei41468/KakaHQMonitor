@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -465,18 +465,61 @@ function DealerManagement() {
  * Handles order status updates with pagination
  */
 function OrderManagement() {
-   const { t } = useTranslation();
-   const queryClient = useQueryClient();
-   const [page, setPage] = useState(1);
-   const limit = 10;
-   const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
-     queryKey: ['/api/admin/orders', page],
-     queryFn: () => apiRequest('GET', `/api/admin/orders?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
-   });
-   const orders = result?.items || [];
-   const total = result?.total || 0;
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
+      queryKey: ['/api/admin/orders', page],
+      queryFn: () => apiRequest('GET', `/api/admin/orders?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
+      placeholderData: (previousData) => previousData,
+    });
+    const orders = result?.items || [];
+    const total = result?.total || 0;
 
-  const updateOrderMutation = useMutation({
+    const totalPages = Math.ceil(total / limit);
+
+    const getVisiblePages = (current: number, totalPages: number, maxVisible: number = 5) => {
+      const pages: (number | string)[] = [];
+      const half = Math.floor(maxVisible / 2);
+
+      if (totalPages <= maxVisible) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+
+        let start = Math.max(2, current - half);
+        let end = Math.min(totalPages - 1, current + half);
+
+        if (start > 2) {
+          pages.push('...');
+        }
+
+        for (let i = start; i <= end; i++) {
+          pages.push(i);
+        }
+
+        if (end < totalPages - 1) {
+          pages.push('...');
+        }
+
+        if (totalPages > 1) {
+          pages.push(totalPages);
+        }
+      }
+
+      return pages;
+    };
+
+    const visiblePages = getVisiblePages(page, totalPages);
+
+    useEffect(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, [page]);
+
+   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const response = await apiRequest('PUT', `/api/admin/orders/${id}`, data);
       return response.json();
@@ -506,7 +549,7 @@ function OrderManagement() {
           {orders?.map((order: any) => (
             <TableRow key={order.id}>
               <TableCell>{order.orderNumber}</TableCell>
-              <TableCell>{order.dealer?.name || order.dealerId}</TableCell>
+              <TableCell>{order.dealerName || order.dealerId}</TableCell>
               <TableCell>
                 <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
                   {t(`orders.${order.status}`)}
@@ -566,15 +609,19 @@ function OrderManagement() {
                 className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
               />
             </PaginationItem>
-            {Array.from({ length: Math.ceil(total / limit) }, (_, i) => i + 1).map((p) => (
-              <PaginationItem key={p}>
-                <PaginationLink
-                  onClick={() => setPage(p)}
-                  isActive={p === page}
-                  className="cursor-pointer"
-                >
-                  {p}
-                </PaginationLink>
+            {visiblePages.map((p, index) => (
+              <PaginationItem key={index}>
+                {p === '...' ? (
+                  <span className="px-3 py-2">...</span>
+                ) : (
+                  <PaginationLink
+                    onClick={() => setPage(p as number)}
+                    isActive={p === page}
+                    className="cursor-pointer"
+                  >
+                    {p}
+                  </PaginationLink>
+                )}
               </PaginationItem>
             ))}
             <PaginationItem>

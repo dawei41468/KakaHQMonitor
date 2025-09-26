@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Admin from "@/pages/admin";
 import Profile from "@/pages/profile";
 import Orders from "@/pages/orders";
+import OrderDetail from "@/pages/order-detail";
 import Alerts from "@/pages/alerts";
 import Inventory from "@/pages/inventory";
 
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/dashboard" component={user ? Dashboard : Login} />
       <Route path="/profile" component={user ? Profile : Login} />
       <Route path="/orders" component={user ? Orders : Login} />
+      <Route path="/orders/:id" component={user ? OrderDetail : Login} />
       <Route path="/alerts" component={user ? Alerts : Login} />
       <Route path="/inventory" component={user ? Inventory : Login} />
       <Route path="/admin" component={user && user.role === 'admin' ? Admin : NotFound} />
