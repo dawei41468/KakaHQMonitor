@@ -5,6 +5,7 @@ import {
   IParagraphOptions,
   IRunOptions,
   ITableCellOptions,
+  ImageRun,
   Packer,
   Paragraph,
   ShadingType,
@@ -15,7 +16,13 @@ import {
   TextRun,
   VerticalAlign,
   WidthType,
+  Media,
 } from 'docx';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface ContractItem {
   region: string;
@@ -208,6 +215,11 @@ function createHeaderTable(contractData: ContractData): Table {
     left: 100,
     right: 100,
   };
+
+  // Read logo image
+  const logoPath = path.join(__dirname, 'images', 'agio_logo.png');
+  const logoBuffer = fs.readFileSync(logoPath);
+
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     columnWidths: [2000, 4000, 3000],
@@ -218,7 +230,26 @@ function createHeaderTable(contractData: ContractData): Table {
            new TableCell({
              margins: cellMargins,
              borders: NO_TABLE_BORDERS,
-             children: [],
+             children: [
+               new Paragraph({
+                 children: [
+                   new TextRun({ text: '', size: 16 }), // Add spacing
+                 ],
+               }),
+               new Paragraph({
+                 children: [
+                   new ImageRun({
+                     type: 'png',
+                     data: logoBuffer,
+                     transformation: {
+                       width: 85,
+                       height: 46,
+                     },
+                   }),
+                 ],
+                 alignment: AlignmentType.LEFT,
+               }),
+             ],
            }),
            new TableCell({
              margins: cellMargins,
@@ -227,7 +258,7 @@ function createHeaderTable(contractData: ContractData): Table {
                createParagraph('', { spacing: { after: 40 } }),
                createParagraph('', { spacing: { after: 40 } }),
                createParagraph('agio咖咖时光阳台花园项目经销合同', {
-                 run: { bold: true, size: 24 },
+                 run: { bold: true, size: 26 },
                  alignment: AlignmentType.RIGHT,
                }),
              ],

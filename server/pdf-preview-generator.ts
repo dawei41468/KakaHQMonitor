@@ -1,5 +1,9 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface ContractItem {
   region: string;
@@ -136,15 +140,20 @@ export function generateContractPDFPreview(contractData: ContractData): Promise<
         }
       }
 
+      // Logo
+      const logoPath = path.join(__dirname, 'images', 'agio_logo.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 60, { width: 50, height: 27 });
+      }
+
       // Title - repeated header
-      doc.fontSize(16).text('agio咖咖时光阳台花园项目销售合同', { align: 'center' });
+      doc.fontSize(18).text('agio咖咖时光阳台花园项目销售合同', 200, 70, { align: 'left' });
       doc.moveDown(0.5);
       
       // Contract number and project name
-      doc.fontSize(12).text(contractData.contractNumber, { align: 'center' });
-      doc.moveDown(0.5);
-      doc.text(contractData.projectName, { align: 'center' });
-      doc.moveDown(1);
+      doc.fontSize(12).text(contractData.contractNumber, 200, 95, { align: 'left' });
+      doc.text(contractData.projectName, 200, 110, { align: 'left' });
+      doc.moveDown(2);
 
       // Basic contract info in table format
       doc.fontSize(10);

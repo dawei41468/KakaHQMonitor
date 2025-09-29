@@ -21,6 +21,8 @@ interface ContractItem {
   region: string;
   category: string;
   productName: string;
+  standardProductName: string;
+  customProductName: string;
   productDetail: string;
   specification: string;
   colorType: string;
@@ -71,6 +73,8 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       region: "",
       category: "",
       productName: "",
+      standardProductName: "",
+      customProductName: "",
       productDetail: "",
       specification: "",
       colorType: "",
@@ -214,6 +218,8 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       region: "",
       category: "",
       productName: "",
+      standardProductName: "",
+      customProductName: "",
       productDetail: "",
       specification: "",
       colorType: "",
@@ -231,6 +237,15 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
   const updateContractItem = (index: number, field: keyof ContractItem, value: any) => {
     const updated = [...contractItems];
     updated[index] = { ...updated[index], [field]: value };
+
+    // Handle product name logic
+    if (field === 'standardProductName') {
+      updated[index].productName = value;
+      updated[index].customProductName = '';
+    } else if (field === 'customProductName') {
+      updated[index].productName = value;
+      updated[index].standardProductName = '';
+    }
 
     // Auto-calculate totals
     if (field === 'quantity' || field === 'retailPrice') {
@@ -373,9 +388,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectRegion')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="墙面">{t('createOrder.wall')}</SelectItem>
-                          <SelectItem value="阳台">{t('createOrder.balcony')}</SelectItem>
-                          <SelectItem value="地面">{t('createOrder.floor')}</SelectItem>
+                          <SelectItem value="无">无</SelectItem>
+                          <SelectItem value="阳台">阳台</SelectItem>
+                          <SelectItem value="露台">露台</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -386,9 +401,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectCategory')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="墙板">{t('createOrder.wallPanel')}</SelectItem>
-                          <SelectItem value="地板">{t('createOrder.flooring')}</SelectItem>
-                          <SelectItem value="花箱">{t('createOrder.flowerBox')}</SelectItem>
+                          <SelectItem value="无">无</SelectItem>
+                          <SelectItem value="地面">地面</SelectItem>
+                          <SelectItem value="墙面">墙面</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -407,10 +422,29 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                     </div>
                     <div>
                       <Label>{t('createOrder.productName')}</Label>
-                      <Input
-                        value={item.productName}
-                        onChange={(e) => updateContractItem(index, 'productName', e.target.value)}
-                      />
+                      <div className="space-y-2">
+                        <Select value={item.standardProductName} onValueChange={(value) => updateContractItem(index, 'standardProductName', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择标准产品" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="微风I 谷之木1号DKG12520地板">微风I 谷之木1号DKG12520地板</SelectItem>
+                            <SelectItem value="微风I 谷之木1号DKG14025地板">微风I 谷之木1号DKG14025地板</SelectItem>
+                            <SelectItem value="微风IV 谷之木4号A款超薄地板">微风IV 谷之木4号A款超薄地板</SelectItem>
+                            <SelectItem value="微风IV 谷之木4号B款超薄地板">微风IV 谷之木4号B款超薄地板</SelectItem>
+                            <SelectItem value="谷之木快装地板">谷之木快装地板</SelectItem>
+                            <SelectItem value="芳华I 95墙板">芳华I 95墙板</SelectItem>
+                            <SelectItem value="芳华I 95墙板(中间有拉槽)">芳华I 95墙板(中间有拉槽)</SelectItem>
+                            <SelectItem value="芳华III 谷之木4号B款墙板">芳华III 谷之木4号B款墙板</SelectItem>
+                            <SelectItem value="CPS">CPS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={item.customProductName}
+                          onChange={(e) => updateContractItem(index, 'customProductName', e.target.value)}
+                          placeholder="非标准产品描述"
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label>{t('createOrder.specification')}</Label>
