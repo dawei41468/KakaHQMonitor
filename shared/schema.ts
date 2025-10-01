@@ -105,6 +105,75 @@ export const revokedTokens = pgTable("revoked_tokens", {
   reason: text("reason"), // logout | rotation | admin
 });
 
+// Categories table for product categorization
+export const categories = pgTable("categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Products table for order form
+export const products = pgTable("products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  defaultSpecification: text("default_specification").notNull(),
+  categoryId: varchar("category_id").references(() => categories.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Colors table for color options
+export const colors = pgTable("colors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Product colors junction table for usage tracking
+export const productColors = pgTable("product_colors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  colorId: varchar("color_id").notNull().references(() => colors.id),
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Regions table
+export const regions = pgTable("regions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Product details table
+export const productDetails = pgTable("product_details", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Color types table
+export const colorTypes = pgTable("color_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Units table
+export const units = pgTable("units", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  categoryId: varchar("category_id").references(() => categories.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const dealersRelations = relations(dealers, ({ many }) => ({
   orders: many(orders),
@@ -143,6 +212,53 @@ export const alertsRelations = relations(alerts, ({ one }) => ({
 
 export const revokedTokensRelations = relations(revokedTokens, ({}) => ({
   // No relations needed for revoked tokens
+}));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  products: many(products),
+  units: many(units),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [products.categoryId],
+    references: [categories.id],
+  }),
+  productColors: many(productColors),
+}));
+
+export const colorsRelations = relations(colors, ({ many }) => ({
+  productColors: many(productColors),
+}));
+
+export const productColorsRelations = relations(productColors, ({ one }) => ({
+  product: one(products, {
+    fields: [productColors.productId],
+    references: [products.id],
+  }),
+  color: one(colors, {
+    fields: [productColors.colorId],
+    references: [colors.id],
+  }),
+}));
+
+export const regionsRelations = relations(regions, ({}) => ({
+  // No relations
+}));
+
+export const productDetailsRelations = relations(productDetails, ({}) => ({
+  // No relations
+}));
+
+export const colorTypesRelations = relations(colorTypes, ({}) => ({
+  // No relations
+}));
+
+export const unitsRelations = relations(units, ({ one }) => ({
+  category: one(categories, {
+    fields: [units.categoryId],
+    references: [categories.id],
+  }),
 }));
 
 // Zod schemas for validation
@@ -186,6 +302,54 @@ export const insertRevokedTokenSchema = createInsertSchema(revokedTokens).omit({
   revokedAt: true,
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertColorSchema = createInsertSchema(colors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductColorSchema = createInsertSchema(productColors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRegionSchema = createInsertSchema(regions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductDetailSchema = createInsertSchema(productDetails).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertColorTypeSchema = createInsertSchema(colorTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUnitSchema = createInsertSchema(units).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -201,6 +365,22 @@ export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
 export type RevokedToken = typeof revokedTokens.$inferSelect;
 export type InsertRevokedToken = z.infer<typeof insertRevokedTokenSchema>;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Color = typeof colors.$inferSelect;
+export type InsertColor = z.infer<typeof insertColorSchema>;
+export type ProductColor = typeof productColors.$inferSelect;
+export type InsertProductColor = z.infer<typeof insertProductColorSchema>;
+export type Region = typeof regions.$inferSelect;
+export type InsertRegion = z.infer<typeof insertRegionSchema>;
+export type ProductDetail = typeof productDetails.$inferSelect;
+export type InsertProductDetail = z.infer<typeof insertProductDetailSchema>;
+export type ColorType = typeof colorTypes.$inferSelect;
+export type InsertColorType = z.infer<typeof insertColorTypeSchema>;
+export type Unit = typeof units.$inferSelect;
+export type InsertUnit = z.infer<typeof insertUnitSchema>;
 
 // Login schema for authentication
 export const loginSchema = z.object({

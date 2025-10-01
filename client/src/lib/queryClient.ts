@@ -19,11 +19,6 @@ async function refreshAccessToken(): Promise<void> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: {

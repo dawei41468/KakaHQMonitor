@@ -52,6 +52,42 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
     queryKey: ['/api/dealers'],
   });
 
+  // Fetch dynamic options
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => apiRequest('GET', '/api/categories').then(res => res.json()),
+  });
+
+  const { data: regions = [] } = useQuery({
+    queryKey: ['regions'],
+    queryFn: () => apiRequest('GET', '/api/regions').then(res => res.json()),
+  });
+
+  const { data: productDetails = [] } = useQuery({
+    queryKey: ['product-details'],
+    queryFn: () => apiRequest('GET', '/api/product-details').then(res => res.json()),
+  });
+
+  const { data: colorTypes = [] } = useQuery({
+    queryKey: ['color-types'],
+    queryFn: () => apiRequest('GET', '/api/color-types').then(res => res.json()),
+  });
+
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => apiRequest('GET', '/api/products').then(res => res.json()),
+  });
+
+  const { data: allColors = [] } = useQuery({
+    queryKey: ['colors'],
+    queryFn: () => apiRequest('GET', '/api/colors').then(res => res.json()),
+  });
+
+  const { data: allUnits = [] } = useQuery({
+    queryKey: ['units'],
+    queryFn: () => apiRequest('GET', '/api/units').then(res => res.json()),
+  });
+
   // Basic info state
   const [orderNumber, setOrderNumber] = React.useState("");
   const [projectName, setProjectName] = React.useState("");
@@ -240,8 +276,12 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
 
     // Handle product name logic
     if (field === 'standardProductName') {
-      updated[index].productName = value;
-      updated[index].customProductName = '';
+      const product = allProducts.find((p: any) => p.name === value);
+      if (product) {
+        updated[index].productName = value;
+        updated[index].specification = product.defaultSpecification;
+        updated[index].customProductName = '';
+      }
     } else if (field === 'customProductName') {
       updated[index].productName = value;
       updated[index].standardProductName = '';
@@ -378,9 +418,13 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
 
           <TabsContent value="items" className="space-y-4">
             <div className="space-y-4">
-              {contractItems.map((item, index) => (
-                <div key={index} className="border p-4 rounded">
-                  <div className="grid grid-cols-3 gap-4">
+              {contractItems.map((item, index) => {
+                const filteredProducts = allProducts.filter((p: any) => !item.category || p.category?.name === item.category);
+                const filteredUnits = allUnits;
+
+                return (
+                  <div key={index} className="border p-4 rounded">
+                    <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label>{t('createOrder.region')}</Label>
                       <Select value={item.region} onValueChange={(value) => updateContractItem(index, 'region', value)}>
@@ -388,9 +432,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectRegion')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="无">无</SelectItem>
-                          <SelectItem value="阳台">阳台</SelectItem>
-                          <SelectItem value="露台">露台</SelectItem>
+                          {regions.map((r: any) => (
+                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -401,9 +445,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectCategory')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="无">无</SelectItem>
-                          <SelectItem value="地面">地面</SelectItem>
-                          <SelectItem value="墙面">墙面</SelectItem>
+                          {categories.map((c: any) => (
+                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -414,9 +458,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectProductDetail')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="条发">条发</SelectItem>
-                          <SelectItem value="条状">条状</SelectItem>
-                          <SelectItem value="平面">平面</SelectItem>
+                          {productDetails.map((pd: any) => (
+                            <SelectItem key={pd.id} value={pd.name}>{pd.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -428,15 +472,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                             <SelectValue placeholder="选择标准产品" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="微风I 谷之木1号DKG12520地板">微风I 谷之木1号DKG12520地板</SelectItem>
-                            <SelectItem value="微风I 谷之木1号DKG14025地板">微风I 谷之木1号DKG14025地板</SelectItem>
-                            <SelectItem value="微风IV 谷之木4号A款超薄地板">微风IV 谷之木4号A款超薄地板</SelectItem>
-                            <SelectItem value="微风IV 谷之木4号B款超薄地板">微风IV 谷之木4号B款超薄地板</SelectItem>
-                            <SelectItem value="谷之木快装地板">谷之木快装地板</SelectItem>
-                            <SelectItem value="芳华I 95墙板">芳华I 95墙板</SelectItem>
-                            <SelectItem value="芳华I 95墙板(中间有拉槽)">芳华I 95墙板(中间有拉槽)</SelectItem>
-                            <SelectItem value="芳华III 谷之木4号B款墙板">芳华III 谷之木4号B款墙板</SelectItem>
-                            <SelectItem value="CPS">CPS</SelectItem>
+                            {filteredProducts.map((p: any) => (
+                              <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <Input
@@ -462,18 +500,23 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                               <SelectValue placeholder="选择类型" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="单面">单面</SelectItem>
-                              <SelectItem value="双面">双面</SelectItem>
-                              <SelectItem value="裸板">裸板</SelectItem>
+                              {colorTypes.map((ct: any) => (
+                                <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="w-2/3">
-                          <Input
-                            value={item.colorCode}
-                            onChange={(e) => updateContractItem(index, 'colorCode', e.target.value)}
-                            placeholder="颜色代码"
-                          />
+                          <Select value={item.colorCode} onValueChange={(value) => updateContractItem(index, 'colorCode', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择颜色" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allColors.map((c: any) => (
+                                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
@@ -492,10 +535,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                           <SelectValue placeholder={t('createOrder.selectUnit')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="㎡">{t('createOrder.squareMeter')}</SelectItem>
-                          <SelectItem value="米">{t('createOrder.meter')}</SelectItem>
-                          <SelectItem value="条">{t('createOrder.piece')}</SelectItem>
-                          <SelectItem value="个">{t('createOrder.item')}</SelectItem>
+                          {filteredUnits.map((u: any) => (
+                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -530,7 +572,8 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                     </Button>
                   )}
                 </div>
-              ))}
+                );
+              })}
               <Button onClick={addContractItem} variant="outline">
                 {t('createOrder.addAnotherItem')}
               </Button>

@@ -141,9 +141,9 @@ export function generateContractPDFPreview(contractData: ContractData): Promise<
       }
 
       // Logo
-      const logoPath = path.join(__dirname, 'images', 'agio_logo.png');
+      const logoPath = path.join(__dirname, 'images', 'kaka_logo.png');
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 60, { width: 50, height: 27 });
+        doc.image(logoPath, 50, 45, { width: 60, height: 39 });
       }
 
       // Title - repeated header

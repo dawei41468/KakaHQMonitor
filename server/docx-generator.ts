@@ -217,7 +217,7 @@ function createHeaderTable(contractData: ContractData): Table {
   };
 
   // Read logo image
-  const logoPath = path.join(__dirname, 'images', 'agio_logo.png');
+  const logoPath = path.join(__dirname, 'images', 'kaka_logo.png');
   const logoBuffer = fs.readFileSync(logoPath);
 
   return new Table({
@@ -233,21 +233,17 @@ function createHeaderTable(contractData: ContractData): Table {
              children: [
                new Paragraph({
                  children: [
-                   new TextRun({ text: '', size: 16 }), // Add spacing
-                 ],
-               }),
-               new Paragraph({
-                 children: [
                    new ImageRun({
                      type: 'png',
                      data: logoBuffer,
                      transformation: {
-                       width: 85,
-                       height: 46,
+                       width: 100,
+                       height: 65,
                      },
                    }),
                  ],
                  alignment: AlignmentType.LEFT,
+                 spacing: { before: 40, after: 40 },
                }),
              ],
            }),
@@ -595,7 +591,7 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
             },
             children: [
               createHeaderTable(contractData),
-              new Paragraph({ text: '', spacing: { after: 120 } }),
+              new Paragraph({ text: '', spacing: { after: 80 } }),
               createSummaryTable(contractData),
               new Paragraph({ text: '', spacing: { after: 200 } }),
               createParagraph('根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守', {
