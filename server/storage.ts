@@ -1,11 +1,16 @@
 import {
   users, dealers, orders, materials, alerts, orderDocuments,
+  categories, products, colors, productColors, regions, productDetails, colorTypes, units,
   type User, type InsertUser, type Dealer, type InsertDealer,
   type Order, type InsertOrder, type Material, type InsertMaterial,
-  type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument
+  type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument,
+  type Category, type InsertCategory, type Product, type InsertProduct,
+  type Color, type InsertColor, type ProductColor, type InsertProductColor,
+  type Region, type InsertRegion, type ProductDetail, type InsertProductDetail,
+  type ColorType, type InsertColorType, type Unit, type InsertUnit
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -54,6 +59,45 @@ export interface IStorage {
   deleteAlert(id: string): Promise<boolean>;
   resolveAlert(id: string): Promise<Alert | undefined>;
   getActiveAlerts(): Promise<Alert[]>;
+
+  // Form options management
+  getAllCategories(): Promise<{ items: Category[], total: number }>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<boolean>;
+
+  getAllProducts(): Promise<{ items: Product[], total: number }>;
+  getProductsByCategory(categoryId: string): Promise<Product[]>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: string): Promise<boolean>;
+
+  getAllColors(): Promise<{ items: Color[], total: number }>;
+  getColorsForProduct(productId: string): Promise<Color[]>;
+  createColor(color: InsertColor): Promise<Color>;
+  updateColor(id: string, color: Partial<InsertColor>): Promise<Color | undefined>;
+  deleteColor(id: string): Promise<boolean>;
+
+  getAllRegions(): Promise<{ items: Region[], total: number }>;
+  createRegion(region: InsertRegion): Promise<Region>;
+  updateRegion(id: string, region: Partial<InsertRegion>): Promise<Region | undefined>;
+  deleteRegion(id: string): Promise<boolean>;
+
+  getAllProductDetails(): Promise<{ items: ProductDetail[], total: number }>;
+  createProductDetail(productDetail: InsertProductDetail): Promise<ProductDetail>;
+  updateProductDetail(id: string, productDetail: Partial<InsertProductDetail>): Promise<ProductDetail | undefined>;
+  deleteProductDetail(id: string): Promise<boolean>;
+
+  getAllColorTypes(): Promise<{ items: ColorType[], total: number }>;
+  createColorType(colorType: InsertColorType): Promise<ColorType>;
+  updateColorType(id: string, colorType: Partial<InsertColorType>): Promise<ColorType | undefined>;
+  deleteColorType(id: string): Promise<boolean>;
+
+  getAllUnits(): Promise<{ items: Unit[], total: number }>;
+  getUnitsByCategory(categoryId: string): Promise<Unit[]>;
+  createUnit(unit: InsertUnit): Promise<Unit>;
+  updateUnit(id: string, unit: Partial<InsertUnit>): Promise<Unit | undefined>;
+  deleteUnit(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -218,6 +262,32 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .returning();
+
+    // Update product-color usage counts
+    if (insertOrder.contractItems && Array.isArray(insertOrder.contractItems)) {
+      for (const item of insertOrder.contractItems as any[]) {
+        if (item.productName && item.colorCode) {
+          const [product] = await db.select().from(products).where(eq(products.name, item.productName));
+          const [color] = await db.select().from(colors).where(eq(colors.name, item.colorCode));
+          if (product && color) {
+            await db.insert(productColors).values({
+              productId: product.id,
+              colorId: color.id,
+              usageCount: 1,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }).onConflictDoUpdate({
+              target: [productColors.productId, productColors.colorId],
+              set: {
+                usageCount: sql`${productColors.usageCount} + 1`,
+                updatedAt: new Date()
+              }
+            });
+          }
+        }
+      }
+    }
+
     return order;
   }
 
@@ -405,6 +475,299 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAlert(id: string): Promise<boolean> {
     const result = await db.delete(alerts).where(eq(alerts.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Form options methods
+  async getAllCategories(): Promise<{ items: Category[], total: number }> {
+    const items = await db.select().from(categories).orderBy(categories.name);
+    const result = await db.select({ count: count() }).from(categories);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db
+      .insert(categories)
+      .values({
+        ...insertCategory,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return category;
+  }
+
+  async updateCategory(id: string, categoryData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const [category] = await db
+      .update(categories)
+      .set({
+        ...categoryData,
+        updatedAt: new Date()
+      })
+      .where(eq(categories.id, id))
+      .returning();
+    return category || undefined;
+  }
+
+  async deleteCategory(id: string): Promise<boolean> {
+    const result = await db.delete(categories).where(eq(categories.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllProducts(): Promise<{ items: any[], total: number }> {
+    const items = await db.select({
+      id: products.id,
+      name: products.name,
+      defaultSpecification: products.defaultSpecification,
+      categoryId: products.categoryId,
+      category: categories,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt
+    }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).orderBy(products.name);
+    const result = await db.select({ count: count() }).from(products);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async getProductsByCategory(categoryId: string): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.categoryId, categoryId))
+      .orderBy(products.name);
+  }
+
+  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    const [product] = await db
+      .insert(products)
+      .values({
+        ...insertProduct,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return product;
+  }
+
+  async updateProduct(id: string, productData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [product] = await db
+      .update(products)
+      .set({
+        ...productData,
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, id))
+      .returning();
+    return product || undefined;
+  }
+
+  async deleteProduct(id: string): Promise<boolean> {
+    const result = await db.delete(products).where(eq(products.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllColors(): Promise<{ items: Color[], total: number }> {
+    const items = await db.select().from(colors).orderBy(colors.name);
+    const result = await db.select({ count: count() }).from(colors);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async getColorsForProduct(productId: string): Promise<Color[]> {
+    // Get colors ordered by usage count for this product
+    const result = await db
+      .select({
+        id: colors.id,
+        name: colors.name,
+        createdAt: colors.createdAt,
+        updatedAt: colors.updatedAt,
+        usageCount: productColors.usageCount
+      })
+      .from(colors)
+      .leftJoin(productColors, and(eq(colors.id, productColors.colorId), eq(productColors.productId, productId)))
+      .orderBy(desc(productColors.usageCount), colors.name);
+    return result;
+  }
+
+  async createColor(insertColor: InsertColor): Promise<Color> {
+    const [color] = await db
+      .insert(colors)
+      .values({
+        ...insertColor,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return color;
+  }
+
+  async updateColor(id: string, colorData: Partial<InsertColor>): Promise<Color | undefined> {
+    const [color] = await db
+      .update(colors)
+      .set({
+        ...colorData,
+        updatedAt: new Date()
+      })
+      .where(eq(colors.id, id))
+      .returning();
+    return color || undefined;
+  }
+
+  async deleteColor(id: string): Promise<boolean> {
+    const result = await db.delete(colors).where(eq(colors.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllRegions(): Promise<{ items: Region[], total: number }> {
+    const items = await db.select().from(regions).orderBy(regions.name);
+    const result = await db.select({ count: count() }).from(regions);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async createRegion(insertRegion: InsertRegion): Promise<Region> {
+    const [region] = await db
+      .insert(regions)
+      .values({
+        ...insertRegion,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return region;
+  }
+
+  async updateRegion(id: string, regionData: Partial<InsertRegion>): Promise<Region | undefined> {
+    const [region] = await db
+      .update(regions)
+      .set({
+        ...regionData,
+        updatedAt: new Date()
+      })
+      .where(eq(regions.id, id))
+      .returning();
+    return region || undefined;
+  }
+
+  async deleteRegion(id: string): Promise<boolean> {
+    const result = await db.delete(regions).where(eq(regions.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllProductDetails(): Promise<{ items: ProductDetail[], total: number }> {
+    const items = await db.select().from(productDetails).orderBy(productDetails.name);
+    const result = await db.select({ count: count() }).from(productDetails);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async createProductDetail(insertProductDetail: InsertProductDetail): Promise<ProductDetail> {
+    const [productDetail] = await db
+      .insert(productDetails)
+      .values({
+        ...insertProductDetail,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return productDetail;
+  }
+
+  async updateProductDetail(id: string, productDetailData: Partial<InsertProductDetail>): Promise<ProductDetail | undefined> {
+    const [productDetail] = await db
+      .update(productDetails)
+      .set({
+        ...productDetailData,
+        updatedAt: new Date()
+      })
+      .where(eq(productDetails.id, id))
+      .returning();
+    return productDetail || undefined;
+  }
+
+  async deleteProductDetail(id: string): Promise<boolean> {
+    const result = await db.delete(productDetails).where(eq(productDetails.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllColorTypes(): Promise<{ items: ColorType[], total: number }> {
+    const items = await db.select().from(colorTypes).orderBy(colorTypes.name);
+    const result = await db.select({ count: count() }).from(colorTypes);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async createColorType(insertColorType: InsertColorType): Promise<ColorType> {
+    const [colorType] = await db
+      .insert(colorTypes)
+      .values({
+        ...insertColorType,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return colorType;
+  }
+
+  async updateColorType(id: string, colorTypeData: Partial<InsertColorType>): Promise<ColorType | undefined> {
+    const [colorType] = await db
+      .update(colorTypes)
+      .set({
+        ...colorTypeData,
+        updatedAt: new Date()
+      })
+      .where(eq(colorTypes.id, id))
+      .returning();
+    return colorType || undefined;
+  }
+
+  async deleteColorType(id: string): Promise<boolean> {
+    const result = await db.delete(colorTypes).where(eq(colorTypes.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getAllUnits(): Promise<{ items: Unit[], total: number }> {
+    const items = await db.select().from(units).orderBy(units.name);
+    const result = await db.select({ count: count() }).from(units);
+    const total = result[0].count;
+    return { items, total };
+  }
+
+  async getUnitsByCategory(categoryId: string): Promise<Unit[]> {
+    return await db
+      .select()
+      .from(units)
+      .where(eq(units.categoryId, categoryId))
+      .orderBy(units.name);
+  }
+
+  async createUnit(insertUnit: InsertUnit): Promise<Unit> {
+    const [unit] = await db
+      .insert(units)
+      .values({
+        ...insertUnit,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return unit;
+  }
+
+  async updateUnit(id: string, unitData: Partial<InsertUnit>): Promise<Unit | undefined> {
+    const [unit] = await db
+      .update(units)
+      .set({
+        ...unitData,
+        updatedAt: new Date()
+      })
+      .where(eq(units.id, id))
+      .returning();
+    return unit || undefined;
+  }
+
+  async deleteUnit(id: string): Promise<boolean> {
+    const result = await db.delete(units).where(eq(units.id, id));
     return (result.rowCount || 0) > 0;
   }
 }

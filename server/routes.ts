@@ -12,7 +12,7 @@ import {
   hashPassword,
   comparePassword
 } from "./auth";
-import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema } from "@shared/schema";
+import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 
@@ -816,6 +816,403 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Alert deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete alert" });
+    }
+  });
+
+  // Public form options endpoints
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      res.json(categories.items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.get("/api/products", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId as string;
+      if (categoryId) {
+        const products = await storage.getProductsByCategory(categoryId);
+        res.json(products);
+      } else {
+        const products = await storage.getAllProducts();
+        res.json(products.items);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.get("/api/colors", async (req, res) => {
+    try {
+      const productId = req.query.productId as string;
+      if (productId) {
+        const colors = await storage.getColorsForProduct(productId);
+        res.json(colors);
+      } else {
+        const colors = await storage.getAllColors();
+        res.json(colors.items);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch colors" });
+    }
+  });
+
+  app.get("/api/regions", async (req, res) => {
+    try {
+      const regions = await storage.getAllRegions();
+      res.json(regions.items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch regions" });
+    }
+  });
+
+  app.get("/api/product-details", async (req, res) => {
+    try {
+      const productDetails = await storage.getAllProductDetails();
+      res.json(productDetails.items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch product details" });
+    }
+  });
+
+  app.get("/api/color-types", async (req, res) => {
+    try {
+      const colorTypes = await storage.getAllColorTypes();
+      res.json(colorTypes.items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch color types" });
+    }
+  });
+
+  app.get("/api/units", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId as string;
+      if (categoryId) {
+        const units = await storage.getUnitsByCategory(categoryId);
+        res.json(units);
+      } else {
+        const units = await storage.getAllUnits();
+        res.json(units.items);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch units" });
+    }
+  });
+
+  // Categories admin routes
+  app.get("/api/admin/categories", requireAdmin, async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/admin/categories", requireAdmin, async (req, res) => {
+    try {
+      const categoryData = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid category data" });
+    }
+  });
+
+  app.put("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const categoryData = req.body;
+      const category = await storage.updateCategory(req.params.id, categoryData);
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid category data" });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteCategory(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // Products admin routes
+  app.get("/api/admin/products", requireAdmin, async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.post("/api/admin/products", requireAdmin, async (req, res) => {
+    try {
+      const productData = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(productData);
+      res.status(201).json(product);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid product data" });
+    }
+  });
+
+  app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const productData = req.body;
+      const product = await storage.updateProduct(req.params.id, productData);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      res.json(product);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid product data" });
+    }
+  });
+
+  app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteProduct(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
+  // Colors admin routes
+  app.get("/api/admin/colors", requireAdmin, async (req, res) => {
+    try {
+      const colors = await storage.getAllColors();
+      res.json(colors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch colors" });
+    }
+  });
+
+  app.post("/api/admin/colors", requireAdmin, async (req, res) => {
+    try {
+      const colorData = insertColorSchema.parse(req.body);
+      const color = await storage.createColor(colorData);
+      res.status(201).json(color);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid color data" });
+    }
+  });
+
+  app.put("/api/admin/colors/:id", requireAdmin, async (req, res) => {
+    try {
+      const colorData = req.body;
+      const color = await storage.updateColor(req.params.id, colorData);
+      if (!color) {
+        return res.status(404).json({ error: "Color not found" });
+      }
+      res.json(color);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid color data" });
+    }
+  });
+
+  app.delete("/api/admin/colors/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteColor(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Color not found" });
+      }
+      res.json({ message: "Color deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete color" });
+    }
+  });
+
+  // Regions admin routes
+  app.get("/api/admin/regions", requireAdmin, async (req, res) => {
+    try {
+      const regions = await storage.getAllRegions();
+      res.json(regions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch regions" });
+    }
+  });
+
+  app.post("/api/admin/regions", requireAdmin, async (req, res) => {
+    try {
+      const regionData = insertRegionSchema.parse(req.body);
+      const region = await storage.createRegion(regionData);
+      res.status(201).json(region);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid region data" });
+    }
+  });
+
+  app.put("/api/admin/regions/:id", requireAdmin, async (req, res) => {
+    try {
+      const regionData = req.body;
+      const region = await storage.updateRegion(req.params.id, regionData);
+      if (!region) {
+        return res.status(404).json({ error: "Region not found" });
+      }
+      res.json(region);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid region data" });
+    }
+  });
+
+  app.delete("/api/admin/regions/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteRegion(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Region not found" });
+      }
+      res.json({ message: "Region deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete region" });
+    }
+  });
+
+  // Product details admin routes
+  app.get("/api/admin/product-details", requireAdmin, async (req, res) => {
+    try {
+      const productDetails = await storage.getAllProductDetails();
+      res.json(productDetails);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch product details" });
+    }
+  });
+
+  app.post("/api/admin/product-details", requireAdmin, async (req, res) => {
+    try {
+      const productDetailData = insertProductDetailSchema.parse(req.body);
+      const productDetail = await storage.createProductDetail(productDetailData);
+      res.status(201).json(productDetail);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid product detail data" });
+    }
+  });
+
+  app.put("/api/admin/product-details/:id", requireAdmin, async (req, res) => {
+    try {
+      const productDetailData = req.body;
+      const productDetail = await storage.updateProductDetail(req.params.id, productDetailData);
+      if (!productDetail) {
+        return res.status(404).json({ error: "Product detail not found" });
+      }
+      res.json(productDetail);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid product detail data" });
+    }
+  });
+
+  app.delete("/api/admin/product-details/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteProductDetail(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Product detail not found" });
+      }
+      res.json({ message: "Product detail deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete product detail" });
+    }
+  });
+
+  // Color types admin routes
+  app.get("/api/admin/color-types", requireAdmin, async (req, res) => {
+    try {
+      const colorTypes = await storage.getAllColorTypes();
+      res.json(colorTypes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch color types" });
+    }
+  });
+
+  app.post("/api/admin/color-types", requireAdmin, async (req, res) => {
+    try {
+      const colorTypeData = insertColorTypeSchema.parse(req.body);
+      const colorType = await storage.createColorType(colorTypeData);
+      res.status(201).json(colorType);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid color type data" });
+    }
+  });
+
+  app.put("/api/admin/color-types/:id", requireAdmin, async (req, res) => {
+    try {
+      const colorTypeData = req.body;
+      const colorType = await storage.updateColorType(req.params.id, colorTypeData);
+      if (!colorType) {
+        return res.status(404).json({ error: "Color type not found" });
+      }
+      res.json(colorType);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid color type data" });
+    }
+  });
+
+  app.delete("/api/admin/color-types/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteColorType(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Color type not found" });
+      }
+      res.json({ message: "Color type deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete color type" });
+    }
+  });
+
+  // Units admin routes
+  app.get("/api/admin/units", requireAdmin, async (req, res) => {
+    try {
+      const units = await storage.getAllUnits();
+      res.json(units);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch units" });
+    }
+  });
+
+  app.post("/api/admin/units", requireAdmin, async (req, res) => {
+    try {
+      const unitData = insertUnitSchema.parse(req.body);
+      const unit = await storage.createUnit(unitData);
+      res.status(201).json(unit);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid unit data" });
+    }
+  });
+
+  app.put("/api/admin/units/:id", requireAdmin, async (req, res) => {
+    try {
+      const unitData = req.body;
+      const unit = await storage.updateUnit(req.params.id, unitData);
+      if (!unit) {
+        return res.status(404).json({ error: "Unit not found" });
+      }
+      res.json(unit);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid unit data" });
+    }
+  });
+
+  app.delete("/api/admin/units/:id", requireAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteUnit(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Unit not found" });
+      }
+      res.json({ message: "Unit deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete unit" });
     }
   });
 
