@@ -1,6 +1,7 @@
 import './env';
 
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { apiRateLimit, securityHeaders } from "./security";
@@ -8,6 +9,7 @@ import { apiRateLimit, securityHeaders } from "./security";
 const app = express();
 app.use(securityHeaders);
 app.use(apiRateLimit);
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

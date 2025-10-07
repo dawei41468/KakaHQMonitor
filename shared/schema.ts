@@ -51,6 +51,8 @@ export const orders = pgTable("orders", {
   buyerTaxNumber: text("buyer_tax_number"), // 甲方税号
   // Detailed product line items for contract generation
   contractItems: jsonb("contract_items"), // Array of detailed product items
+  overallRetailTotal: decimal("overall_retail_total", { precision: 10, scale: 2 }),
+  overallDealTotal: decimal("overall_deal_total", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -139,7 +141,9 @@ export const productColors = pgTable("product_colors", {
   usageCount: integer("usage_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  productColorUnique: sql`UNIQUE(${table.productId}, ${table.colorId})`,
+}));
 
 // Regions table
 export const regions = pgTable("regions", {

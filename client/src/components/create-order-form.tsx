@@ -38,9 +38,11 @@ interface ContractItem {
 
 interface CreateOrderFormProps {
   onOrderCreated: () => void;
+  order?: any;
+  isDialog?: boolean;
 }
 
-export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
+export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: CreateOrderFormProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = React.useState("basic");
   const [docxPreview, setDocxPreview] = React.useState<string | null>(null);
@@ -88,6 +90,45 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
     queryFn: () => apiRequest('GET', '/api/units').then(res => res.json()),
   });
 
+  React.useEffect(() => {
+    if (order) {
+      setOrderNumber(order.orderNumber || "");
+      setProjectName(order.projectName || "");
+      setSigningDate(order.signingDate ? new Date(order.signingDate).toISOString().split('T')[0] : "");
+      setDesigner(order.designer || "");
+      setSalesRep(order.salesRep || "");
+      setEstimatedDelivery(order.estimatedDelivery ? new Date(order.estimatedDelivery).toISOString().split('T')[0] : "");
+      setDealerId(order.dealerId || "");
+      setBuyerCompanyName(order.buyerCompanyName || "");
+      setBuyerAddress(order.buyerAddress || "");
+      setBuyerPhone(order.buyerPhone || "");
+      setBuyerTaxNumber(order.buyerTaxNumber || "");
+      if (order.contractItems && Array.isArray(order.contractItems)) {
+        setContractItems(order.contractItems.map((item: any) => ({
+          region: item.region || "",
+          category: item.category || "",
+          productName: item.productName || "",
+          standardProductName: item.productName || "",
+          customProductName: "",
+          productDetail: item.productDetail || "",
+          specification: item.specification || "",
+          colorType: item.color ? item.color.split(" ")[0] : "",
+          colorCode: item.color ? item.color.split(" ")[1] : "",
+          quantity: item.quantity || 0,
+          unit: item.unit || "",
+          retailPrice: item.retailPrice || 0,
+          retailTotal: item.retailTotal || 0,
+          dealPrice: item.dealPrice || 0,
+          dealTotal: item.dealTotal || 0,
+          remarks: item.remarks || ""
+        })));
+      }
+      setOverallRetailTotal(order.overallRetailTotal ? parseFloat(order.overallRetailTotal) : null);
+      setOverallDealTotal(order.overallDealTotal ? parseFloat(order.overallDealTotal) : null);
+      setIsOpen(true);
+    }
+  }, [order]);
+
   // Basic info state
   const [orderNumber, setOrderNumber] = React.useState("");
   const [projectName, setProjectName] = React.useState("");
@@ -125,6 +166,16 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
     }
   ]);
 
+  // Overall totals state
+  const [overallRetailTotal, setOverallRetailTotal] = React.useState<number | null>(null);
+  const [overallDealTotal, setOverallDealTotal] = React.useState<number | null>(null);
+
+  const calculateTotals = () => {
+    const retail = contractItems.reduce((sum, item) => sum + item.retailTotal, 0);
+    const deal = contractItems.reduce((sum, item) => sum + item.dealTotal, 0);
+    return { retail, deal };
+  };
+
   const previewMutation = useMutation({
     mutationFn: async (contractData: any) => {
       const response = await apiRequest("POST", "/api/orders/preview", contractData);
@@ -139,12 +190,14 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
 
   const submitMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      const response = await apiRequest("POST", "/api/orders", orderData);
+      const method = order ? "PUT" : "POST";
+      const url = order ? `/api/orders/${order.id}` : "/api/orders";
+      const response = await apiRequest(method, url, orderData);
       return response.json();
     },
     onSuccess: (data) => {
-      // Download DOCX if available
-      if (data.docxData) {
+      // Download DOCX if available and creating new order
+      if (!order && data.docxData) {
         const link = document.createElement('a');
         link.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${data.docxData}`;
         link.download = `${orderNumber}_contract.docx`;
@@ -154,6 +207,10 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       onOrderCreated();
     },
   });
+
+  const getValidTotal = (editable: number | null, calculated: number) => {
+    return editable !== null && editable > 0 ? editable : calculated;
+  };
 
   const handlePreview = () => {
     // Validate required fields
@@ -182,6 +239,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       return;
     }
 
+    const calculatedRetail = validItems.reduce((sum, item) => sum + item.retailTotal, 0);
+    const calculatedDeal = validItems.reduce((sum, item) => sum + item.dealTotal, 0);
+
     const contractData = {
       contractNumber: orderNumber,
       projectName,
@@ -197,7 +257,8 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
         ...item,
         color: item.colorType + " " + item.colorCode
       })),
-      totalAmount: validItems.reduce((sum, item) => sum + item.dealTotal, 0)
+      retailTotalAmount: getValidTotal(overallRetailTotal, calculatedRetail),
+      totalAmount: getValidTotal(overallDealTotal, calculatedDeal)
     };
 
     previewMutation.mutate(contractData);
@@ -220,7 +281,8 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       return;
     }
 
-    const totalValue = validItems.reduce((sum, item) => sum + item.dealTotal, 0);
+    const calculatedDeal = validItems.reduce((sum, item) => sum + item.dealTotal, 0);
+    const totalValue = getValidTotal(overallDealTotal, calculatedDeal);
 
     const orderData = {
       dealerId,
@@ -243,7 +305,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       contractItems: validItems.map(item => ({
         ...item,
         color: item.colorType + " " + item.colorCode
-      }))
+      })),
+      ...(overallRetailTotal != null && { overallRetailTotal }),
+      ...(overallDealTotal != null && { overallDealTotal }),
     };
 
     submitMutation.mutate(orderData);
@@ -302,25 +366,26 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
     setContractItems(contractItems.filter((_, i) => i !== index));
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">{t('orders.createOrder')}</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('orders.createOrder')}</DialogTitle>
-          <DialogDescription>
-            {t('orders.createNewOrderDescription')}
-          </DialogDescription>
-        </DialogHeader>
+  if (isDialog) {
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">{t('orders.createOrder')}</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+             <DialogTitle>{order ? t('orders.editOrder') : t('orders.createOrder')}</DialogTitle>
+             <DialogDescription>
+               {order ? t('orders.editOrderDescription') : t('orders.createNewOrderDescription')}
+             </DialogDescription>
+           </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">{t('createOrder.basicInfo')}</TabsTrigger>
-            <TabsTrigger value="items">{t('createOrder.contractItems')}</TabsTrigger>
-            <TabsTrigger value="preview">{t('createOrder.previewSubmit')}</TabsTrigger>
-          </TabsList>
+           <Tabs value={activeTab} onValueChange={setActiveTab}>
+             <TabsList className="grid w-full grid-cols-3">
+               <TabsTrigger value="basic">{t('createOrder.basicInfo')}</TabsTrigger>
+               <TabsTrigger value="items">{t('createOrder.contractItems')}</TabsTrigger>
+               <TabsTrigger value="preview">{t('createOrder.previewSubmit')}</TabsTrigger>
+             </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
             <div className="grid grid-cols-2 gap-4 py-4">
@@ -332,7 +397,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                   id="orderNumber"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value)}
-                  placeholder="e.g., CD20250001"
+                  placeholder="例如：CD20250001"
                 />
               </div>
               <div>
@@ -397,7 +462,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                   setBuyerCompanyName(dealer?.name || "");
                 }}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t('createOrder.selectDealer')} />
+                    <SelectValue placeholder="选择经销商" />
                   </SelectTrigger>
                   <SelectContent>
                     {dealers.map((dealer: any) => (
@@ -429,7 +494,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                       <Label>{t('createOrder.region')}</Label>
                       <Select value={item.region} onValueChange={(value) => updateContractItem(index, 'region', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('createOrder.selectRegion')} />
+                          <SelectValue placeholder="选择地区" />
                         </SelectTrigger>
                         <SelectContent>
                           {regions.map((r: any) => (
@@ -442,7 +507,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                       <Label>{t('createOrder.category')}</Label>
                       <Select value={item.category} onValueChange={(value) => updateContractItem(index, 'category', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('createOrder.selectCategory')} />
+                          <SelectValue placeholder="选择类别" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((c: any) => (
@@ -455,7 +520,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                       <Label>{t('createOrder.productDetail')}</Label>
                       <Select value={item.productDetail} onValueChange={(value) => updateContractItem(index, 'productDetail', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('createOrder.selectProductDetail')} />
+                          <SelectValue placeholder="选择产品详情" />
                         </SelectTrigger>
                         <SelectContent>
                           {productDetails.map((pd: any) => (
@@ -520,35 +585,48 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                         </div>
                       </div>
                     </div>
-                    <div>
-                      <Label>{t('createOrder.quantity')}</Label>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateContractItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div>
-                      <Label>{t('createOrder.unit')}</Label>
-                      <Select value={item.unit} onValueChange={(value) => updateContractItem(index, 'unit', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('createOrder.selectUnit')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredUnits.map((u: any) => (
-                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>{t('createOrder.dealPrice')}</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.dealPrice}
-                        onChange={(e) => updateContractItem(index, 'dealPrice', parseFloat(e.target.value) || 0)}
-                      />
+                    <div className="col-span-3">
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <Label>{t('createOrder.quantity')}</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateContractItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.unit')}</Label>
+                          <Select value={item.unit} onValueChange={(value) => updateContractItem(index, 'unit', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择单位" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredUnits.map((u: any) => (
+                                <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.retailPrice')}</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.retailPrice}
+                            onChange={(e) => updateContractItem(index, 'retailPrice', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.dealPrice')}</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.dealPrice}
+                            onChange={(e) => updateContractItem(index, 'dealPrice', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2">
@@ -557,6 +635,9 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                       value={item.remarks}
                       onChange={(e) => updateContractItem(index, 'remarks', e.target.value)}
                     />
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    {t('createOrder.retailTotal', { amount: item.retailTotal.toFixed(2) })}
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
                     {t('createOrder.dealTotal', { amount: item.dealTotal.toFixed(2) })}
@@ -574,6 +655,36 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                 </div>
                 );
               })}
+              <div className="mt-4 border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>零售总价</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={overallRetailTotal !== null ? overallRetailTotal : calculateTotals().retail}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setOverallRetailTotal(isNaN(val) ? null : val);
+                      }}
+                      placeholder="自动计算或手动输入"
+                    />
+                  </div>
+                  <div>
+                    <Label>成交金额</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={overallDealTotal !== null ? overallDealTotal : calculateTotals().deal}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setOverallDealTotal(isNaN(val) ? null : val);
+                      }}
+                      placeholder="自动计算或手动输入"
+                    />
+                  </div>
+                </div>
+              </div>
               <Button onClick={addContractItem} variant="outline">
                 {t('createOrder.addAnotherItem')}
               </Button>
@@ -621,7 +732,7 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
                 {t('createOrder.backToEdit')}
               </Button>
               <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
-                {submitMutation.isPending ? t('createOrder.creatingOrder') : t('createOrder.createOrderDownload')}
+                {submitMutation.isPending ? (order ? t('createOrder.updatingOrder') : t('createOrder.creatingOrder')) : (order ? t('createOrder.saveChanges') : t('createOrder.createOrderDownload'))}
               </Button>
             </DialogFooter>
           </TabsContent>
@@ -629,4 +740,367 @@ export function CreateOrderForm({ onOrderCreated }: CreateOrderFormProps) {
       </DialogContent>
     </Dialog>
   );
+  } else {
+    return (
+      <div className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="basic">{t('createOrder.basicInfo')}</TabsTrigger>
+            <TabsTrigger value="items">{t('createOrder.contractItems')}</TabsTrigger>
+            <TabsTrigger value="preview">{t('createOrder.previewSubmit')}</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div>
+                <Label htmlFor="orderNumber">
+                  {t('createOrder.contractNumber')}
+                </Label>
+                <Input
+                  id="orderNumber"
+                  value={orderNumber}
+                  onChange={(e) => setOrderNumber(e.target.value)}
+                  placeholder="例如：CD20250001"
+                />
+              </div>
+              <div>
+                <Label htmlFor="projectName">
+                  {t('createOrder.projectName')}
+                </Label>
+                <Input
+                  id="projectName"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="signingDate">
+                  {t('createOrder.signingDate')}
+                </Label>
+                <Input
+                  id="signingDate"
+                  type="date"
+                  value={signingDate}
+                  onChange={(e) => setSigningDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="estimatedDelivery">
+                  {t('createOrder.estimatedShipDate')}
+                </Label>
+                <Input
+                  id="estimatedDelivery"
+                  type="date"
+                  value={estimatedDelivery}
+                  onChange={(e) => setEstimatedDelivery(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="designer">
+                  {t('createOrder.designer')}
+                </Label>
+                <Input
+                  id="designer"
+                  value={designer}
+                  onChange={(e) => setDesigner(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="salesRep">
+                  {t('createOrder.salesRep')}
+                </Label>
+                <Input
+                  id="salesRep"
+                  value={salesRep}
+                  onChange={(e) => setSalesRep(e.target.value)}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="buyerCompanyName">
+                  {t('createOrder.buyerCompany')}
+                </Label>
+                <Select value={dealerId} onValueChange={(value) => {
+                  const dealer = dealers.find((d: any) => d.id === value);
+                  setDealerId(value);
+                  setBuyerCompanyName(dealer?.name || "");
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择经销商" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dealers.map((dealer: any) => (
+                      <SelectItem key={dealer.id} value={dealer.id}>
+                        {dealer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setActiveTab("items")}>
+                {t('createOrder.nextAddItems')}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="items" className="space-y-4">
+            <div className="space-y-4">
+              {contractItems.map((item, index) => {
+                const filteredProducts = allProducts.filter((p: any) => !item.category || p.category?.name === item.category);
+                const filteredUnits = allUnits;
+
+                return (
+                  <div key={index} className="border p-4 rounded">
+                    <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>{t('createOrder.region')}</Label>
+                      <Select value={item.region} onValueChange={(value) => updateContractItem(index, 'region', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择地区" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {regions.map((r: any) => (
+                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>{t('createOrder.category')}</Label>
+                      <Select value={item.category} onValueChange={(value) => updateContractItem(index, 'category', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择类别" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((c: any) => (
+                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>{t('createOrder.productDetail')}</Label>
+                      <Select value={item.productDetail} onValueChange={(value) => updateContractItem(index, 'productDetail', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="选择产品详情" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productDetails.map((pd: any) => (
+                            <SelectItem key={pd.id} value={pd.name}>{pd.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>{t('createOrder.productName')}</Label>
+                      <div className="space-y-2">
+                        <Select value={item.standardProductName} onValueChange={(value) => updateContractItem(index, 'standardProductName', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择标准产品" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredProducts.map((p: any) => (
+                              <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={item.customProductName}
+                          onChange={(e) => updateContractItem(index, 'customProductName', e.target.value)}
+                          placeholder="非标准产品描述"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>{t('createOrder.specification')}</Label>
+                      <Input
+                        value={item.specification}
+                        onChange={(e) => updateContractItem(index, 'specification', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>{t('createOrder.color')}</Label>
+                      <div className="flex gap-2">
+                        <div className="w-1/3">
+                          <Select value={item.colorType} onValueChange={(value) => updateContractItem(index, 'colorType', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择类型" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {colorTypes.map((ct: any) => (
+                                <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-2/3">
+                          <Select value={item.colorCode} onValueChange={(value) => updateContractItem(index, 'colorCode', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择颜色" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allColors.map((c: any) => (
+                                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <Label>{t('createOrder.quantity')}</Label>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateContractItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.unit')}</Label>
+                          <Select value={item.unit} onValueChange={(value) => updateContractItem(index, 'unit', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择单位" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredUnits.map((u: any) => (
+                                <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.retailPrice')}</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.retailPrice}
+                            onChange={(e) => updateContractItem(index, 'retailPrice', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('createOrder.dealPrice')}</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.dealPrice}
+                            onChange={(e) => updateContractItem(index, 'dealPrice', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Label>{t('createOrder.remarks')}</Label>
+                    <Input
+                      value={item.remarks}
+                      onChange={(e) => updateContractItem(index, 'remarks', e.target.value)}
+                    />
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    {t('createOrder.retailTotal', { amount: item.retailTotal.toFixed(2) })}
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    {t('createOrder.dealTotal', { amount: item.dealTotal.toFixed(2) })}
+                  </div>
+                  {contractItems.length > 1 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeContractItem(index)}
+                      className="mt-2"
+                    >
+                      {t('createOrder.removeItem')}
+                    </Button>
+                  )}
+                </div>
+                );
+              })}
+              <div className="mt-4 border-t pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>零售总价</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={overallRetailTotal !== null ? overallRetailTotal : calculateTotals().retail}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setOverallRetailTotal(isNaN(val) ? null : val);
+                      }}
+                      placeholder="自动计算或手动输入"
+                    />
+                  </div>
+                  <div>
+                    <Label>成交金额</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={overallDealTotal !== null ? overallDealTotal : calculateTotals().deal}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setOverallDealTotal(isNaN(val) ? null : val);
+                      }}
+                      placeholder="自动计算或手动输入"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button onClick={addContractItem} variant="outline">
+                {t('createOrder.addAnotherItem')}
+              </Button>
+            </div>
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setActiveTab("basic")}>
+                {t('createOrder.back')}
+              </Button>
+              <Button onClick={handlePreview}>
+                {t('createOrder.previewContract')}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="space-y-4">
+            {pdfPreview && (
+              <div className="border rounded p-4">
+                <h3 className="font-semibold mb-2">{t('createOrder.contractPreview')}</h3>
+                <iframe
+                  src={`data:application/pdf;base64,${pdfPreview}`}
+                  className="w-full h-[80vh] border"
+                  title={t('createOrder.contractPreview')}
+                />
+              </div>
+            )}
+            {docxPreview && (
+              <div className="border rounded p-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <p>{t('createOrder.docxDownloadReady')}</p>
+                  <Button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxPreview}`;
+                      link.download = `${orderNumber}_contract.docx`;
+                      link.click();
+                    }}
+                  >
+                    {t('createOrder.downloadDocx')}
+                  </Button>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setActiveTab("items")}>
+                {t('createOrder.backToEdit')}
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
+                {submitMutation.isPending ? (order ? t('createOrder.updatingOrder') : t('createOrder.creatingOrder')) : (order ? t('createOrder.saveChanges') : t('createOrder.createOrderDownload'))}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
 }

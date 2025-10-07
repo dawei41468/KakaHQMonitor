@@ -31,14 +31,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const refreshToken = generateRefreshToken(user);
 
       // Store single refresh token (replace any existing ones)
-      await storage.updateUserRefreshTokens(user.id, [{ token: refreshToken, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }]);
+      await storage.updateUserRefreshTokens(user.id, [{ token: refreshToken, expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }]);
 
       // Set refresh token as httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
+        maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
       });
 
       logAuthEvent('LOGIN_SUCCESS', user.id, { email: user.email, role: user.role });
@@ -85,14 +85,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newRefreshToken = generateRefreshToken(user);
 
       // Store new refresh token
-      await storage.updateUserRefreshTokens(user.id, [{ token: newRefreshToken, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }]);
+      await storage.updateUserRefreshTokens(user.id, [{ token: newRefreshToken, expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }]);
 
       // Set new refresh token cookie
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
+        maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
       });
 
       logAuthEvent('TOKEN_REFRESH', user.id);
@@ -349,6 +349,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/orders/:id", async (req, res) => {
+    try {
+      const { overallRetailTotal, overallDealTotal, ...rest } = req.body;
+      const processedBody = {
+        ...rest,
+        signingDate: req.body.signingDate ? new Date(req.body.signingDate) : null,
+        estimatedDelivery: req.body.estimatedDelivery ? new Date(req.body.estimatedDelivery) : null,
+        ...(overallRetailTotal != null && { overallRetailTotal: overallRetailTotal.toString() }),
+        ...(overallDealTotal != null && { overallDealTotal: overallDealTotal.toString() }),
+      };
+
+      const orderData = insertOrderSchema.partial().parse(processedBody);
+      const order = await storage.updateOrder(req.params.id, orderData);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid order data", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.delete("/api/orders/:id", async (req, res) => {
+    try {
+      const order = await storage.getOrderById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Check if user owns this order (assuming dealerId represents the user/dealer)
+      // For now, allow deletion - you may want to add ownership checks later
+
+      const success = await storage.deleteOrder(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      res.json({ message: "Order deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete order" });
+    }
+  });
+
   app.get("/api/orders/:id/document", async (req, res) => {
     try {
       const document = await storage.getOrderDocument(req.params.id);
@@ -401,7 +445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: '',
           remarks: ''
         })) : []),
-        totalAmount: Number(order.totalValue)
+        totalAmount: Number(order.totalValue),
+        retailTotalAmount: order.contractItems ? (order.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
       };
 
       const docxBuffer = await generateContractDOCX(contractData);
@@ -456,10 +501,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Order creation request body:', JSON.stringify(req.body, null, 2));
 
       // Convert date strings to Date objects
+      const { overallRetailTotal, overallDealTotal, ...rest } = req.body;
       const processedBody = {
-        ...req.body,
+        ...rest,
         signingDate: req.body.signingDate ? new Date(req.body.signingDate) : null,
         estimatedDelivery: req.body.estimatedDelivery ? new Date(req.body.estimatedDelivery) : null,
+        ...(overallRetailTotal != null && { overallRetailTotal: overallRetailTotal.toString() }),
+        ...(overallDealTotal != null && { overallDealTotal: overallDealTotal.toString() }),
       };
 
       const orderData = insertOrderSchema.parse(processedBody);
@@ -482,7 +530,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buyerPhone: orderData.buyerPhone || undefined,
           buyerTaxNumber: orderData.buyerTaxNumber || undefined,
           items: orderData.contractItems as any[],
-          totalAmount: Number(orderData.totalValue)
+          totalAmount: Number(orderData.totalValue),
+          retailTotalAmount: orderData.contractItems ? (orderData.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
         };
   
         const docxBuffer = await generateContractDOCX(contractData);
