@@ -6,6 +6,7 @@ import {
   IRunOptions,
   ITableCellOptions,
   ImageRun,
+  Media,
   Packer,
   Paragraph,
   ShadingType,
@@ -16,7 +17,6 @@ import {
   TextRun,
   VerticalAlign,
   WidthType,
-  Media,
 } from 'docx';
 import fs from 'fs';
 import path from 'path';
@@ -57,6 +57,13 @@ interface ContractData {
 }
 
 const DEFAULT_FONT = 'Microsoft YaHei';
+const PAGE_MARGIN_TWIPS = 540;
+const HEADER_FOOTER_MARGIN_TWIPS = 360;
+const DEFAULT_LINE_SPACING = 260;
+const DEFAULT_PARAGRAPH_SPACING = { before: 20, after: 20 };
+const CELL_MARGIN_VERTICAL = 60;
+const CELL_MARGIN_HORIZONTAL = 80;
+const SUMMARY_SEPARATOR = '                ';
 
 type RunConfig = Omit<IRunOptions, 'text' | 'children'>;
 
@@ -70,10 +77,10 @@ type TableCellConfig = Omit<ITableCellOptions, 'children'> & {
 
 const DEFAULT_CELL_MARGINS: NonNullable<ITableCellOptions['margins']> = {
   marginUnitType: WidthType.DXA,
-  top: 100,
-  bottom: 100,
-  left: 100,
-  right: 100,
+  top: CELL_MARGIN_VERTICAL,
+  bottom: CELL_MARGIN_VERTICAL,
+  left: CELL_MARGIN_HORIZONTAL,
+  right: CELL_MARGIN_HORIZONTAL,
 };
 
 const NO_TABLE_BORDERS = {
@@ -180,8 +187,9 @@ function numberToChinese(num: number): string {
 }
 
 function createParagraph(text: string, options: ParagraphConfig = {}): Paragraph {
-  const { run, ...rest } = options;
+  const { run, spacing, ...rest } = options;
   return new Paragraph({
+    spacing: spacing ?? DEFAULT_PARAGRAPH_SPACING,
     ...rest,
     children: [
       new TextRun({
@@ -195,26 +203,26 @@ function createParagraph(text: string, options: ParagraphConfig = {}): Paragraph
 
 function createTableCell(text: string, options: TableCellConfig = {}): TableCell {
   const { paragraph, margins, ...cellOptions } = options;
+  const paragraphOptions: ParagraphConfig = {
+    alignment: AlignmentType.LEFT,
+    ...(paragraph ?? {}),
+    spacing: paragraph?.spacing ?? { before: 40, after: 40 },
+  };
+
   return new TableCell({
     margins: margins ?? DEFAULT_CELL_MARGINS,
     ...cellOptions,
-    children: [
-      createParagraph(text, {
-        alignment: AlignmentType.LEFT,
-        spacing: { before: 80, after: 80 },
-        ...(paragraph ?? {}),
-      }),
-    ],
+    children: [createParagraph(text, paragraphOptions)],
   });
 }
 
 function createHeaderTable(contractData: ContractData): Table {
   const cellMargins = {
     marginUnitType: WidthType.DXA,
-    top: 50,
-    bottom: 50,
-    left: 100,
-    right: 100,
+    top: 40,
+    bottom: 40,
+    left: 80,
+    right: 80,
   };
 
   // Read logo image
@@ -252,8 +260,8 @@ function createHeaderTable(contractData: ContractData): Table {
              margins: cellMargins,
              borders: NO_TABLE_BORDERS,
              children: [
-               createParagraph('', { spacing: { after: 40 } }),
-               createParagraph('', { spacing: { after: 40 } }),
+               createParagraph('', { spacing: { after: 20 } }),
+               createParagraph('', { spacing: { after: 20 } }),
                createParagraph('agio咖咖时光阳台花园项目经销合同', {
                  run: { bold: true, size: 26 },
                  alignment: AlignmentType.RIGHT,
@@ -267,17 +275,17 @@ function createHeaderTable(contractData: ContractData): Table {
                createParagraph(`合同编号：${contractData.contractNumber}`, {
                  alignment: AlignmentType.RIGHT,
                  run: { size: 18 },
-                 spacing: { after: 40 },
+                 spacing: { after: 20 },
                }),
                createParagraph(`签订日期：${formatDate(contractData.signingDate)}`, {
                  alignment: AlignmentType.RIGHT,
                  run: { size: 18 },
-                 spacing: { after: 40 },
+                 spacing: { after: 20 },
                }),
                createParagraph(`预计发货日期：${formatDate(contractData.estimatedDelivery)}`, {
                  alignment: AlignmentType.RIGHT,
                  run: { size: 18 },
-                 spacing: { after: 40 },
+                 spacing: { after: 20 },
                }),
              ],
            }),
@@ -287,44 +295,38 @@ function createHeaderTable(contractData: ContractData): Table {
   });
 }
 
-function createSummaryRow(label: string, value: string, label2: string, value2: string): TableRow {
-  return new TableRow({
-    children: [
-      createTableCell(label, {
-        width: { size: 1800, type: WidthType.DXA },
-        paragraph: { run: { bold: true, size: 15 }, spacing: { before: 20, after: 20 } },
-        verticalAlign: VerticalAlign.CENTER,
-      }),
-      createTableCell(value || '-', {
-        width: { size: 2600, type: WidthType.DXA },
-        paragraph: { run: { size: 15 }, spacing: { before: 20, after: 20 } },
-        verticalAlign: VerticalAlign.CENTER,
-      }),
-      createTableCell(label2, {
-        width: { size: 1800, type: WidthType.DXA },
-        paragraph: { run: { bold: true, size: 15 }, spacing: { before: 20, after: 20 } },
-        verticalAlign: VerticalAlign.CENTER,
-      }),
-      createTableCell(value2 || '-', {
-        width: { size: 3800, type: WidthType.DXA },
-        paragraph: { run: { size: 15 }, spacing: { before: 20, after: 20 } },
-        verticalAlign: VerticalAlign.CENTER,
-      }),
-    ],
-  });
-}
+function createSummaryParagraphs(contractData: ContractData): Paragraph[] {
+  const font = { ascii: DEFAULT_FONT, eastAsia: DEFAULT_FONT, hAnsi: DEFAULT_FONT };
 
-function createSummaryTable(contractData: ContractData): Table {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [1800, 2600, 1800, 3800],
-    borders: OUTLINE_TABLE_BORDERS,
-    rows: [
-      createSummaryRow('项目名称', contractData.projectName, '甲方', contractData.buyerCompanyName),
-      createSummaryRow('设计师', contractData.designer, '乙方', '佛山市顺德区西山家居科技有限公司'),
-      createSummaryRow('业务代表', contractData.salesRep, '统一社会信用代码', '914406060621766268'),
+  const line1 = new Paragraph({
+    spacing: { before: 20, after: 10 },
+    children: [
+      new TextRun({ text: '项目名称：', bold: true, size: 15, font }),
+      new TextRun({ text: `${contractData.projectName || '-'}`, size: 15, font }),
+      new TextRun({ text: SUMMARY_SEPARATOR }),
+      new TextRun({ text: '甲方：', bold: true, size: 15, font }),
+      new TextRun({ text: `${contractData.buyerCompanyName || '-'}`, size: 15, font }),
+      new TextRun({ text: SUMMARY_SEPARATOR }),
+      new TextRun({ text: '乙方：', bold: true, size: 15, font }),
+      new TextRun({ text: '佛山市顺德区西山家居科技有限公司', size: 15, font }),
     ],
   });
+
+  const line2 = new Paragraph({
+    spacing: { before: 10, after: 10 },
+    children: [
+      new TextRun({ text: '设计师：', bold: true, size: 15, font }),
+      new TextRun({ text: `${contractData.designer || '-'}`, size: 15, font }),
+      new TextRun({ text: SUMMARY_SEPARATOR }),
+      new TextRun({ text: '业务代表：', bold: true, size: 15, font }),
+      new TextRun({ text: `${contractData.salesRep || '-'}`, size: 15, font }),
+      new TextRun({ text: SUMMARY_SEPARATOR }),
+      new TextRun({ text: '统一社会信用代码：', bold: true, size: 15, font }),
+      new TextRun({ text: '914406060621766268', size: 15, font }),
+    ],
+  });
+
+  return [line1, line2];
 }
 
 function createItemsTable(contractData: ContractData): Table {
@@ -457,7 +459,7 @@ function createRemarkParagraphs(): Paragraph[] {
 
   return remarks.map((text) =>
     createParagraph(text, {
-      spacing: { before: 40, after: 40 },
+      spacing: { before: 20, after: 20 },
     }),
   );
 }
@@ -474,14 +476,17 @@ function createSignatureTable(contractData: ContractData): Table {
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
             children: [
-              createParagraph('甲方（买方）：', { run: { bold: true } }),
+              createParagraph('甲方（买方）：', { run: { bold: true }, spacing: { before: 20, after: 10 } }),
             ],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
             children: [
-              createParagraph('乙方（供货方）：佛山市顺德区锡山家居科技有限公司', { run: { bold: true } }),
+              createParagraph('乙方（供货方）：佛山市顺德区锡山家居科技有限公司', {
+                run: { bold: true },
+                spacing: { before: 20, after: 10 },
+              }),
             ],
           }),
         ],
@@ -491,12 +496,12 @@ function createSignatureTable(contractData: ContractData): Table {
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('签章：')],
+            children: [createParagraph('签章：', { spacing: { before: 10, after: 10 } })],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('签章：')],
+            children: [createParagraph('签章：', { spacing: { before: 10, after: 10 } })],
           }),
         ],
       }),
@@ -505,12 +510,12 @@ function createSignatureTable(contractData: ContractData): Table {
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('日期：')],
+            children: [createParagraph('日期：', { spacing: { before: 10, after: 10 } })],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('日期：')],
+            children: [createParagraph('日期：', { spacing: { before: 10, after: 10 } })],
           }),
         ],
       }),
@@ -577,7 +582,7 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
                 size: 15,
               },
               paragraph: {
-                spacing: { line: 276 },
+                spacing: { line: DEFAULT_LINE_SPACING, before: 0, after: 0 },
               },
             },
             heading1: {
@@ -594,28 +599,35 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
           {
             properties: {
               page: {
-                margin: { top: 720, bottom: 720, left: 720, right: 720 },
+                margin: {
+                  top: PAGE_MARGIN_TWIPS,
+                  bottom: PAGE_MARGIN_TWIPS,
+                  left: PAGE_MARGIN_TWIPS,
+                  right: PAGE_MARGIN_TWIPS,
+                  header: HEADER_FOOTER_MARGIN_TWIPS,
+                  footer: HEADER_FOOTER_MARGIN_TWIPS,
+                },
               },
             },
             children: [
               createHeaderTable(contractData),
-              new Paragraph({ text: '', spacing: { after: 40 } }),
-              createSummaryTable(contractData),
-              new Paragraph({ text: '', spacing: { after: 200 } }),
+              new Paragraph({ text: '', spacing: { after: 20 } }),
+              ...createSummaryParagraphs(contractData),
+              new Paragraph({ text: '', spacing: { after: 80 } }),
               createParagraph('根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守', {
-                spacing: { after: 100 },
+                spacing: { after: 60 },
               }),
               createItemsTable(contractData),
               createParagraph(`（大写）人民币 ${numberToChinese(contractData.totalAmount)}`, {
-                spacing: { before: 200, after: 200 },
+                spacing: { before: 120, after: 120 },
                 run: { bold: true },
               }),
               createParagraph('批注 Remark：', {
                 run: { bold: true },
-                spacing: { after: 80 },
+                spacing: { after: 40 },
               }),
               ...createRemarkParagraphs(),
-              new Paragraph({ text: '', spacing: { after: 200 } }),
+              new Paragraph({ text: '', spacing: { after: 120 } }),
               createSignatureTable(contractData),
             ],
           },
