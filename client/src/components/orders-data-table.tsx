@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { ChevronDown, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,17 +19,14 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -57,29 +54,7 @@ export type Order = {
   signingDate: string;
 };
 
-const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element): ColumnDef<Order>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: t('orders.orderNumber'),
@@ -140,15 +115,15 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(order.id)}
-            >
-              Copy payment ID
+            <DropdownMenuLabel>{t('orders.actions')}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditClick?.(order.id); }}>
+              <Edit className="mr-2 h-4 w-4" />
+              {t('orders.editOrder')}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteClick?.(order.id); }}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('orders.deleteOrder')}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -159,15 +134,16 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
 interface OrdersDataTableProps {
   onReady: (table: any) => void;
   onOrderClick?: (orderId: string) => void;
+  onEditClick?: (orderId: string) => void;
+  onDeleteClick?: (orderId: string) => void;
 }
 
-export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps) {
+export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteClick }: OrdersDataTableProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
   const [data, setData] = React.useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -250,10 +226,9 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
     );
   };
 
-  const columns = getColumns(t, statusLabels, getStatusBadge);
+  const columns = getColumns(t, statusLabels, getStatusBadge, onEditClick, onDeleteClick);
 
   const columnLabels: Record<string, string> = {
-    select: t('orders.columnSelect'),
     orderNumber: t('orders.orderNumber'),
     dealer: t('orders.columnDealer'),
     status: t('orders.columnStatus'),
@@ -274,12 +249,10 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
 
@@ -426,7 +399,6 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => onOrderClick?.(row.original.id)}
                 >
@@ -454,10 +426,6 @@ export function OrdersDataTable({ onReady, onOrderClick }: OrdersDataTableProps)
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"

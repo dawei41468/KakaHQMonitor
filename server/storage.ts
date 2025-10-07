@@ -270,19 +270,24 @@ export class DatabaseStorage implements IStorage {
           const [product] = await db.select().from(products).where(eq(products.name, item.productName));
           const [color] = await db.select().from(colors).where(eq(colors.name, item.colorCode));
           if (product && color) {
-            await db.insert(productColors).values({
-              productId: product.id,
-              colorId: color.id,
-              usageCount: 1,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            }).onConflictDoUpdate({
-              target: [productColors.productId, productColors.colorId],
-              set: {
-                usageCount: sql`${productColors.usageCount} + 1`,
+            // Check if record exists
+            const [existing] = await db.select().from(productColors).where(and(eq(productColors.productId, product.id), eq(productColors.colorId, color.id)));
+            if (existing) {
+              // Update existing
+              await db.update(productColors).set({
+                usageCount: existing.usageCount + 1,
                 updatedAt: new Date()
-              }
-            });
+              }).where(eq(productColors.id, existing.id));
+            } else {
+              // Insert new
+              await db.insert(productColors).values({
+                productId: product.id,
+                colorId: color.id,
+                usageCount: 1,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+            }
           }
         }
       }
