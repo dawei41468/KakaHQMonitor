@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
@@ -41,9 +41,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('user');
       }
     }
-    
+
     setIsLoading(false);
   }, []);
+
+  // Set up proactive token refresh when user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    // Refresh token immediately when user logs in
+    refreshToken().catch(() => {
+      // If refresh fails, logout
+      logout();
+    });
+
+    // Set up periodic token refresh (every 25 minutes, since access token expires in 30 minutes)
+    const refreshInterval = setInterval(() => {
+      refreshToken().catch(() => {
+        // If refresh fails, logout
+        logout();
+      });
+    }, 25 * 60 * 1000); // 25 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     const response = await apiRequest('POST', '/api/auth/login', { email, password });
@@ -81,10 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshToken = async () => {
     try {
-      const response = await apiRequest('POST', '/api/auth/refresh');
-      const data = await response.json();
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
-      localStorage.setItem('accessToken', data.accessToken);
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('accessToken', data.accessToken);
+      } else {
+        // Refresh failed, logout
+        logout();
+        throw new Error('Session expired');
+      }
     } catch (error) {
       logout();
       throw error;
