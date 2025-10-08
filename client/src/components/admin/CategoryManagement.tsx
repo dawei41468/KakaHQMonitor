@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,21 @@ function CategoryManagement() {
     },
   });
 
+  const reorderCategoriesMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/categories/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderCategoriesMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -96,80 +111,75 @@ function CategoryManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {categories?.map((category: any) => (
-            <TableRow key={category.id}>
-              <TableCell>{category.name}</TableCell>
-              <TableCell>{new Date(category.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingCategory({ ...category })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Category</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingCategory?.name || ''}
-                            onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingCategory) {
-                              updateCategoryMutation.mutate({ id: editingCategory.id, data: { name: editingCategory.name } });
-                              setEditingCategory(null);
-                            }
-                          }}
-                          disabled={updateCategoryMutation.isPending}
-                        >
-                          {updateCategoryMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {category.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteCategoryMutation.mutate(category.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <SortableList
+        items={categories}
+        onReorder={handleReorder}
+        renderItem={(category: any) => (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <div className="font-medium">{category.name}</div>
+              <div className="text-sm text-muted-foreground">
+                Created: {new Date(category.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setEditingCategory({ ...category })}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Category</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editingCategory?.name || ''}
+                        onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (editingCategory) {
+                          updateCategoryMutation.mutate({ id: editingCategory.id, data: { name: editingCategory.name } });
+                          setEditingCategory(null);
+                        }
+                      }}
+                      disabled={updateCategoryMutation.isPending}
+                    >
+                      {updateCategoryMutation.isPending ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {category.name}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteCategoryMutation.mutate(category.id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }

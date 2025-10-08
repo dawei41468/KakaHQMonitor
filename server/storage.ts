@@ -528,7 +528,7 @@ export class DatabaseStorage implements IStorage {
 
   // Form options methods
   async getAllCategories(): Promise<{ items: Category[], total: number }> {
-    const items = await db.select().from(categories).orderBy(categories.name);
+    const items = await db.select().from(categories).orderBy(categories.order, categories.name);
     const result = await db.select({ count: count() }).from(categories);
     const total = result[0].count;
     return { items, total };
@@ -569,10 +569,11 @@ export class DatabaseStorage implements IStorage {
       name: products.name,
       defaultSpecification: products.defaultSpecification,
       categoryId: products.categoryId,
+      order: products.order,
       category: categories,
       createdAt: products.createdAt,
       updatedAt: products.updatedAt
-    }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).orderBy(products.name);
+    }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).orderBy(products.order, products.name);
     const result = await db.select({ count: count() }).from(products);
     const total = result[0].count;
     return { items, total };
@@ -616,7 +617,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllColors(): Promise<{ items: Color[], total: number }> {
-    const items = await db.select().from(colors).orderBy(colors.name);
+    const items = await db.select().from(colors).orderBy(colors.order, colors.name);
     const result = await db.select({ count: count() }).from(colors);
     const total = result[0].count;
     return { items, total };
@@ -628,13 +629,14 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: colors.id,
         name: colors.name,
+        order: colors.order,
         createdAt: colors.createdAt,
         updatedAt: colors.updatedAt,
         usageCount: productColors.usageCount
       })
       .from(colors)
       .leftJoin(productColors, and(eq(colors.id, productColors.colorId), eq(productColors.productId, productId)))
-      .orderBy(desc(productColors.usageCount), colors.name);
+      .orderBy(desc(productColors.usageCount), colors.order, colors.name);
     return result;
   }
 
@@ -668,7 +670,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllRegions(): Promise<{ items: Region[], total: number }> {
-    const items = await db.select().from(regions).orderBy(regions.name);
+    const items = await db.select().from(regions).orderBy(regions.order, regions.name);
     const result = await db.select({ count: count() }).from(regions);
     const total = result[0].count;
     return { items, total };
@@ -704,7 +706,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllProductDetails(): Promise<{ items: ProductDetail[], total: number }> {
-    const items = await db.select().from(productDetails).orderBy(productDetails.name);
+    const items = await db.select().from(productDetails).orderBy(productDetails.order, productDetails.name);
     const result = await db.select({ count: count() }).from(productDetails);
     const total = result[0].count;
     return { items, total };
@@ -740,7 +742,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllColorTypes(): Promise<{ items: ColorType[], total: number }> {
-    const items = await db.select().from(colorTypes).orderBy(colorTypes.name);
+    const items = await db.select().from(colorTypes).orderBy(colorTypes.order, colorTypes.name);
     const result = await db.select({ count: count() }).from(colorTypes);
     const total = result[0].count;
     return { items, total };
@@ -776,7 +778,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUnits(): Promise<{ items: Unit[], total: number }> {
-    const items = await db.select().from(units).orderBy(units.name);
+    const items = await db.select().from(units).orderBy(units.order, units.name);
     const result = await db.select({ count: count() }).from(units);
     const total = result[0].count;
     return { items, total };

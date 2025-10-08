@@ -1071,6 +1071,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/admin/categories/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateCategory(item.id, { order: i });
+      }
+
+      res.json({ message: "Categories reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder categories" });
+    }
+  });
+
   app.put("/api/admin/categories/:id", requireAdmin, async (req, res) => {
     try {
       const categoryData = req.body;
@@ -1113,6 +1132,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(product);
     } catch (error) {
       res.status(400).json({ error: "Invalid product data" });
+    }
+  });
+
+  app.put("/api/admin/products/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateProduct(item.id, { order: i });
+      }
+
+      res.json({ message: "Products reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder products" });
     }
   });
 
@@ -1161,6 +1199,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/admin/colors/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateColor(item.id, { order: i });
+      }
+
+      res.json({ message: "Colors reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder colors" });
+    }
+  });
+
   app.put("/api/admin/colors/:id", requireAdmin, async (req, res) => {
     try {
       const colorData = req.body;
@@ -1203,6 +1260,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(region);
     } catch (error) {
       res.status(400).json({ error: "Invalid region data" });
+    }
+  });
+
+  app.put("/api/admin/regions/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateRegion(item.id, { order: i });
+      }
+
+      res.json({ message: "Regions reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder regions" });
     }
   });
 
@@ -1251,6 +1327,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/admin/product-details/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateProductDetail(item.id, { order: i });
+      }
+
+      res.json({ message: "Product details reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder product details" });
+    }
+  });
+
   app.put("/api/admin/product-details/:id", requireAdmin, async (req, res) => {
     try {
       const productDetailData = req.body;
@@ -1296,6 +1391,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/admin/color-types/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateColorType(item.id, { order: i });
+      }
+
+      res.json({ message: "Color types reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder color types" });
+    }
+  });
+
   app.put("/api/admin/color-types/:id", requireAdmin, async (req, res) => {
     try {
       const colorTypeData = req.body;
@@ -1338,6 +1452,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(unit);
     } catch (error) {
       res.status(400).json({ error: "Invalid unit data" });
+    }
+  });
+
+  app.put("/api/admin/units/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array required" });
+      }
+
+      // Update order for each item
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await storage.updateUnit(item.id, { order: i });
+      }
+
+      res.json({ message: "Units reordered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder units" });
     }
   });
 

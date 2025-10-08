@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,21 @@ function ColorManagement() {
     },
   });
 
+  const reorderColorsMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/colors/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/colors'] });
+      queryClient.invalidateQueries({ queryKey: ['colors'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderColorsMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -96,80 +111,75 @@ function ColorManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {colors?.map((color: any) => (
-            <TableRow key={color.id}>
-              <TableCell>{color.name}</TableCell>
-              <TableCell>{new Date(color.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingColor({ ...color })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Color</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingColor?.name || ''}
-                            onChange={(e) => setEditingColor({ ...editingColor, name: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingColor) {
-                              updateColorMutation.mutate({ id: editingColor.id, data: { name: editingColor.name } });
-                              setEditingColor(null);
-                            }
-                          }}
-                          disabled={updateColorMutation.isPending}
-                        >
-                          {updateColorMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Color</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {color.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteColorMutation.mutate(color.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <SortableList
+        items={colors}
+        onReorder={handleReorder}
+        renderItem={(color: any) => (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <div className="font-medium">{color.name}</div>
+              <div className="text-sm text-muted-foreground">
+                Created: {new Date(color.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setEditingColor({ ...color })}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Color</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editingColor?.name || ''}
+                        onChange={(e) => setEditingColor({ ...editingColor, name: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (editingColor) {
+                          updateColorMutation.mutate({ id: editingColor.id, data: { name: editingColor.name } });
+                          setEditingColor(null);
+                        }
+                      }}
+                      disabled={updateColorMutation.isPending}
+                    >
+                      {updateColorMutation.isPending ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Color</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {color.name}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteColorMutation.mutate(color.id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }

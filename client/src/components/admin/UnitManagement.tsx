@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,21 @@ function UnitManagement() {
     },
   });
 
+  const reorderUnitsMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/units/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/units'] });
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderUnitsMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -96,87 +111,80 @@ function UnitManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {units?.map((unit: any) => {
-            return (
-              <TableRow key={unit.id}>
-                <TableCell>{unit.name}</TableCell>
-                <TableCell>{new Date(unit.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingUnit({ ...unit })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Unit</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingUnit?.name || ''}
-                            onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingUnit) {
-                              updateUnitMutation.mutate({
-                                id: editingUnit.id,
-                                data: {
-                                  name: editingUnit.name
-                                }
-                              });
-                              setEditingUnit(null);
+      <SortableList
+        items={units}
+        onReorder={handleReorder}
+        renderItem={(unit: any) => (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <div className="font-medium">{unit.name}</div>
+              <div className="text-sm text-muted-foreground">
+                Created: {new Date(unit.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setEditingUnit({ ...unit })}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Unit</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editingUnit?.name || ''}
+                        onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (editingUnit) {
+                          updateUnitMutation.mutate({
+                            id: editingUnit.id,
+                            data: {
+                              name: editingUnit.name
                             }
-                          }}
-                          disabled={updateUnitMutation.isPending}
-                        >
-                          {updateUnitMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Unit</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {unit.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteUnitMutation.mutate(unit.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-          })}
-        </TableBody>
-      </Table>
+                          });
+                          setEditingUnit(null);
+                        }
+                      }}
+                      disabled={updateUnitMutation.isPending}
+                    >
+                      {updateUnitMutation.isPending ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Unit</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {unit.name}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteUnitMutation.mutate(unit.id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }

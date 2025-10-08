@@ -122,6 +122,7 @@ export const revokedTokens = pgTable("revoked_tokens", {
 export const categories = pgTable("categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -132,6 +133,7 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   defaultSpecification: text("default_specification").notNull(),
   categoryId: varchar("category_id").references(() => categories.id),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -140,6 +142,7 @@ export const products = pgTable("products", {
 export const colors = pgTable("colors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -160,6 +163,7 @@ export const productColors = pgTable("product_colors", {
 export const regions = pgTable("regions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -168,6 +172,7 @@ export const regions = pgTable("regions", {
 export const productDetails = pgTable("product_details", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -176,6 +181,7 @@ export const productDetails = pgTable("product_details", {
 export const colorTypes = pgTable("color_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -185,6 +191,7 @@ export const units = pgTable("units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   categoryId: varchar("category_id").references(() => categories.id),
+  order: integer("order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

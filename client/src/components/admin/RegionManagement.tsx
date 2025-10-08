@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,21 @@ function RegionManagement() {
     },
   });
 
+  const reorderRegionsMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/regions/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/regions'] });
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderRegionsMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -96,80 +111,75 @@ function RegionManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {regions?.map((region: any) => (
-            <TableRow key={region.id}>
-              <TableCell>{region.name}</TableCell>
-              <TableCell>{new Date(region.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingRegion({ ...region })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Region</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingRegion?.name || ''}
-                            onChange={(e) => setEditingRegion({ ...editingRegion, name: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingRegion) {
-                              updateRegionMutation.mutate({ id: editingRegion.id, data: { name: editingRegion.name } });
-                              setEditingRegion(null);
-                            }
-                          }}
-                          disabled={updateRegionMutation.isPending}
-                        >
-                          {updateRegionMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Region</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {region.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteRegionMutation.mutate(region.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <SortableList
+        items={regions}
+        onReorder={handleReorder}
+        renderItem={(region: any) => (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <div className="font-medium">{region.name}</div>
+              <div className="text-sm text-muted-foreground">
+                Created: {new Date(region.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setEditingRegion({ ...region })}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Region</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editingRegion?.name || ''}
+                        onChange={(e) => setEditingRegion({ ...editingRegion, name: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (editingRegion) {
+                          updateRegionMutation.mutate({ id: editingRegion.id, data: { name: editingRegion.name } });
+                          setEditingRegion(null);
+                        }
+                      }}
+                      disabled={updateRegionMutation.isPending}
+                    >
+                      {updateRegionMutation.isPending ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Region</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {region.name}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteRegionMutation.mutate(region.id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,21 @@ function ProductDetailManagement() {
     },
   });
 
+  const reorderProductDetailsMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/product-details/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/product-details'] });
+      queryClient.invalidateQueries({ queryKey: ['product-details'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderProductDetailsMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -96,80 +111,75 @@ function ProductDetailManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {productDetails?.map((productDetail: any) => (
-            <TableRow key={productDetail.id}>
-              <TableCell>{productDetail.name}</TableCell>
-              <TableCell>{new Date(productDetail.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingProductDetail({ ...productDetail })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Product Detail</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingProductDetail?.name || ''}
-                            onChange={(e) => setEditingProductDetail({ ...editingProductDetail, name: e.target.value })}
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingProductDetail) {
-                              updateProductDetailMutation.mutate({ id: editingProductDetail.id, data: { name: editingProductDetail.name } });
-                              setEditingProductDetail(null);
-                            }
-                          }}
-                          disabled={updateProductDetailMutation.isPending}
-                        >
-                          {updateProductDetailMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Product Detail</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {productDetail.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteProductDetailMutation.mutate(productDetail.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <SortableList
+        items={productDetails}
+        onReorder={handleReorder}
+        renderItem={(productDetail: any) => (
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <div className="font-medium">{productDetail.name}</div>
+              <div className="text-sm text-muted-foreground">
+                Created: {new Date(productDetail.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setEditingProductDetail({ ...productDetail })}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Product Detail</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editingProductDetail?.name || ''}
+                        onChange={(e) => setEditingProductDetail({ ...editingProductDetail, name: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (editingProductDetail) {
+                          updateProductDetailMutation.mutate({ id: editingProductDetail.id, data: { name: editingProductDetail.name } });
+                          setEditingProductDetail(null);
+                        }
+                      }}
+                      disabled={updateProductDetailMutation.isPending}
+                    >
+                      {updateProductDetailMutation.isPending ? 'Updating...' : 'Update'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Product Detail</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {productDetail.name}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteProductDetailMutation.mutate(productDetail.id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }
