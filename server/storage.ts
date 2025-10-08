@@ -1,9 +1,9 @@
 import {
-  users, dealers, orders, materials, alerts, orderDocuments,
+  users, dealers, orders, materials, alerts, orderDocuments, orderAttachments,
   categories, products, colors, productColors, regions, productDetails, colorTypes, units,
   type User, type InsertUser, type Dealer, type InsertDealer,
   type Order, type InsertOrder, type Material, type InsertMaterial,
-  type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument,
+  type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument, type OrderAttachment, type InsertOrderAttachment,
   type Category, type InsertCategory, type Product, type InsertProduct,
   type Color, type InsertColor, type ProductColor, type InsertProductColor,
   type Region, type InsertRegion, type ProductDetail, type InsertProductDetail,
@@ -42,6 +42,12 @@ export interface IStorage {
   getOrderDocument(orderId: string): Promise<OrderDocument | undefined>;
   createOrderDocument(document: InsertOrderDocument): Promise<OrderDocument>;
   deleteOrderDocument(orderId: string): Promise<boolean>;
+
+  // Order attachment management
+  getOrderAttachments(orderId: string): Promise<OrderAttachment[]>;
+  getOrderAttachment(id: string): Promise<OrderAttachment | undefined>;
+  createOrderAttachment(attachment: InsertOrderAttachment): Promise<OrderAttachment>;
+  deleteOrderAttachment(id: string): Promise<boolean>;
 
   // Material management
   getAllMaterials(limit?: number, offset?: number): Promise<{ items: Material[], total: number }>;
@@ -350,6 +356,36 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOrderDocument(orderId: string): Promise<boolean> {
     const result = await db.delete(orderDocuments).where(eq(orderDocuments.orderId, orderId));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Order attachment methods
+  async getOrderAttachments(orderId: string): Promise<OrderAttachment[]> {
+    return await db
+      .select()
+      .from(orderAttachments)
+      .where(eq(orderAttachments.orderId, orderId))
+      .orderBy(desc(orderAttachments.uploadedAt));
+  }
+
+  async getOrderAttachment(id: string): Promise<OrderAttachment | undefined> {
+    const [attachment] = await db.select().from(orderAttachments).where(eq(orderAttachments.id, id));
+    return attachment || undefined;
+  }
+
+  async createOrderAttachment(insertAttachment: InsertOrderAttachment): Promise<OrderAttachment> {
+    const [attachment] = await db
+      .insert(orderAttachments)
+      .values({
+        ...insertAttachment,
+        uploadedAt: new Date()
+      })
+      .returning();
+    return attachment;
+  }
+
+  async deleteOrderAttachment(id: string): Promise<boolean> {
+    const result = await db.delete(orderAttachments).where(eq(orderAttachments.id, id));
     return (result.rowCount || 0) > 0;
   }
 

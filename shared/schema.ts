@@ -96,6 +96,17 @@ export const orderDocuments = pgTable("order_documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Order attachments table for user-uploaded files
+export const orderAttachments = pgTable("order_attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id),
+  fileName: text("file_name").notNull(),
+  fileData: text("file_data").notNull(), // Base64 encoded file data
+  fileSize: integer("file_size").notNull(), // Size in bytes
+  mimeType: text("mime_type").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
 // Revoked tokens table for token blacklisting
 export const revokedTokens = pgTable("revoked_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -190,11 +201,19 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   }),
   alerts: many(alerts),
   documents: many(orderDocuments),
+  attachments: many(orderAttachments),
 }));
 
 export const orderDocumentsRelations = relations(orderDocuments, ({ one }) => ({
   order: one(orders, {
     fields: [orderDocuments.orderId],
+    references: [orders.id],
+  }),
+}));
+
+export const orderAttachmentsRelations = relations(orderAttachments, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderAttachments.orderId],
     references: [orders.id],
   }),
 }));
@@ -289,6 +308,11 @@ export const insertOrderDocumentSchema = createInsertSchema(orderDocuments).omit
   createdAt: true,
 });
 
+export const insertOrderAttachmentSchema = createInsertSchema(orderAttachments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 export const insertMaterialSchema = createInsertSchema(materials).omit({
   id: true,
   createdAt: true,
@@ -363,6 +387,8 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderDocument = typeof orderDocuments.$inferSelect;
 export type InsertOrderDocument = z.infer<typeof insertOrderDocumentSchema>;
+export type OrderAttachment = typeof orderAttachments.$inferSelect;
+export type InsertOrderAttachment = z.infer<typeof insertOrderAttachmentSchema>;
 export type Material = typeof materials.$inferSelect;
 export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
 export type Alert = typeof alerts.$inferSelect;
