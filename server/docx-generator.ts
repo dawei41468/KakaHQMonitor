@@ -63,8 +63,6 @@ const DEFAULT_LINE_SPACING = 260;
 const DEFAULT_PARAGRAPH_SPACING = { before: 20, after: 20 };
 const CELL_MARGIN_VERTICAL = 60;
 const CELL_MARGIN_HORIZONTAL = 80;
-const SUMMARY_SEPARATOR = '                ';
-
 type RunConfig = Omit<IRunOptions, 'text' | 'children'>;
 
 type ParagraphConfig = Omit<IParagraphOptions, 'children' | 'text' | 'run'> & {
@@ -295,38 +293,49 @@ function createHeaderTable(contractData: ContractData): Table {
   });
 }
 
-function createSummaryParagraphs(contractData: ContractData): Paragraph[] {
+function createLabelValueCell(label: string, value: string): TableCell {
+  return new TableCell({
+    margins: DEFAULT_CELL_MARGINS,
+    borders: NO_TABLE_BORDERS,
+    children: [
+      createParagraph(label, {
+        run: { bold: true, size: 15 },
+        spacing: { before: 10, after: 6 },
+      }),
+      createParagraph(value, {
+        run: { size: 15 },
+        spacing: { before: 0, after: 10 },
+      }),
+    ],
+  });
+}
+
+function createSummaryParagraphs(contractData: ContractData): (Paragraph | Table)[] {
   const font = { ascii: DEFAULT_FONT, eastAsia: DEFAULT_FONT, hAnsi: DEFAULT_FONT };
 
-  const line1 = new Paragraph({
-    spacing: { before: 20, after: 10 },
-    children: [
-      new TextRun({ text: '项目名称：', bold: true, size: 15, font }),
-      new TextRun({ text: `${contractData.projectName || '-'}`, size: 15, font }),
-      new TextRun({ text: SUMMARY_SEPARATOR }),
-      new TextRun({ text: '甲方：', bold: true, size: 15, font }),
-      new TextRun({ text: `${contractData.buyerCompanyName || '-'}`, size: 15, font }),
-      new TextRun({ text: SUMMARY_SEPARATOR }),
-      new TextRun({ text: '乙方：', bold: true, size: 15, font }),
-      new TextRun({ text: '佛山市顺德区西山家居科技有限公司', size: 15, font }),
+  const summaryTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [3500, 3200, 3400],
+    borders: NO_TABLE_BORDERS,
+    rows: [
+      new TableRow({
+        children: [
+          createLabelValueCell('项目名称：', contractData.projectName || '-'),
+          createLabelValueCell('甲方：', contractData.buyerCompanyName || '-'),
+          createLabelValueCell('乙方：', '佛山市顺德区西山家居科技有限公司'),
+        ],
+      }),
+      new TableRow({
+        children: [
+          createLabelValueCell('设计师：', contractData.designer || '-'),
+          createLabelValueCell('业务代表：', contractData.salesRep || '-'),
+          createLabelValueCell('统一社会信用代码：', '914406060621766268'),
+        ],
+      }),
     ],
   });
 
-  const line2 = new Paragraph({
-    spacing: { before: 10, after: 10 },
-    children: [
-      new TextRun({ text: '设计师：', bold: true, size: 15, font }),
-      new TextRun({ text: `${contractData.designer || '-'}`, size: 15, font }),
-      new TextRun({ text: SUMMARY_SEPARATOR }),
-      new TextRun({ text: '业务代表：', bold: true, size: 15, font }),
-      new TextRun({ text: `${contractData.salesRep || '-'}`, size: 15, font }),
-      new TextRun({ text: SUMMARY_SEPARATOR }),
-      new TextRun({ text: '统一社会信用代码：', bold: true, size: 15, font }),
-      new TextRun({ text: '914406060621766268', size: 15, font }),
-    ],
-  });
-
-  return [line1, line2];
+  return [summaryTable as Table];
 }
 
 function createItemsTable(contractData: ContractData): Table {
@@ -360,11 +369,7 @@ function createItemsTable(contractData: ContractData): Table {
     ),
   });
 
-  const itemRows = contractData.items.map((item, index) => {
-    const isLastItem = index === contractData.items.length - 1;
-    const retailTotal = isLastItem ? contractData.retailTotalAmount : item.retailTotal;
-    const dealTotal = isLastItem ? contractData.totalAmount : item.dealTotal;
-
+  const itemRows = contractData.items.map((item) => {
     return new TableRow({
       children: [
         createTableCell(item.region ?? '', { width: { size: headerCells[0].width, type: WidthType.DXA } }),
@@ -385,7 +390,7 @@ function createItemsTable(contractData: ContractData): Table {
           width: { size: headerCells[8].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
-        createTableCell(retailTotal != null ? formatCurrency(retailTotal) : '', {
+        createTableCell(item.retailTotal != null ? formatCurrency(item.retailTotal) : '', {
           width: { size: headerCells[9].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
@@ -393,7 +398,7 @@ function createItemsTable(contractData: ContractData): Table {
           width: { size: headerCells[10].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
-        createTableCell(dealTotal != null ? formatCurrency(dealTotal) : '', {
+        createTableCell(item.dealTotal != null ? formatCurrency(item.dealTotal) : '', {
           width: { size: headerCells[11].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
