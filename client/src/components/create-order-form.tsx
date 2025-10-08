@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ContractItem {
@@ -63,6 +63,7 @@ const createEmptyContractItem = (): ContractItem => ({
 
 export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: CreateOrderFormProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState("basic");
   const [docxPreview, setDocxPreview] = React.useState<string | null>(null);
   const [pdfPreview, setPdfPreview] = React.useState<string | null>(null);
@@ -226,6 +227,10 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
         link.download = `${orderNumber}_contract.docx`;
         link.click();
       }
+      // Invalidate queries to trigger UI updates
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
       handleDialogOpenChange(false);
       onOrderCreated();
     },

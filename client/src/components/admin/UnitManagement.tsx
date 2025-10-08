@@ -36,6 +36,7 @@ function UnitManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/units'] });
+      queryClient.invalidateQueries({ queryKey: ['units'] });
       setIsAddDialogOpen(false);
       setNewUnit({ name: '' });
     },
@@ -48,6 +49,7 @@ function UnitManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/units'] });
+      queryClient.invalidateQueries({ queryKey: ['units'] });
     },
   });
 
@@ -58,6 +60,7 @@ function UnitManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/units'] });
+      queryClient.invalidateQueries({ queryKey: ['units'] });
     },
   });
 

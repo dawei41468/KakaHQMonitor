@@ -36,6 +36,7 @@ function ProductDetailManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/product-details'] });
+      queryClient.invalidateQueries({ queryKey: ['product-details'] });
       setIsAddDialogOpen(false);
       setNewProductDetail({ name: '' });
     },
@@ -48,6 +49,7 @@ function ProductDetailManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/product-details'] });
+      queryClient.invalidateQueries({ queryKey: ['product-details'] });
     },
   });
 
@@ -58,6 +60,7 @@ function ProductDetailManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/product-details'] });
+      queryClient.invalidateQueries({ queryKey: ['product-details'] });
     },
   });
 

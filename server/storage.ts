@@ -301,6 +301,7 @@ export class DatabaseStorage implements IStorage {
       .update(orders)
       .set({
         status,
+        actualDelivery: status === 'delivered' ? new Date() : null,
         updatedAt: new Date()
       })
       .where(eq(orders.id, id))

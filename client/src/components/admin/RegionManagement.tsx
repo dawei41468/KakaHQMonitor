@@ -36,6 +36,7 @@ function RegionManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/regions'] });
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
       setIsAddDialogOpen(false);
       setNewRegion({ name: '' });
     },
@@ -48,6 +49,7 @@ function RegionManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/regions'] });
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
     },
   });
 
@@ -58,6 +60,7 @@ function RegionManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/regions'] });
+      queryClient.invalidateQueries({ queryKey: ['regions'] });
     },
   });
 
