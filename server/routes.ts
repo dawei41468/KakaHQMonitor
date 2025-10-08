@@ -366,6 +366,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Order not found" });
       }
 
+      // Regenerate DOCX if order has contract items
+      if (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) {
+        // Delete existing document
+        await storage.deleteOrderDocument(order.id);
+
+        // Generate new DOCX
+        const contractData = {
+          contractNumber: order.orderNumber,
+          projectName: order.projectName || '',
+          signingDate: order.signingDate || new Date(),
+          designer: order.designer || '',
+          salesRep: order.salesRep || '',
+          estimatedDelivery: order.estimatedDelivery || new Date(),
+          buyerCompanyName: order.buyerCompanyName || '',
+          buyerAddress: order.buyerAddress || undefined,
+          buyerPhone: order.buyerPhone || undefined,
+          buyerTaxNumber: order.buyerTaxNumber || undefined,
+          items: order.contractItems as any[],
+          totalAmount: Number(order.totalValue),
+          retailTotalAmount: order.contractItems ? (order.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
+        };
+
+        const docxBuffer = await generateContractDOCX(contractData);
+        const base64DOCX = docxBuffer.toString('base64');
+
+        // Save new document
+        await storage.createOrderDocument({
+          orderId: order.id,
+          documentType: 'contract',
+          fileName: `${order.orderNumber}_contract.docx`,
+          fileData: base64DOCX,
+          fileSize: docxBuffer.length,
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+      }
+
       res.json(order);
     } catch (error) {
       res.status(400).json({ error: "Invalid order data", details: error instanceof Error ? error.message : String(error) });

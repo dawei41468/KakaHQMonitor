@@ -41,6 +41,7 @@ export interface IStorage {
   // Order document management
   getOrderDocument(orderId: string): Promise<OrderDocument | undefined>;
   createOrderDocument(document: InsertOrderDocument): Promise<OrderDocument>;
+  deleteOrderDocument(orderId: string): Promise<boolean>;
 
   // Material management
   getAllMaterials(limit?: number, offset?: number): Promise<{ items: Material[], total: number }>;
@@ -345,6 +346,11 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return document;
+  }
+
+  async deleteOrderDocument(orderId: string): Promise<boolean> {
+    const result = await db.delete(orderDocuments).where(eq(orderDocuments.orderId, orderId));
+    return (result.rowCount || 0) > 0;
   }
 
   // Material methods
