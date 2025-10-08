@@ -12,7 +12,7 @@ import {
   hashPassword,
   comparePassword
 } from "./auth";
-import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema } from "@shared/schema";
+import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 
@@ -442,6 +442,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(buffer);
     } catch (error) {
       res.status(500).json({ error: "Failed to retrieve document" });
+    }
+  });
+
+  app.get("/api/orders/:id/attachments", async (req, res) => {
+    try {
+      const attachments = await storage.getOrderAttachments(req.params.id);
+      res.json(attachments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attachments" });
+    }
+  });
+
+  app.post("/api/orders/:id/attachments", async (req, res) => {
+    try {
+      const { fileName, fileData, mimeType, fileSize } = req.body;
+      if (!fileName || !fileData || !mimeType || !fileSize) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const attachmentData = insertOrderAttachmentSchema.parse({
+        orderId: req.params.id,
+        fileName,
+        fileData,
+        mimeType,
+        fileSize
+      });
+
+      const attachment = await storage.createOrderAttachment(attachmentData);
+      res.status(201).json(attachment);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid attachment data", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.get("/api/orders/:orderId/attachments/:attachmentId/download", async (req, res) => {
+    try {
+      const attachment = await storage.getOrderAttachment(req.params.attachmentId);
+      if (!attachment || attachment.orderId !== req.params.orderId) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      const buffer = Buffer.from(attachment.fileData, 'base64');
+      res.setHeader('Content-Type', attachment.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+      res.send(buffer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to retrieve attachment" });
+    }
+  });
+
+  app.delete("/api/orders/:orderId/attachments/:attachmentId", async (req, res) => {
+    try {
+      const attachment = await storage.getOrderAttachment(req.params.attachmentId);
+      if (!attachment || attachment.orderId !== req.params.orderId) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      const success = await storage.deleteOrderAttachment(req.params.attachmentId);
+      if (!success) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      res.json({ message: "Attachment deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete attachment" });
     }
   });
 

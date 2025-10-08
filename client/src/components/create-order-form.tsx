@@ -128,6 +128,9 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   // Contract items state
   const [contractItems, setContractItems] = React.useState<ContractItem[]>([createEmptyContractItem()]);
 
+  // Attachments state
+  const [attachments, setAttachments] = React.useState<File[]>([]);
+
   const resetForm = React.useCallback(() => {
     setOrderNumber("");
     setProjectName("");
@@ -141,6 +144,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     setBuyerPhone("");
     setBuyerTaxNumber("");
     setContractItems([createEmptyContractItem()]);
+    setAttachments([]);
     setDocxPreview(null);
     setPdfPreview(null);
     setActiveTab("basic");
@@ -171,24 +175,27 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       setBuyerPhone(order.buyerPhone || "");
       setBuyerTaxNumber(order.buyerTaxNumber || "");
       if (order.contractItems && Array.isArray(order.contractItems)) {
-        setContractItems(order.contractItems.map((item: any) => ({
-          region: item.region || "",
-          category: item.category || "",
-          productName: item.productName || "",
-          standardProductName: item.productName || "",
-          customProductName: "",
-          productDetail: item.productDetail || "",
-          specification: item.specification || "",
-          colorType: item.color ? item.color.split(" ")[0] : "",
-          colorCode: item.color ? item.color.split(" ")[1] : "",
-          quantity: item.quantity || 0,
-          unit: item.unit || "",
-          retailPrice: item.retailPrice || 0,
-          retailTotal: item.retailTotal || 0,
-          dealPrice: item.dealPrice || 0,
-          dealTotal: item.dealTotal || 0,
-          remarks: item.remarks || ""
-        })));
+        setContractItems(order.contractItems.map((item: any) => {
+          const isStandardProduct = allProducts.some((p: any) => p.name === item.productName);
+          return {
+            region: item.region || "",
+            category: item.category || "",
+            productName: item.productName || "",
+            standardProductName: isStandardProduct ? item.productName : "",
+            customProductName: isStandardProduct ? "" : item.productName,
+            productDetail: item.productDetail || "",
+            specification: item.specification || "",
+            colorType: item.color ? item.color.split(" ")[0] : "",
+            colorCode: item.color ? item.color.split(" ")[1] : "",
+            quantity: item.quantity || 0,
+            unit: item.unit || "",
+            retailPrice: item.retailPrice || 0,
+            retailTotal: item.retailTotal || 0,
+            dealPrice: item.dealPrice || 0,
+            dealTotal: item.dealTotal || 0,
+            remarks: item.remarks || ""
+          };
+        }));
       }
       setDocxPreview(null);
       setPdfPreview(null);
@@ -484,6 +491,29 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="attachments">Attachments</Label>
+                <Input
+                  id="attachments"
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.dwg"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setAttachments(files);
+                  }}
+                />
+                {attachments.length > 0 && (
+                  <div className="mt-2">
+                    <p>Selected files:</p>
+                    <ul>
+                      {attachments.map((file, index) => (
+                        <li key={index}>{file.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -841,6 +871,29 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="attachments">Attachments</Label>
+                <Input
+                  id="attachments"
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.dwg"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setAttachments(files);
+                  }}
+                />
+                {attachments.length > 0 && (
+                  <div className="mt-2">
+                    <p>Selected files:</p>
+                    <ul>
+                      {attachments.map((file, index) => (
+                        <li key={index}>{file.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end">

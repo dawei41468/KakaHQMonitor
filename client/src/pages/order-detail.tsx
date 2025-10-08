@@ -27,6 +27,11 @@ export default function OrderDetail() {
     enabled: !!id && !!order,
   });
 
+  const { data: attachments = [] } = useQuery<any[]>({
+    queryKey: [`/api/orders/${id}/attachments`],
+    enabled: !!id,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
       const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status });
@@ -57,6 +62,27 @@ export default function OrderDetail() {
       toast({
         title: t('common.error'),
         description: error instanceof Error && error.message.includes('404') ? t('orders.documentNotFound') : t('orders.downloadFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: any) => {
+    try {
+      const response = await apiRequest("GET", `/api/orders/${id}/attachments/${attachment.id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('orders.downloadFailed'),
         variant: 'destructive',
       });
     }
@@ -217,6 +243,32 @@ export default function OrderDetail() {
                 {order.items.map((item: any, index: number) => (
                   <div key={index} className="flex justify-between items-center p-2 border rounded">
                     <span>{item.item} x{item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {attachments.length > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Attachments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {attachments.map((attachment: any) => (
+                  <div key={attachment.id} className="flex justify-between items-center p-2 border rounded">
+                    <span>{attachment.fileName}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadAttachment(attachment)}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
                   </div>
                 ))}
               </div>
