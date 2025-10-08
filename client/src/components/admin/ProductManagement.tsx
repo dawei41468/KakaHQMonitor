@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableList } from "@/components/ui/sortable-list";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -71,6 +71,21 @@ function ProductManagement() {
     },
   });
 
+  const reorderProductsMutation = useMutation({
+    mutationFn: async (items: any[]) => {
+      const response = await apiRequest('PUT', '/api/admin/products/reorder', { items });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+
+  const handleReorder = (reorderedItems: any[]) => {
+    reorderProductsMutation.mutate(reorderedItems);
+  };
+
   if (isLoading) return <div>{t('common.loading')}</div>;
 
   return (
@@ -126,120 +141,111 @@ function ProductManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Specification</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products?.map((product: any) => {
-            const category = categories.find((cat: any) => cat.id === product.categoryId);
-            return (
-              <TableRow key={product.id}>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>{product.defaultSpecification}</TableCell>
-                <TableCell>{category?.name || '-'}</TableCell>
-                <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingProduct({ ...product })}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Product</DialogTitle>
-                        <DialogDescription>Edit the details of the selected product.</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={editingProduct?.name || ''}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Specification</Label>
-                          <Input
-                            value={editingProduct?.defaultSpecification || ''}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, defaultSpecification: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Category</Label>
-                          <Select
-                            value={editingProduct?.categoryId || ''}
-                            onValueChange={(value) => setEditingProduct({ ...editingProduct, categoryId: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map((cat: any) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (editingProduct) {
-                              updateProductMutation.mutate({
-                                id: editingProduct.id,
-                                data: {
-                                  name: editingProduct.name,
-                                  defaultSpecification: editingProduct.defaultSpecification,
-                                  categoryId: editingProduct.categoryId
-                                }
-                              });
-                              setEditingProduct(null);
-                            }
-                          }}
-                          disabled={updateProductMutation.isPending}
-                        >
-                          {updateProductMutation.isPending ? 'Updating...' : 'Update'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete {product.name}?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteProductMutation.mutate(product.id)}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+      <SortableList
+        items={products}
+        onReorder={handleReorder}
+        renderItem={(product: any) => {
+          const category = categories.find((cat: any) => cat.id === product.categoryId);
+          return (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
+                <div className="font-medium">{product.name}</div>
+                <div className="text-sm text-muted-foreground">
+                  Specification: {product.defaultSpecification} | Category: {category?.name || '-'} | Created: {new Date(product.createdAt).toLocaleDateString()}
                 </div>
-              </TableCell>
-            </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              </div>
+              <div className="flex space-x-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={() => setEditingProduct({ ...product })}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Product</DialogTitle>
+                      <DialogDescription>Edit the details of the selected product.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Name</Label>
+                        <Input
+                          value={editingProduct?.name || ''}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Specification</Label>
+                        <Input
+                          value={editingProduct?.defaultSpecification || ''}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, defaultSpecification: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Category</Label>
+                        <Select
+                          value={editingProduct?.categoryId || ''}
+                          onValueChange={(value) => setEditingProduct({ ...editingProduct, categoryId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((cat: any) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          if (editingProduct) {
+                            updateProductMutation.mutate({
+                              id: editingProduct.id,
+                              data: {
+                                name: editingProduct.name,
+                                defaultSpecification: editingProduct.defaultSpecification,
+                                categoryId: editingProduct.categoryId
+                              }
+                            });
+                            setEditingProduct(null);
+                          }
+                        }}
+                        disabled={updateProductMutation.isPending}
+                      >
+                        {updateProductMutation.isPending ? 'Updating...' : 'Update'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {product.name}?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteProductMutation.mutate(product.id)}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          );
+        }}
+      />
     </div>
   );
 }
