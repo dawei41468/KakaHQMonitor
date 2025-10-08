@@ -49,10 +49,10 @@ export default function Admin() {
 
         <TabsContent value="app-management" className="mt-4">
           <Tabs defaultValue="users">
-            <TabsList className="flex flex-wrap h-auto p-1">
+            <TabsList className="grid grid-cols-4 w-full p-1">
               <TabsTrigger value="users">{t('admin.users')}</TabsTrigger>
               <TabsTrigger value="dealers">{t('admin.dealers')}</TabsTrigger>
-              <TabsTrigger value="orders">{t('admin.orders')}</TabsTrigger>
+              {/* <TabsTrigger value="orders">{t('admin.orders')}</TabsTrigger> */}
               <TabsTrigger value="materials">{t('admin.materials')}</TabsTrigger>
               <TabsTrigger value="alerts">{t('admin.alerts')}</TabsTrigger>
             </TabsList>
@@ -77,7 +77,7 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="orders">
+            {/* <TabsContent value="orders">
               <Card>
                 <CardHeader>
                   <CardTitle>{t('admin.orderManagement')}</CardTitle>
@@ -86,7 +86,7 @@ export default function Admin() {
                   <OrderManagement />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="materials">
               <Card>
                 <CardHeader>
@@ -111,47 +111,17 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="order-management" className="mt-4">
-          <Tabs defaultValue="categories">
-            <TabsList className="flex flex-wrap h-auto p-1">
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="products">Products</TabsTrigger>
-              <TabsTrigger value="colors">Colors</TabsTrigger>
+          <Tabs defaultValue="regions">
+            <TabsList className="grid grid-cols-7 w-full p-1">
               <TabsTrigger value="regions">Regions</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="product-details">Product Details</TabsTrigger>
+              <TabsTrigger value="products">Products</TabsTrigger>
               <TabsTrigger value="color-types">Color Types</TabsTrigger>
+              <TabsTrigger value="colors">Colors</TabsTrigger>
               <TabsTrigger value="units">Units</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="categories">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Category Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CategoryManagement />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="products">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Product Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ProductManagement />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="colors">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Color Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ColorManagement />
-                </CardContent>
-              </Card>
-            </TabsContent>
             <TabsContent value="regions">
               <Card>
                 <CardHeader>
@@ -159,6 +129,16 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <RegionManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="categories">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Category Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CategoryManagement />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -172,6 +152,16 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="products">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProductManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="color-types">
               <Card>
                 <CardHeader>
@@ -179,6 +169,16 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <ColorTypeManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="colors">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Color Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ColorManagement />
                 </CardContent>
               </Card>
             </TabsContent>
