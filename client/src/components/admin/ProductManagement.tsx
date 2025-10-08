@@ -43,6 +43,7 @@ function ProductManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsAddDialogOpen(false);
       setNewProduct({ name: '', defaultSpecification: '', categoryId: '' });
     },
@@ -55,6 +56,7 @@ function ProductManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 
@@ -65,6 +67,7 @@ function ProductManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 

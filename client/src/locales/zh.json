@@ -139,7 +139,9 @@
     "documentNotFound": "文档未找到",
     "downloadFailed": "下载失败",
     "actions": "操作",
-    "deleteOrder": "删除订单"
+    "deleteOrder": "删除订单",
+    "filterByTimeFrame": "按时间范围筛选",
+    "allTimeFrames": "全部时间范围"
   },
   "profile": {
     "backToDashboard": "返回仪表板",

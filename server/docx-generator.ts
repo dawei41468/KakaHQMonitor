@@ -61,7 +61,7 @@ const PAGE_MARGIN_TWIPS = 540;
 const HEADER_FOOTER_MARGIN_TWIPS = 360;
 const DEFAULT_LINE_SPACING = 260;
 const DEFAULT_PARAGRAPH_SPACING = { before: 20, after: 20 };
-const CELL_MARGIN_VERTICAL = 60;
+const CELL_MARGIN_VERTICAL = 30;
 const CELL_MARGIN_HORIZONTAL = 80;
 type RunConfig = Omit<IRunOptions, 'text' | 'children'>;
 
@@ -294,17 +294,26 @@ function createHeaderTable(contractData: ContractData): Table {
 }
 
 function createLabelValueCell(label: string, value: string): TableCell {
+  const font = { ascii: DEFAULT_FONT, eastAsia: DEFAULT_FONT, hAnsi: DEFAULT_FONT };
   return new TableCell({
     margins: DEFAULT_CELL_MARGINS,
     borders: NO_TABLE_BORDERS,
     children: [
-      createParagraph(label, {
-        run: { bold: true, size: 15 },
-        spacing: { before: 10, after: 6 },
-      }),
-      createParagraph(value, {
-        run: { size: 15 },
-        spacing: { before: 0, after: 10 },
+      new Paragraph({
+        spacing: { before: 0, after: 0 },
+        children: [
+          new TextRun({
+            text: label,
+            font,
+            bold: true,
+            size: 15,
+          }),
+          new TextRun({
+            text: value,
+            font,
+            size: 15,
+          }),
+        ],
       }),
     ],
   });
@@ -464,7 +473,7 @@ function createRemarkParagraphs(): Paragraph[] {
 
   return remarks.map((text) =>
     createParagraph(text, {
-      spacing: { before: 20, after: 20 },
+      spacing: { before: 10, after: 10 },
     }),
   );
 }
@@ -481,16 +490,16 @@ function createSignatureTable(contractData: ContractData): Table {
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
             children: [
-              createParagraph('甲方（买方）：', { run: { bold: true }, spacing: { before: 20, after: 10 } }),
+              createParagraph('甲方（买方）：', { run: { bold: true }, spacing: { before: 10, after: 5 } }),
             ],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
             children: [
-              createParagraph('乙方（供货方）：佛山市顺德区锡山家居科技有限公司', {
+              createParagraph('乙方（供货方）：佛山市顺德区西山家居科技有限公司', {
                 run: { bold: true },
-                spacing: { before: 20, after: 10 },
+                spacing: { before: 10, after: 5 },
               }),
             ],
           }),
@@ -501,12 +510,12 @@ function createSignatureTable(contractData: ContractData): Table {
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('签章：', { spacing: { before: 10, after: 10 } })],
+            children: [createParagraph('签章：', { spacing: { before: 5, after: 5 } })],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('签章：', { spacing: { before: 10, after: 10 } })],
+            children: [createParagraph('签章：', { spacing: { before: 5, after: 5 } })],
           }),
         ],
       }),
@@ -515,12 +524,12 @@ function createSignatureTable(contractData: ContractData): Table {
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('日期：', { spacing: { before: 10, after: 10 } })],
+            children: [createParagraph('日期：', { spacing: { before: 5, after: 5 } })],
           }),
           new TableCell({
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
-            children: [createParagraph('日期：', { spacing: { before: 10, after: 10 } })],
+            children: [createParagraph('日期：', { spacing: { before: 5, after: 5 } })],
           }),
         ],
       }),
@@ -566,7 +575,7 @@ function createBuyerInfoParagraphs(contractData: ContractData): Paragraph[] {
 function createSellerInfoParagraphs(): Paragraph[] {
   return [
     createParagraph('[乙方银行账户信息]', { run: { bold: true } }),
-    createParagraph('公司名称 Company：佛山市顺德区锡山家居科技有限公司'),
+    createParagraph('公司名称 Company：佛山市顺德区西山家居科技有限公司'),
     createParagraph('统一社会信用代码：914406060621766268'),
     createParagraph('开户银行 Bank：中国工商银行股份有限公司北滘支行'),
     createParagraph('帐号 Account：2013013919201297869'),
@@ -618,13 +627,13 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
               createHeaderTable(contractData),
               new Paragraph({ text: '', spacing: { after: 20 } }),
               ...createSummaryParagraphs(contractData),
-              new Paragraph({ text: '', spacing: { after: 80 } }),
+              new Paragraph({ text: '', spacing: { after: 40 } }),
               createParagraph('根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守', {
                 spacing: { after: 60 },
               }),
               createItemsTable(contractData),
               createParagraph(`（大写）人民币 ${numberToChinese(contractData.totalAmount)}`, {
-                spacing: { before: 120, after: 120 },
+                spacing: { before: 60, after: 60 },
                 run: { bold: true },
               }),
               createParagraph('批注 Remark：', {

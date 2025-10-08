@@ -36,6 +36,7 @@ function CategoryManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setIsAddDialogOpen(false);
       setNewCategory({ name: '' });
     },
@@ -48,6 +49,7 @@ function CategoryManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 
@@ -58,6 +60,7 @@ function CategoryManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 

@@ -139,7 +139,9 @@
     "downloadFailed": "Download failed",
     "actions": "Actions",
     "editOrder": "Edit Order",
-    "deleteOrder": "Delete Order"
+    "deleteOrder": "Delete Order",
+    "filterByTimeFrame": "Filter by time frame",
+    "allTimeFrames": "All time frames"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",

@@ -36,6 +36,7 @@ function ColorTypeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/color-types'] });
+      queryClient.invalidateQueries({ queryKey: ['color-types'] });
       setIsAddDialogOpen(false);
       setNewColorType({ name: '' });
     },
@@ -48,6 +49,7 @@ function ColorTypeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/color-types'] });
+      queryClient.invalidateQueries({ queryKey: ['color-types'] });
     },
   });
 
@@ -58,6 +60,7 @@ function ColorTypeManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/color-types'] });
+      queryClient.invalidateQueries({ queryKey: ['color-types'] });
     },
   });
 

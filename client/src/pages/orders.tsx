@@ -5,12 +5,13 @@ import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
 export default function Orders() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [dataTable, setDataTable] = React.useState<any>(null);
 
   const deleteMutation = useMutation({
@@ -19,6 +20,9 @@ export default function Orders() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
       dataTable?.fetchData();
     },
   });

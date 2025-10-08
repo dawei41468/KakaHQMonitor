@@ -51,7 +51,7 @@ export type Order = {
   totalValue: number;
   createdAt: string;
   estimatedDelivery: string;
-  signingDate: string;
+  signingDate: Date | null;
 };
 
 const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
@@ -88,7 +88,65 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
   {
     accessorKey: "signingDate",
     header: t('createOrder.signingDate'),
-    cell: ({ row }) => <div className="text-left">{row.getValue("signingDate")}</div>,
+    cell: ({ row }) => {
+      const date = row.getValue("signingDate") as Date | null;
+      return <div className="text-left">{date ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBD'}</div>;
+    },
+    filterFn: (row, columnId, filterValue) => {
+      if (!filterValue) return true;
+      const date = row.getValue(columnId) as Date | null;
+      if (!date) return false;
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date = now;
+      switch (filterValue) {
+        case '1 week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '2 weeks':
+          startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+          break;
+        case '3 weeks':
+          startDate = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
+          break;
+        case '1 month':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '2 months':
+          startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+          break;
+        case '3 months':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case 'Q1':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 2, 31, 23, 59, 59);
+          break;
+        case 'Q2':
+          startDate = new Date(now.getFullYear(), 3, 1);
+          endDate = new Date(now.getFullYear(), 5, 30, 23, 59, 59);
+          break;
+        case 'Q3':
+          startDate = new Date(now.getFullYear(), 6, 1);
+          endDate = new Date(now.getFullYear(), 8, 30, 23, 59, 59);
+          break;
+        case 'Q4':
+          startDate = new Date(now.getFullYear(), 9, 1);
+          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+          break;
+        case 'H1':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 5, 30, 23, 59, 59);
+          break;
+        case 'H2':
+          startDate = new Date(now.getFullYear(), 6, 1);
+          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+          break;
+        default:
+          return true;
+      }
+      return date >= startDate && date <= endDate;
+    },
   },
   {
     accessorKey: "estimatedDelivery",
@@ -147,6 +205,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   const [data, setData] = React.useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [timeFrame, setTimeFrame] = React.useState<string>("");
 
   const { data: dealers = [] } = useQuery<any[]>({
     queryKey: ['/api/dealers'],
@@ -171,11 +230,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
           month: 'short',
           day: 'numeric'
         }) : 'TBD',
-        signingDate: order.signingDate ? new Date(order.signingDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }) : 'TBD',
+        signingDate: order.signingDate ? new Date(order.signingDate) : null,
         createdAt: new Date(order.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
@@ -345,6 +400,32 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
             <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
             <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
             <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={timeFrame}
+          onValueChange={(value) => {
+            setTimeFrame(value);
+            table.getColumn("signingDate")?.setFilterValue(value === "all" ? "" : value);
+          }}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder={t('orders.filterByTimeFrame')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('orders.allTimeFrames')}</SelectItem>
+            <SelectItem value="1 week">1 week</SelectItem>
+            <SelectItem value="2 weeks">2 weeks</SelectItem>
+            <SelectItem value="3 weeks">3 weeks</SelectItem>
+            <SelectItem value="1 month">1 month</SelectItem>
+            <SelectItem value="2 months">2 months</SelectItem>
+            <SelectItem value="3 months">3 months</SelectItem>
+            <SelectItem value="Q1">Q1</SelectItem>
+            <SelectItem value="Q2">Q2</SelectItem>
+            <SelectItem value="Q3">Q3</SelectItem>
+            <SelectItem value="Q4">Q4</SelectItem>
+            <SelectItem value="H1">H1</SelectItem>
+            <SelectItem value="H2">H2</SelectItem>
           </SelectContent>
         </Select>
         <DropdownMenu>

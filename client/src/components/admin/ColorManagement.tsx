@@ -36,6 +36,7 @@ function ColorManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/colors'] });
+      queryClient.invalidateQueries({ queryKey: ['colors'] });
       setIsAddDialogOpen(false);
       setNewColor({ name: '' });
     },
@@ -48,6 +49,7 @@ function ColorManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/colors'] });
+      queryClient.invalidateQueries({ queryKey: ['colors'] });
     },
   });
 
@@ -58,6 +60,7 @@ function ColorManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/colors'] });
+      queryClient.invalidateQueries({ queryKey: ['colors'] });
     },
   });
 
