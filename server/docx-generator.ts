@@ -480,8 +480,9 @@ function createRemarkParagraphs(): Paragraph[] {
 
 function createSignatureTable(contractData: ContractData): Table {
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [4500, 4500],
+    width: { size: 10000, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: [5000, 5000],
     borders: NO_TABLE_BORDERS,
     rows: [
       new TableRow({
