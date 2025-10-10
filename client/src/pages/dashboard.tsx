@@ -5,6 +5,7 @@ import { AlertsPanel } from "@/components/alerts-panel"
 import { RecentOrdersTable } from "@/components/recent-orders-table"
 import { InventoryOverview } from "@/components/inventory-overview"
 import { useDashboardOverview } from "@/hooks/use-dashboard"
+import { useAuth } from "@/lib/auth"
 import { DollarSign, Package, Clock, Users, AlertTriangle, Boxes } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLocation } from "wouter"
@@ -13,6 +14,7 @@ import { useTranslation } from "react-i18next"
 export default function Dashboard() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { data: overview, isLoading, error } = useDashboardOverview();
 
   if (isLoading) {
@@ -115,7 +117,9 @@ export default function Dashboard() {
           {/* Sidebar with Alerts and Inventory */}
           <div className="space-y-6">
             <AlertsPanel onViewAll={() => navigate('/alerts')} />
-            <InventoryOverview onViewAll={() => navigate('/inventory')} />
+            {user?.role === 'admin' && (
+              <InventoryOverview onViewAll={() => navigate('/inventory')} />
+            )}
           </div>
         </div>
       </main>
