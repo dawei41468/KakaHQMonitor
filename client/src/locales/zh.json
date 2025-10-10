@@ -38,7 +38,9 @@
     "morePages": "更多页面",
     "backToDashboard": "返回仪表板",
     "comingSoon": "即将推出",
-    "pickADate": "选择日期"
+    "pickADate": "选择日期",
+    "yes": "是",
+    "no": "否"
   },
   "login": {
     "welcomeBack": "欢迎回来",
@@ -186,11 +188,28 @@
     "alertsNotifications": "警报与通知",
     "viewAll": "查看全部",
     "allAlerts": "全部警报",
+    "manageAndMonitorAlerts": "管理和监控所有系统警报",
+    "filters": "筛选",
+    "showResolved": "显示已解决",
+    "allTypes": "全部类型",
+    "allPriorities": "全部优先级",
+    "activeAlerts": "活跃警报",
+    "resolvedAlerts": "已解决警报",
     "recentResolved": "最近解决",
     "resolvedAt": "已解决 • {{timestamp}}",
+    "previouslyResolved": "之前已解决的警报",
     "noActiveAlerts": "无活跃警报",
+    "noResolvedAlerts": "无已解决警报",
     "requireAttention": "需要注意",
-    "resolve": "解决"
+    "resolved": "已解决",
+    "resolve": "解决",
+    "undo": "撤销",
+    "alertTitles": {
+      "paymentRequired": "发货前需要付款",
+      "orderDueVerySoon": "订单即将到期",
+      "orderOverdue": "订单逾期",
+      "orderStuck": "订单生产卡住"
+    }
   },
   "admin": {
     "adminDashboard": "管理仪表板",

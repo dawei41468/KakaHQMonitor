@@ -15,6 +15,7 @@ import {
 import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
+import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
 import ExcelJS from "exceljs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -897,6 +898,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/alerts/:id/unresolve", async (req, res) => {
+    try {
+      const alert = await storage.unresolveAlert(req.params.id);
+      if (!alert) {
+        return res.status(404).json({ error: "Alert not found" });
+      }
+      res.json(alert);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unresolve alert" });
+    }
+  });
+
   // Admin-only routes
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
@@ -1144,6 +1157,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Alert deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete alert" });
+    }
+  });
+
+  // Alert checking endpoints
+  app.post("/api/admin/check-payment-alerts", requireAdmin, async (req, res) => {
+    try {
+      const result = await checkPaymentOverdueAlerts();
+      res.json({ message: "Payment alert check completed", ...result });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check payment alerts" });
+    }
+  });
+
+  app.post("/api/admin/resolve-payment-alerts", requireAdmin, async (req, res) => {
+    try {
+      const result = await resolveCompletedPaymentAlerts();
+      res.json({ message: "Payment alert resolution completed", ...result });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve payment alerts" });
+    }
+  });
+
+  app.post("/api/admin/check-overdue-alerts", requireAdmin, async (req, res) => {
+    try {
+      const result = await checkOverdueOrdersAlerts();
+      res.json({ message: "Overdue orders alert check completed", ...result });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check overdue alerts" });
+    }
+  });
+
+  app.post("/api/admin/resolve-overdue-alerts", requireAdmin, async (req, res) => {
+    try {
+      const result = await resolveCompletedOverdueAlerts();
+      res.json({ message: "Overdue alert resolution completed", ...result });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve overdue alerts" });
+    }
+  });
+
+  app.post("/api/admin/check-stuck-alerts", requireAdmin, async (req, res) => {
+    try {
+      const result = await checkStuckOrdersAlerts();
+      res.json({ message: "Stuck orders alert check completed", ...result });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check stuck alerts" });
     }
   });
 

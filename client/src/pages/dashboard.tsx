@@ -10,12 +10,31 @@ import { DollarSign, Package, Clock, Users, AlertTriangle, Boxes } from "lucide-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLocation } from "wouter"
 import { useTranslation } from "react-i18next"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { apiRequest } from "@/lib/queryClient"
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { data: overview, isLoading, error } = useDashboardOverview();
+  const queryClient = useQueryClient();
+
+  const resolveAlertMutation = useMutation({
+    mutationFn: async (alertId: string) => {
+      const response = await apiRequest('PUT', `/api/alerts/${alertId}/resolve`);
+      return response.json();
+    },
+    onSuccess: () => {
+      // Immediately invalidate and refetch alert queries for real-time updates
+      queryClient.invalidateQueries({ queryKey: ['/api/alerts'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'], exact: false });
+    },
+  });
+
+  const handleResolveAlert = (alertId: string) => {
+    resolveAlertMutation.mutate(alertId);
+  };
 
   if (isLoading) {
     return (
@@ -116,7 +135,10 @@ export default function Dashboard() {
 
           {/* Sidebar with Alerts and Inventory */}
           <div className="space-y-6">
-            <AlertsPanel onViewAll={() => navigate('/alerts')} />
+            <AlertsPanel
+              onResolveAlert={handleResolveAlert}
+              onViewAll={() => navigate('/alerts')}
+            />
             {user?.role === 'admin' && (
               <InventoryOverview onViewAll={() => navigate('/inventory')} />
             )}
