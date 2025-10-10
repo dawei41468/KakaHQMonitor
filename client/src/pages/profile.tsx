@@ -119,7 +119,7 @@ export default function Profile() {
               />
             </div>
             <div>
-              <Label htmlFor="newPassword">{t('common.newPassword')}</Label>
+              <Label htmlFor="newPassword">{t('profile.newPassword')}</Label>
               <Input
                 id="newPassword"
                 type="password"

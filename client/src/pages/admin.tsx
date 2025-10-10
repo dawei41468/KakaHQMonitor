@@ -43,8 +43,8 @@ export default function Admin() {
 
       <Tabs defaultValue="app-management" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="app-management">App Management</TabsTrigger>
-          <TabsTrigger value="order-management">Order Management</TabsTrigger>
+          <TabsTrigger value="app-management">{t('admin.appSystemManagement')}</TabsTrigger>
+          <TabsTrigger value="order-management">{t('admin.orderSystemManagement')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="app-management" className="mt-4">
@@ -113,19 +113,19 @@ export default function Admin() {
         <TabsContent value="order-management" className="mt-4">
           <Tabs defaultValue="regions">
             <TabsList className="grid grid-cols-7 w-full p-1">
-              <TabsTrigger value="regions">Regions</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="product-details">Product Details</TabsTrigger>
-              <TabsTrigger value="products">Products</TabsTrigger>
-              <TabsTrigger value="color-types">Color Types</TabsTrigger>
-              <TabsTrigger value="colors">Colors</TabsTrigger>
-              <TabsTrigger value="units">Units</TabsTrigger>
+              <TabsTrigger value="regions">{t('admin.regions')}</TabsTrigger>
+              <TabsTrigger value="categories">{t('admin.categories')}</TabsTrigger>
+              <TabsTrigger value="product-details">{t('admin.productDetails')}</TabsTrigger>
+              <TabsTrigger value="products">{t('admin.products')}</TabsTrigger>
+              <TabsTrigger value="color-types">{t('admin.colorTypes')}</TabsTrigger>
+              <TabsTrigger value="colors">{t('admin.colors')}</TabsTrigger>
+              <TabsTrigger value="units">{t('admin.units')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="regions">
               <Card>
                 <CardHeader>
-                  <CardTitle>Region Management</CardTitle>
+                  <CardTitle>{t('admin.regionManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <RegionManagement />
@@ -135,7 +135,7 @@ export default function Admin() {
             <TabsContent value="categories">
               <Card>
                 <CardHeader>
-                  <CardTitle>Category Management</CardTitle>
+                  <CardTitle>{t('admin.categoryManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CategoryManagement />
@@ -145,7 +145,7 @@ export default function Admin() {
             <TabsContent value="product-details">
               <Card>
                 <CardHeader>
-                  <CardTitle>Product Detail Management</CardTitle>
+                  <CardTitle>{t('admin.productDetailManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ProductDetailManagement />
@@ -155,7 +155,7 @@ export default function Admin() {
             <TabsContent value="products">
               <Card>
                 <CardHeader>
-                  <CardTitle>Product Management</CardTitle>
+                  <CardTitle>{t('admin.productManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ProductManagement />
@@ -165,7 +165,7 @@ export default function Admin() {
             <TabsContent value="color-types">
               <Card>
                 <CardHeader>
-                  <CardTitle>Color Type Management</CardTitle>
+                  <CardTitle>{t('admin.colorTypeManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ColorTypeManagement />
@@ -175,7 +175,7 @@ export default function Admin() {
             <TabsContent value="colors">
               <Card>
                 <CardHeader>
-                  <CardTitle>Color Management</CardTitle>
+                  <CardTitle>{t('admin.colorManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ColorManagement />
@@ -185,7 +185,7 @@ export default function Admin() {
             <TabsContent value="units">
               <Card>
                 <CardHeader>
-                  <CardTitle>Unit Management</CardTitle>
+                  <CardTitle>{t('admin.unitManagement')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <UnitManagement />

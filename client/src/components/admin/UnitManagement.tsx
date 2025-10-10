@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SortableList } from "@/components/ui/sortable-list";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,28 +84,28 @@ function UnitManagement() {
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Units: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalUnits', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Unit
+              {t('admin.addUnit')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Unit</DialogTitle>
+              <DialogTitle>{t('admin.addNewUnit')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('admin.name')}</Label>
                 <Input
                   value={newUnit.name}
                   onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })}
                 />
               </div>
               <Button onClick={() => createUnitMutation.mutate(newUnit)} disabled={createUnitMutation.isPending}>
-                {createUnitMutation.isPending ? 'Creating...' : 'Create Unit'}
+                {createUnitMutation.isPending ? t('admin.creating') : t('admin.createUnit')}
               </Button>
             </div>
           </DialogContent>
@@ -131,11 +131,12 @@ function UnitManagement() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Unit</DialogTitle>
+                    <DialogTitle>{t('admin.editUnit')}</DialogTitle>
+                    <DialogDescription>{t('admin.editUnitDescription')}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Name</Label>
+                      <Label>{t('admin.name')}</Label>
                       <Input
                         value={editingUnit?.name || ''}
                         onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
@@ -155,7 +156,7 @@ function UnitManagement() {
                       }}
                       disabled={updateUnitMutation.isPending}
                     >
-                      {updateUnitMutation.isPending ? 'Updating...' : 'Update'}
+                      {updateUnitMutation.isPending ? t('admin.updating') : t('admin.update')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -168,15 +169,15 @@ function UnitManagement() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Unit</AlertDialogTitle>
+                    <AlertDialogTitle>{t('admin.deleteUnit')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete {unit.name}?
+                      {t('admin.confirmDeleteUnit', { unit: unit.name })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => deleteUnitMutation.mutate(unit.id)}>
-                      Delete
+                      {t('common.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

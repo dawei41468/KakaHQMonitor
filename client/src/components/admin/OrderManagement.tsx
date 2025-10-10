@@ -86,7 +86,7 @@ function OrderManagement() {
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-4">Total Orders: {total}</p>
+      <p className="text-sm text-muted-foreground mb-4">{t('admin.totalOrders', { count: total })}</p>
       <Table>
         <TableHeader>
           <TableRow>
