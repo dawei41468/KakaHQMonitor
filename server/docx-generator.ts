@@ -223,7 +223,7 @@ function createHeaderTable(contractData: ContractData): Table {
   };
 
   // Read logo image
-  const logoPath = path.join(__dirname, 'images', 'kaka_logo.png');
+  const logoPath = path.join(__dirname, 'images', 'agio_kaka_logo.png');
   const logoBuffer = fs.readFileSync(logoPath);
 
   return new Table({

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "react-i18next"
 
@@ -50,9 +50,8 @@ export function LoginForm({
     <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="font-bold text-2xl">{t('common.kakaHq')}</span>
+          <div className="flex items-center justify-center mb-2">
+            <img src="/images/kaka_logo_noBG.png" alt="Kaka Logo" className="h-20 w-auto" />
           </div>
           <CardTitle className="text-xl">{t('login.welcomeBack')}</CardTitle>
           <CardDescription>
