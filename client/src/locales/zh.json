@@ -125,6 +125,7 @@
     "filterByPaymentStatus": "按付款状态筛选",
     "allPaymentStatus": "全部付款状态",
     "totalOrdersCount": "总订单：{{count}}",
+    "filteredOrdersCount": "筛选后订单：{{count}}",
     "columns": "列",
     "columnSelect": "选择",
     "columnDealer": "经销商",
@@ -148,8 +149,10 @@
     "downloadFailed": "下载失败",
     "actions": "操作",
     "deleteOrder": "删除订单",
-    "filterByTimeFrame": "按时间范围筛选",
-    "allTimeFrames": "全部时间范围"
+    "filterByDateRange": "按日期范围筛选",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "clearDates": "清除日期"
   },
   "profile": {
     "backToDashboard": "返回仪表板",

@@ -124,6 +124,7 @@
     "filterByPaymentStatus": "Filter by payment status",
     "allPaymentStatus": "All Payment Status",
     "totalOrdersCount": "Total Orders: {{count}}",
+    "filteredOrdersCount": "Filtered Orders: {{count}}",
     "columns": "Columns",
     "columnSelect": "Select",
     "columnDealer": "Dealer",
@@ -148,8 +149,10 @@
     "actions": "Actions",
     "editOrder": "Edit Order",
     "deleteOrder": "Delete Order",
-    "filterByTimeFrame": "Filter by time frame",
-    "allTimeFrames": "All time frames"
+    "filterByDateRange": "Filter by date range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "clearDates": "Clear dates"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",
