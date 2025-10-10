@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { ChevronDown, Edit, MoreHorizontal, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +27,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -98,60 +100,22 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
       const date = row.getValue("signingDate") as Date | null;
       return <div className="text-left">{date ? date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBD'}</div>;
     },
-    filterFn: (row, columnId, filterValue) => {
-      if (!filterValue) return true;
+    filterFn: (row, columnId, filterValue: { from?: Date; to?: Date }) => {
       const date = row.getValue(columnId) as Date | null;
       if (!date) return false;
-      const now = new Date();
-      let startDate: Date;
-      let endDate: Date = now;
-      switch (filterValue) {
-        case '1 week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '2 weeks':
-          startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-          break;
-        case '3 weeks':
-          startDate = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
-          break;
-        case '1 month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case '2 months':
-          startDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-          break;
-        case '3 months':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'Q1':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          endDate = new Date(now.getFullYear(), 2, 31, 23, 59, 59);
-          break;
-        case 'Q2':
-          startDate = new Date(now.getFullYear(), 3, 1);
-          endDate = new Date(now.getFullYear(), 5, 30, 23, 59, 59);
-          break;
-        case 'Q3':
-          startDate = new Date(now.getFullYear(), 6, 1);
-          endDate = new Date(now.getFullYear(), 8, 30, 23, 59, 59);
-          break;
-        case 'Q4':
-          startDate = new Date(now.getFullYear(), 9, 1);
-          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-          break;
-        case 'H1':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          endDate = new Date(now.getFullYear(), 5, 30, 23, 59, 59);
-          break;
-        case 'H2':
-          startDate = new Date(now.getFullYear(), 6, 1);
-          endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-          break;
-        default:
-          return true;
+
+      const { from, to } = filterValue;
+
+      if (from && !to) {
+        return date >= from;
       }
-      return date >= startDate && date <= endDate;
+      if (!from && to) {
+        return date <= to;
+      }
+      if (from && to) {
+        return date >= from && date <= to;
+      }
+      return true;
     },
   },
   {
@@ -211,7 +175,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   const [data, setData] = React.useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [timeFrame, setTimeFrame] = React.useState<string>("");
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
   const { data: dealers = [] } = useQuery<any[]>({
     queryKey: ['/api/dealers'],
@@ -385,8 +349,13 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
-        <div className="text-sm text-muted-foreground">
-          {t('orders.totalOrdersCount', { count: totalOrders })}
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">
+            {t('orders.totalOrdersCount', { count: totalOrders })}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {t('orders.filteredOrdersCount', { count: table.getFilteredRowModel().rows.length })}
+          </div>
         </div>
       </div>
       <div className="flex items-center py-4 space-x-2">
@@ -446,32 +415,32 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
             <SelectItem value="fullyPaid">{t('orders.fullyPaid')}</SelectItem>
           </SelectContent>
         </Select>
-        <Select
-          value={timeFrame}
-          onValueChange={(value) => {
-            setTimeFrame(value);
-            table.getColumn("signingDate")?.setFilterValue(value === "all" ? "" : value);
-          }}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('orders.filterByTimeFrame')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('orders.allTimeFrames')}</SelectItem>
-            <SelectItem value="1 week">1 week</SelectItem>
-            <SelectItem value="2 weeks">2 weeks</SelectItem>
-            <SelectItem value="3 weeks">3 weeks</SelectItem>
-            <SelectItem value="1 month">1 month</SelectItem>
-            <SelectItem value="2 months">2 months</SelectItem>
-            <SelectItem value="3 months">3 months</SelectItem>
-            <SelectItem value="Q1">Q1</SelectItem>
-            <SelectItem value="Q2">Q2</SelectItem>
-            <SelectItem value="Q3">Q3</SelectItem>
-            <SelectItem value="Q4">Q4</SelectItem>
-            <SelectItem value="H1">H1</SelectItem>
-            <SelectItem value="H2">H2</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center space-x-2">
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={(newDateRange) => {
+              setDateRange(newDateRange);
+              const filterValue = {
+                from: newDateRange?.from,
+                to: newDateRange?.to,
+              };
+              table.getColumn("signingDate")?.setFilterValue(filterValue.from || filterValue.to ? filterValue : undefined);
+            }}
+          />
+          {dateRange && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDateRange(undefined);
+                table.getColumn("signingDate")?.setFilterValue(undefined);
+              }}
+              className="h-8 w-8 p-0"
+            >
+              <span className="sr-only">{t('orders.clearDates')}</span>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
