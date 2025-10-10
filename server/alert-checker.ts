@@ -219,15 +219,15 @@ export async function checkStuckOrdersAlerts() {
 
       switch (order.status) {
         case 'received':
-          thresholdDays = 7;
+          thresholdDays = 3;
           shouldAlert = daysSinceUpdate >= thresholdDays;
           break;
         case 'sentToFactory':
-          thresholdDays = 14;
+          thresholdDays = 3;
           shouldAlert = daysSinceUpdate >= thresholdDays;
           break;
         case 'inProduction':
-          thresholdDays = 21;
+          thresholdDays = 7;
           shouldAlert = daysSinceUpdate >= thresholdDays;
           break;
       }
