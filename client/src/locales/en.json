@@ -158,7 +158,12 @@
     "startDate": "Start Date",
     "endDate": "End Date",
     "clearDates": "Clear dates",
-    "exportToExcel": "Export to Excel"
+    "exportToExcel": "Export to Excel",
+    "confirmDeliveryDate": "Confirm Delivery Date",
+    "confirmDeliveryDescription": "Please select the actual date when this order was delivered.",
+    "deliveryDate": "Delivery Date",
+    "confirmDelivery": "Confirm Delivery",
+    "actualDeliveryDate": "Actual Delivery Date"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",

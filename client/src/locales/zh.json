@@ -158,7 +158,12 @@
     "startDate": "开始日期",
     "endDate": "结束日期",
     "clearDates": "清除日期",
-    "exportToExcel": "导出到 Excel"
+    "exportToExcel": "导出到 Excel",
+    "confirmDeliveryDate": "确认交付日期",
+    "confirmDeliveryDescription": "请选择此订单实际交付的日期。",
+    "deliveryDate": "交付日期",
+    "confirmDelivery": "确认交付",
+    "actualDeliveryDate": "实际交付日期"
   },
   "profile": {
     "backToDashboard": "返回仪表板",
