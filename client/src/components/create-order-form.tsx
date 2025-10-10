@@ -320,6 +320,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       dealerId,
       orderNumber,
       status: "received",
+      paymentStatus: "unpaid",
       items: validItems.map(item => ({
         item: item.productName,
         quantity: item.quantity

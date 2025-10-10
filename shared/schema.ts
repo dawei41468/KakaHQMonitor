@@ -34,6 +34,7 @@ export const orders = pgTable("orders", {
   dealerId: varchar("dealer_id").notNull().references(() => dealers.id),
   orderNumber: text("order_number").notNull().unique(), // e.g., "SZ-2024-0456"
   status: text("status").notNull().default("received"), // received | sentToFactory | inProduction | delivered
+  paymentStatus: text("payment_status").notNull().default("unpaid"), // unpaid | partiallyPaid | fullyPaid
   items: jsonb("items").notNull(), // Array of {item: string, quantity: number}
   totalValue: decimal("total_value", { precision: 10, scale: 2 }).notNull(),
   productionLeadTime: integer("production_lead_time"), // days
