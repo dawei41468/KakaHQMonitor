@@ -1,5 +1,6 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
 import { storage } from "./storage";
 import { authenticateToken, requireAdmin } from "./middleware";
 import { authRateLimit } from "./security";
@@ -19,6 +20,9 @@ import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueO
 import ExcelJS from "exceljs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Static files
+  app.use('/images', express.static(path.join(import.meta.dirname, 'images')));
+
   // Auth routes
   app.post("/api/auth/login", authRateLimit, async (req, res) => {
     try {

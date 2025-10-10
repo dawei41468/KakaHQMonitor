@@ -111,6 +111,20 @@ export default function Dashboard() {
               icon={AlertTriangle}
               description={t('dashboard.requireAttention')}
             />
+            {user?.role === 'admin' && (metrics?.lowStockItems || 0) > 0 && (
+              <MetricCard
+                title={t('dashboard.lowStockItems')}
+                value={metrics?.lowStockItems?.toString() || '0'}
+                icon={Boxes}
+                description={t('dashboard.belowThreshold')}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Low Stock Items - Admin Only */}
+        {user?.role === 'admin' && (metrics?.lowStockItems || 0) > 0 && (metrics?.activeAlerts || 0) === 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <MetricCard
               title={t('dashboard.lowStockItems')}
               value={metrics?.lowStockItems?.toString() || '0'}
