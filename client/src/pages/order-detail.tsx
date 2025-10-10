@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { Order } from "@shared/schema";
+import { useState } from "react";
 
 export default function OrderDetail() {
   const { t } = useTranslation();
@@ -16,6 +20,12 @@ export default function OrderDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
+  const [selectedDeliveryDate, setSelectedDeliveryDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // YYYY-MM-DD format
+  });
 
   const { data: order, isLoading, error } = useQuery<any>({
     queryKey: [`/api/orders/${id}`],
@@ -33,8 +43,8 @@ export default function OrderDetail() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async (status: string) => {
-      const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status });
+    mutationFn: async ({ status, actualDelivery }: { status: string; actualDelivery?: string }) => {
+      const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status, actualDelivery });
       return response.json();
     },
     onSuccess: () => {
@@ -59,6 +69,19 @@ export default function OrderDetail() {
       });
     },
   });
+
+  const handleStatusChange = (value: string) => {
+    if (value === "delivered") {
+      setIsDeliveryDialogOpen(true);
+    } else {
+      updateStatusMutation.mutate({ status: value });
+    }
+  };
+
+  const handleConfirmDelivery = () => {
+    updateStatusMutation.mutate({ status: "delivered", actualDelivery: selectedDeliveryDate });
+    setIsDeliveryDialogOpen(false);
+  };
 
   const handleDownloadDocx = async () => {
     try {
@@ -211,6 +234,16 @@ export default function OrderDetail() {
                   day: 'numeric'
                 }) : t('common.tbd')}</p>
               </div>
+              {order.status === 'delivered' && order.actualDelivery && (
+                <div>
+                  <label className="text-sm font-medium">{t('orders.actualDeliveryDate')}</label>
+                  <p>{new Date(order.actualDelivery).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}</p>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium">{t('createOrder.designer')}</label>
                 <p>{order.designer || t('common.tbd')}</p>
@@ -232,7 +265,7 @@ export default function OrderDetail() {
                 <div className="mt-1">
                   <Select
                     value={order.status}
-                    onValueChange={(value) => updateStatusMutation.mutate(value)}
+                    onValueChange={handleStatusChange}
                     disabled={updateStatusMutation.isPending}
                   >
                     <SelectTrigger className="w-48">
@@ -335,6 +368,47 @@ export default function OrderDetail() {
             </CardContent>
           </Card>
         )}
+
+        <Dialog open={isDeliveryDialogOpen} onOpenChange={setIsDeliveryDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t('orders.confirmDeliveryDate')}</DialogTitle>
+              <DialogDescription>
+                {t('orders.confirmDeliveryDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="delivery-date" className="text-right">
+                  {t('orders.deliveryDate')}
+                </Label>
+                <Input
+                  id="delivery-date"
+                  type="date"
+                  value={selectedDeliveryDate}
+                  onChange={(e) => setSelectedDeliveryDate(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeliveryDialogOpen(false)}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmDelivery}
+                disabled={updateStatusMutation.isPending}
+              >
+                {updateStatusMutation.isPending ? t('common.loading') : t('orders.confirmDelivery')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -494,12 +494,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/orders/:id/status", async (req, res) => {
     try {
-      const { status } = req.body;
+      const { status, actualDelivery } = req.body;
       if (!['received', 'sentToFactory', 'inProduction', 'delivered'].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
 
-      const order = await storage.updateOrderStatus(req.params.id, status);
+      const order = await storage.updateOrderStatus(req.params.id, status, actualDelivery ? new Date(actualDelivery) : undefined);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }

@@ -36,7 +36,7 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, order: Partial<InsertOrder>): Promise<Order | undefined>;
   deleteOrder(id: string): Promise<boolean>;
-  updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+  updateOrderStatus(id: string, status: string, actualDelivery?: Date): Promise<Order | undefined>;
   updateOrderPaymentStatus(id: string, paymentStatus: string): Promise<Order | undefined>;
 
   // Order document management
@@ -305,12 +305,12 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
+  async updateOrderStatus(id: string, status: string, actualDelivery?: Date): Promise<Order | undefined> {
     const [order] = await db
       .update(orders)
       .set({
         status,
-        actualDelivery: status === 'delivered' ? new Date() : null,
+        actualDelivery: status === 'delivered' ? (actualDelivery || new Date()) : null,
         updatedAt: new Date()
       })
       .where(eq(orders.id, id))
