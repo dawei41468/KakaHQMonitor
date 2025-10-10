@@ -58,5 +58,7 @@ export function useMaterials() {
 export function useAlerts(includeResolved = false) {
   return useQuery({
     queryKey: [`/api/alerts?includeResolved=${includeResolved}`],
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
+    refetchOnWindowFocus: true, // Also refetch when window regains focus
   });
 }

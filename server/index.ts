@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { apiRateLimit, securityHeaders } from "./security";
+import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
 
 const app = express();
 app.use(securityHeaders);
@@ -70,5 +71,26 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '3000', 10);
   server.listen(port, () => {
     log(`serving on port ${port}`);
+
+    // Set up periodic payment alert checking
+    // In development: check every 5 minutes for testing
+    // In production: should be daily (24 * 60 * 60 * 1000)
+    const checkInterval = app.get("env") === "development" ? 5 * 60 * 1000 : 24 * 60 * 60 * 1000;
+
+    setInterval(async () => {
+      try {
+        log('Running scheduled alert checks...');
+        await checkPaymentOverdueAlerts();
+        await resolveCompletedPaymentAlerts();
+        await checkOverdueOrdersAlerts();
+        await checkStuckOrdersAlerts();
+        await resolveCompletedOverdueAlerts();
+        log('Scheduled alert checks completed');
+      } catch (error) {
+        log(`Scheduled alert checks failed: ${error}`);
+      }
+    }, checkInterval);
+
+    log(`Payment alert checking scheduled every ${checkInterval / (60 * 1000)} minutes`);
   });
 })();

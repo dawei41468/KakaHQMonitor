@@ -38,7 +38,7 @@ function AlertManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts?includeResolved=true'], exact: false });
       setIsAddDialogOpen(false);
       setNewAlert({ type: 'info', title: '', message: '', priority: 'medium' });
     },
@@ -50,7 +50,7 @@ function AlertManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts?includeResolved=true'], exact: false });
     },
   });
 
@@ -60,7 +60,7 @@ function AlertManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/alerts?includeResolved=true'], exact: false });
     },
   });
 

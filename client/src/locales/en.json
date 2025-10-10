@@ -38,7 +38,9 @@
     "morePages": "More pages",
     "backToDashboard": "Back to Dashboard",
     "comingSoon": "Coming Soon",
-    "pickADate": "Pick a date"
+    "pickADate": "Pick a date",
+    "yes": "Yes",
+    "no": "No"
   },
   "login": {
     "welcomeBack": "Welcome Back",
@@ -186,12 +188,30 @@
     "alertsNotifications": "Alerts & Notifications",
     "viewAll": "View All",
     "allAlerts": "All Alerts",
+    "manageAndMonitorAlerts": "Manage and monitor all system alerts",
+    "filters": "Filters",
+    "showResolved": "Show Resolved",
+    "allTypes": "All Types",
+    "allPriorities": "All Priorities",
+    "activeAlerts": "Active Alerts",
+    "resolvedAlerts": "Resolved Alerts",
     "recentResolved": "Recent Resolved",
     "resolvedAt": "Resolved • {{timestamp}}",
+    "previouslyResolved": "Previously resolved alerts",
     "noActiveAlerts": "No active alerts",
+    "noResolvedAlerts": "No resolved alerts",
     "requireAttention": "Require attention",
+    "resolved": "Resolved",
 
-    "resolve": "Resolve"
+    "resolve": "Resolve",
+    "undo": "Undo",
+
+    "alertTitles": {
+      "paymentRequired": "Payment Required Before Shipping",
+      "orderDueVerySoon": "Order Due Very Soon",
+      "orderOverdue": "Order Overdue",
+      "orderStuck": "Order Stuck in Production"
+    }
   },
   "admin": {
     "adminDashboard": "Admin Dashboard",

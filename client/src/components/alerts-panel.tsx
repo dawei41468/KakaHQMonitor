@@ -32,6 +32,26 @@ const priorityColors = {
   low: "outline"
 } as const
 
+// Helper function to translate alert titles and messages
+function translateAlertContent(title: string, message: string, t: any) {
+  // Translate known alert titles
+  const titleTranslations: Record<string, string> = {
+    "Payment Required Before Shipping": t('alerts.alertTitles.paymentRequired'),
+    "Order Due Very Soon": t('alerts.alertTitles.orderDueVerySoon'),
+    "Order Overdue": t('alerts.alertTitles.orderOverdue'),
+    "Order Stuck in Production": t('alerts.alertTitles.orderStuck')
+  };
+
+  const translatedTitle = titleTranslations[title] || title;
+
+  // For messages, we could add more complex translation logic if needed
+  // For now, return the message as-is since it contains dynamic data
+  return {
+    title: translatedTitle,
+    message: message
+  };
+}
+
 interface AlertsPanelProps {
   onResolveAlert?: (alertId: string) => void
   onViewAll?: () => void
@@ -92,7 +112,7 @@ export function AlertsPanel({
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium leading-none">
-                        {alert.title}
+                        {translateAlertContent(alert.title, alert.message, t).title}
                       </p>
                       <Badge
                         variant={priorityColors[alert.priority as keyof typeof priorityColors]}
@@ -102,7 +122,7 @@ export function AlertsPanel({
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {alert.message}
+                      {translateAlertContent(alert.title, alert.message, t).message}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
@@ -140,10 +160,10 @@ export function AlertsPanel({
                       <Icon className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm font-medium leading-none line-through">
-                          {alert.title}
+                          {translateAlertContent(alert.title, alert.message, t).title}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {alert.message}
+                          {translateAlertContent(alert.title, alert.message, t).message}
                         </p>
                         <span className="text-xs text-muted-foreground">
                           {t('alerts.resolvedAt', { timestamp: alert.timestamp })}

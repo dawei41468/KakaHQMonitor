@@ -66,6 +66,7 @@ export interface IStorage {
   updateAlert(id: string, alert: Partial<InsertAlert>): Promise<Alert | undefined>;
   deleteAlert(id: string): Promise<boolean>;
   resolveAlert(id: string): Promise<Alert | undefined>;
+  unresolveAlert(id: string): Promise<Alert | undefined>;
   getActiveAlerts(): Promise<Alert[]>;
 
   // Form options management
@@ -503,9 +504,21 @@ export class DatabaseStorage implements IStorage {
   async resolveAlert(id: string): Promise<Alert | undefined> {
     const [alert] = await db
       .update(alerts)
-      .set({ 
+      .set({
         resolved: true,
         resolvedAt: new Date()
+      })
+      .where(eq(alerts.id, id))
+      .returning();
+    return alert || undefined;
+  }
+
+  async unresolveAlert(id: string): Promise<Alert | undefined> {
+    const [alert] = await db
+      .update(alerts)
+      .set({
+        resolved: false,
+        resolvedAt: null
       })
       .where(eq(alerts.id, id))
       .returning();
