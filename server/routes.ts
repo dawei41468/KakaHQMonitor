@@ -15,6 +15,7 @@ import {
 import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
+import ExcelJS from "exceljs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -308,15 +309,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Order routes
-  app.get("/api/orders", async (req, res) => {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const orders = await storage.getAllOrders(limit);
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch orders" });
-    }
-  });
+   app.get("/api/orders", async (req, res) => {
+     try {
+       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+       const orders = await storage.getAllOrders(limit);
+       res.json(orders);
+     } catch (error) {
+       res.status(500).json({ error: "Failed to fetch orders" });
+     }
+   });
+
+   app.get("/api/export-orders", async (req, res) => {
+     try {
+       // Build filter conditions
+       const conditions = [];
+       const dealerFilter = req.query.dealer as string;
+       const statusFilter = req.query.status as string;
+       const paymentStatusFilter = req.query.paymentStatus as string;
+       const signingDateFrom = req.query.signingDateFrom as string;
+       const signingDateTo = req.query.signingDateTo as string;
+       const sortBy = req.query.sortBy as string;
+       const sortOrder = req.query.sortOrder as string;
+
+       // Get all orders first (we'll filter in memory to match frontend logic)
+       const allOrders = await storage.getAllOrders();
+
+       let filteredOrders = allOrders.items;
+
+       // Apply filters
+       if (dealerFilter) {
+         filteredOrders = filteredOrders.filter(order => order.dealerName === dealerFilter);
+       }
+
+       if (statusFilter) {
+         filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
+       }
+
+       if (paymentStatusFilter) {
+         filteredOrders = filteredOrders.filter(order => order.paymentStatus === paymentStatusFilter);
+       }
+
+       if (signingDateFrom || signingDateTo) {
+         filteredOrders = filteredOrders.filter(order => {
+           if (!order.signingDate) return false;
+           const signingDate = new Date(order.signingDate);
+           if (signingDateFrom && signingDate < new Date(signingDateFrom)) return false;
+           if (signingDateTo && signingDate > new Date(signingDateTo)) return false;
+           return true;
+         });
+       }
+
+       // Apply sorting
+       if (sortBy) {
+         filteredOrders.sort((a, b) => {
+           let aValue: any = a[sortBy as keyof typeof a];
+           let bValue: any = b[sortBy as keyof typeof b];
+
+           // Handle date fields
+           if (sortBy === 'createdAt' || sortBy === 'estimatedDelivery' || sortBy === 'signingDate') {
+             aValue = aValue ? new Date(aValue).getTime() : 0;
+             bValue = bValue ? new Date(bValue).getTime() : 0;
+           }
+
+           // Handle numeric fields
+           if (sortBy === 'totalValue') {
+             aValue = Number(aValue) || 0;
+             bValue = Number(bValue) || 0;
+           }
+
+           if (aValue < bValue) return sortOrder === 'desc' ? 1 : -1;
+           if (aValue > bValue) return sortOrder === 'desc' ? -1 : 1;
+           return 0;
+         });
+       }
+
+       // Create Excel workbook
+       const workbook = new ExcelJS.Workbook();
+       const worksheet = workbook.addWorksheet('Orders');
+
+       // Define columns with better widths
+       worksheet.columns = [
+         { header: 'Order Number', key: 'orderNumber', width: 18 },
+         { header: 'Dealer', key: 'dealer', width: 25 },
+         { header: 'Order Status', key: 'status', width: 18 },
+         { header: 'Payment Status', key: 'paymentStatus', width: 18 },
+         { header: 'Total Value', key: 'totalValue', width: 15 },
+         { header: 'Signing Date', key: 'signingDate', width: 15 },
+         { header: 'Estimated Delivery', key: 'estimatedDelivery', width: 20 },
+         { header: 'Created At', key: 'createdAt', width: 15 }
+       ];
+
+       // Status and payment status mappings to Chinese
+       const statusMap: Record<string, string> = {
+         received: '已收到',
+         sentToFactory: '已发工厂',
+         inProduction: '生产中',
+         delivered: '已交付'
+       };
+
+       const paymentStatusMap: Record<string, string> = {
+         unpaid: '未付款',
+         partiallyPaid: '部分付款',
+         fullyPaid: '已全款'
+       };
+
+       // Add Chinese headers (row 1)
+       worksheet.getCell('A1').value = '订单编号';
+       worksheet.getCell('B1').value = '经销商';
+       worksheet.getCell('C1').value = '订单状态';
+       worksheet.getCell('D1').value = '付款状态';
+       worksheet.getCell('E1').value = '总价值';
+       worksheet.getCell('F1').value = '签订日期';
+       worksheet.getCell('G1').value = '预计交付';
+       worksheet.getCell('H1').value = '创建时间';
+
+       // Add English headers (row 2)
+       worksheet.getCell('A2').value = 'Order Number';
+       worksheet.getCell('B2').value = 'Dealer';
+       worksheet.getCell('C2').value = 'Order Status';
+       worksheet.getCell('D2').value = 'Payment Status';
+       worksheet.getCell('E2').value = 'Total Value';
+       worksheet.getCell('F2').value = 'Signing Date';
+       worksheet.getCell('G2').value = 'Estimated Delivery';
+       worksheet.getCell('H2').value = 'Created At';
+
+       // Style header rows
+       worksheet.getRow(1).font = { bold: true };
+       worksheet.getRow(1).fill = {
+         type: 'pattern',
+         pattern: 'solid',
+         fgColor: { argb: 'FFE6E6FA' }
+       };
+       worksheet.getRow(2).font = { bold: true };
+       worksheet.getRow(2).fill = {
+         type: 'pattern',
+         pattern: 'solid',
+         fgColor: { argb: 'FFE6E6FA' }
+       };
+
+       // Add data rows starting from row 3
+       filteredOrders.forEach((order, index) => {
+         const rowNumber = index + 3;
+         worksheet.getCell(`A${rowNumber}`).value = order.orderNumber;
+         worksheet.getCell(`B${rowNumber}`).value = order.dealerName || 'Unknown';
+         worksheet.getCell(`C${rowNumber}`).value = statusMap[order.status] || order.status;
+         worksheet.getCell(`D${rowNumber}`).value = paymentStatusMap[order.paymentStatus || 'unpaid'] || order.paymentStatus;
+         worksheet.getCell(`E${rowNumber}`).value = Number(order.totalValue);
+         worksheet.getCell(`F${rowNumber}`).value = order.signingDate ? new Date(order.signingDate).toLocaleDateString('en-US') : 'TBD';
+         worksheet.getCell(`G${rowNumber}`).value = order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-US') : 'TBD';
+         worksheet.getCell(`H${rowNumber}`).value = new Date(order.createdAt).toLocaleDateString('en-US');
+       });
+
+       // Format total value column as currency (CNY)
+       worksheet.getColumn('E').numFmt = '¥#,##0.00';
+
+       // Set response headers
+       const fileName = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+       // Write to response
+       await workbook.xlsx.write(res);
+       res.end();
+
+     } catch (error) {
+       console.error('Export error:', error);
+       res.status(500).json({ error: "Failed to export orders" });
+     }
+   });
 
   app.get("/api/orders/:id", async (req, res) => {
     try {

@@ -16,6 +16,7 @@
     "filter": "筛选",
     "all": "全部",
     "status": "订单状态",
+    "orderStatus": "订单状态",
     "name": "名称",
     "email": "邮箱",
     "role": "角色",
@@ -36,7 +37,8 @@
     "tbd": "待定",
     "morePages": "更多页面",
     "backToDashboard": "返回仪表板",
-    "comingSoon": "即将推出"
+    "comingSoon": "即将推出",
+    "pickADate": "选择日期"
   },
   "login": {
     "welcomeBack": "欢迎回来",
@@ -134,6 +136,7 @@
     "columnEstimatedShipDate": "预计交付",
     "columnCreatedAt": "创建时间",
     "columnActions": "操作",
+    "orderStatus": "订单状态",
     "orderInformation": "订单信息",
     "contractDetails": "合同详情",
     "orderItems": "订单项目",
@@ -152,7 +155,8 @@
     "filterByDateRange": "按日期范围筛选",
     "startDate": "开始日期",
     "endDate": "结束日期",
-    "clearDates": "清除日期"
+    "clearDates": "清除日期",
+    "exportToExcel": "导出到 Excel"
   },
   "profile": {
     "backToDashboard": "返回仪表板",
