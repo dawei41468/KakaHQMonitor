@@ -16,11 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 function ColorTypeManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const limit = 10;
   const { data: result, isLoading } = useQuery({
-    queryKey: ['/api/admin/color-types', page],
-    queryFn: () => apiRequest('GET', `/api/admin/color-types?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
+    queryKey: ['/api/admin/color-types'],
+    queryFn: () => apiRequest('GET', '/api/admin/color-types').then(res => res.json()),
   });
   const colorTypes = result?.items || [];
   const total = result?.total || 0;

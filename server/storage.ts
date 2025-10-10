@@ -5,12 +5,12 @@ import {
   type Order, type InsertOrder, type Material, type InsertMaterial,
   type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument, type OrderAttachment, type InsertOrderAttachment,
   type Category, type InsertCategory, type Product, type InsertProduct,
-  type Color, type InsertColor, type ProductColor, type InsertProductColor,
+  type Color, type InsertColor,
   type Region, type InsertRegion, type ProductDetail, type InsertProductDetail,
   type ColorType, type InsertColorType, type Unit, type InsertUnit
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
+import { eq, desc, and, lte, count } from "drizzle-orm";
 
 export interface IStorage {
   // User management

@@ -18,11 +18,9 @@ import { apiRequest } from "@/lib/queryClient";
 function ProductManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const limit = 10;
   const { data: result, isLoading } = useQuery({
-    queryKey: ['/api/admin/products', page],
-    queryFn: () => apiRequest('GET', `/api/admin/products?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
+    queryKey: ['/api/admin/products'],
+    queryFn: () => apiRequest('GET', '/api/admin/products').then(res => res.json()),
   });
   const products = result?.items || [];
   const total = result?.total || 0;

@@ -16,11 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 function RegionManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const limit = 10;
   const { data: result, isLoading } = useQuery({
-    queryKey: ['/api/admin/regions', page],
-    queryFn: () => apiRequest('GET', `/api/admin/regions?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
+    queryKey: ['/api/admin/regions'],
+    queryFn: () => apiRequest('GET', '/api/admin/regions').then(res => res.json()),
   });
   const regions = result?.items || [];
   const total = result?.total || 0;

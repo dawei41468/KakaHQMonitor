@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { authenticateToken, requireAdmin } from "./middleware";
-import { authRateLimit, apiRateLimit, securityHeaders, generateCsrfToken } from "./security";
+import { authRateLimit } from "./security";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -12,7 +12,7 @@ import {
   hashPassword,
   comparePassword
 } from "./auth";
-import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertProductColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
+import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
@@ -235,12 +235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard routes
-  app.get("/api/dashboard/overview", async (req, res) => {
+  app.get("/api/dashboard/overview", async (_req, res) => {
     try {
       const orders = await storage.getAllOrders(); // Get all orders, not just 100
       const dealers = await storage.getAllDealers();
       const alerts = await storage.getActiveAlerts();
-      const materials = await storage.getAllMaterials();
       const lowStockMaterials = await storage.getLowStockMaterials();
 
       // Calculate metrics
@@ -272,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dealer routes
-  app.get("/api/dealers", async (req, res) => {
+  app.get("/api/dealers", async (_req, res) => {
     try {
       const dealers = await storage.getAllDealers();
       
@@ -323,7 +322,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
    app.get("/api/export-orders", async (req, res) => {
      try {
        // Build filter conditions
-       const conditions = [];
        const dealerFilter = req.query.dealer as string;
        const statusFilter = req.query.status as string;
        const paymentStatusFilter = req.query.paymentStatus as string;
@@ -837,7 +835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Material/Inventory routes
-  app.get("/api/materials", async (req, res) => {
+  app.get("/api/materials", async (_req, res) => {
     try {
       const materials = await storage.getAllMaterials();
       res.json(materials);
@@ -1161,7 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alert checking endpoints
-  app.post("/api/admin/check-payment-alerts", requireAdmin, async (req, res) => {
+  app.post("/api/admin/check-payment-alerts", requireAdmin, async (_req, res) => {
     try {
       const result = await checkPaymentOverdueAlerts();
       res.json({ message: "Payment alert check completed", ...result });
@@ -1170,7 +1168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/resolve-payment-alerts", requireAdmin, async (req, res) => {
+  app.post("/api/admin/resolve-payment-alerts", requireAdmin, async (_req, res) => {
     try {
       const result = await resolveCompletedPaymentAlerts();
       res.json({ message: "Payment alert resolution completed", ...result });
@@ -1179,7 +1177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/check-overdue-alerts", requireAdmin, async (req, res) => {
+  app.post("/api/admin/check-overdue-alerts", requireAdmin, async (_req, res) => {
     try {
       const result = await checkOverdueOrdersAlerts();
       res.json({ message: "Overdue orders alert check completed", ...result });
@@ -1188,7 +1186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/resolve-overdue-alerts", requireAdmin, async (req, res) => {
+  app.post("/api/admin/resolve-overdue-alerts", requireAdmin, async (_req, res) => {
     try {
       const result = await resolveCompletedOverdueAlerts();
       res.json({ message: "Overdue alert resolution completed", ...result });
@@ -1197,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/check-stuck-alerts", requireAdmin, async (req, res) => {
+  app.post("/api/admin/check-stuck-alerts", requireAdmin, async (_req, res) => {
     try {
       const result = await checkStuckOrdersAlerts();
       res.json({ message: "Stuck orders alert check completed", ...result });
@@ -1207,7 +1205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public form options endpoints
-  app.get("/api/categories", async (req, res) => {
+  app.get("/api/categories", async (_req, res) => {
     try {
       const categories = await storage.getAllCategories();
       res.json(categories.items);
@@ -1246,7 +1244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/regions", async (req, res) => {
+  app.get("/api/regions", async (_req, res) => {
     try {
       const regions = await storage.getAllRegions();
       res.json(regions.items);
@@ -1255,7 +1253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/product-details", async (req, res) => {
+  app.get("/api/product-details", async (_req, res) => {
     try {
       const productDetails = await storage.getAllProductDetails();
       res.json(productDetails.items);
@@ -1264,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/color-types", async (req, res) => {
+  app.get("/api/color-types", async (_req, res) => {
     try {
       const colorTypes = await storage.getAllColorTypes();
       res.json(colorTypes.items);
@@ -1289,7 +1287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Categories admin routes
-  app.get("/api/admin/categories", requireAdmin, async (req, res) => {
+  app.get("/api/admin/categories", requireAdmin, async (_req, res) => {
     try {
       const categories = await storage.getAllCategories();
       res.json(categories);
@@ -1353,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Products admin routes
-  app.get("/api/admin/products", requireAdmin, async (req, res) => {
+  app.get("/api/admin/products", requireAdmin, async (_req, res) => {
     try {
       const products = await storage.getAllProducts();
       res.json(products);
@@ -1417,7 +1415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Colors admin routes
-  app.get("/api/admin/colors", requireAdmin, async (req, res) => {
+  app.get("/api/admin/colors", requireAdmin, async (_req, res) => {
     try {
       const colors = await storage.getAllColors();
       res.json(colors);
@@ -1481,7 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Regions admin routes
-  app.get("/api/admin/regions", requireAdmin, async (req, res) => {
+  app.get("/api/admin/regions", requireAdmin, async (_req, res) => {
     try {
       const regions = await storage.getAllRegions();
       res.json(regions);
@@ -1545,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Product details admin routes
-  app.get("/api/admin/product-details", requireAdmin, async (req, res) => {
+  app.get("/api/admin/product-details", requireAdmin, async (_req, res) => {
     try {
       const productDetails = await storage.getAllProductDetails();
       res.json(productDetails);
@@ -1609,7 +1607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Color types admin routes
-  app.get("/api/admin/color-types", requireAdmin, async (req, res) => {
+  app.get("/api/admin/color-types", requireAdmin, async (_req, res) => {
     try {
       const colorTypes = await storage.getAllColorTypes();
       res.json(colorTypes);
@@ -1673,7 +1671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Units admin routes
-  app.get("/api/admin/units", requireAdmin, async (req, res) => {
+  app.get("/api/admin/units", requireAdmin, async (_req, res) => {
     try {
       const units = await storage.getAllUnits();
       res.json(units);
