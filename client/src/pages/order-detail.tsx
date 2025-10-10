@@ -46,6 +46,20 @@ export default function OrderDetail() {
     },
   });
 
+  const updatePaymentStatusMutation = useMutation({
+    mutationFn: async (paymentStatus: string) => {
+      const response = await apiRequest("PUT", `/api/orders/${id}/payment-status`, { paymentStatus });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      toast({
+        title: t('orders.paymentStatusUpdated'),
+        description: t('orders.paymentStatusUpdateDescription'),
+      });
+    },
+  });
+
   const handleDownloadDocx = async () => {
     try {
       const response = await apiRequest("GET", `/api/orders/${id}/document`);
@@ -130,6 +144,18 @@ export default function OrderDetail() {
     delivered: "default"
   } as const;
 
+  const paymentStatusLabels = {
+    unpaid: t('orders.unpaid'),
+    partiallyPaid: t('orders.partiallyPaid'),
+    fullyPaid: t('orders.fullyPaid')
+  };
+
+  const paymentStatusColors = {
+    unpaid: "destructive",
+    partiallyPaid: "outline",
+    fullyPaid: "default"
+  } as const;
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
@@ -198,6 +224,10 @@ export default function OrderDetail() {
                 <p>{order.buyerCompanyName || t('common.tbd')}</p>
               </div>
               <div>
+                <label className="text-sm font-medium">{t('orders.totalValue')}</label>
+                <p><strong>¥{Number(order.totalValue).toLocaleString()}</strong></p>
+              </div>
+              <div>
                 <label className="text-sm font-medium">{t('common.status')}</label>
                 <div className="mt-1">
                   <Select
@@ -218,8 +248,23 @@ export default function OrderDetail() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">{t('orders.totalValue')}</label>
-                <p>¥{Number(order.totalValue).toLocaleString()}</p>
+                <label className="text-sm font-medium">{t('orders.paymentStatus')}</label>
+                <div className="mt-1">
+                  <Select
+                    value={order.paymentStatus}
+                    onValueChange={(value) => updatePaymentStatusMutation.mutate(value)}
+                    disabled={updatePaymentStatusMutation.isPending}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unpaid">{t('orders.unpaid')}</SelectItem>
+                      <SelectItem value="partiallyPaid">{t('orders.partiallyPaid')}</SelectItem>
+                      <SelectItem value="fullyPaid">{t('orders.fullyPaid')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium">{t('orders.createdAt')}</label>

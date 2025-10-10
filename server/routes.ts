@@ -349,6 +349,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/orders/:id/payment-status", async (req, res) => {
+    try {
+      const { paymentStatus } = req.body;
+      if (!['unpaid', 'partiallyPaid', 'fullyPaid'].includes(paymentStatus)) {
+        return res.status(400).json({ error: "Invalid payment status" });
+      }
+
+      const order = await storage.updateOrderPaymentStatus(req.params.id, paymentStatus);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update order payment status" });
+    }
+  });
+
   app.put("/api/orders/:id", async (req, res) => {
     try {
       const { overallRetailTotal, overallDealTotal, ...rest } = req.body;

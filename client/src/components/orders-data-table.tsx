@@ -48,13 +48,14 @@ export type Order = {
   orderNumber: string;
   dealer: string;
   status: "received" | "sentToFactory" | "inProduction" | "delivered";
+  paymentStatus: "unpaid" | "partiallyPaid" | "fullyPaid";
   totalValue: number;
   createdAt: string;
   estimatedDelivery: string;
   signingDate: Date | null;
 };
 
-const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
+const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, paymentStatusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element, getPaymentStatusBadge: (paymentStatus: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: t('orders.orderNumber'),
@@ -69,6 +70,11 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
     accessorKey: "status",
     header: t('common.status'),
     cell: ({ row }) => getStatusBadge(row.getValue("status")),
+  },
+  {
+    accessorKey: "paymentStatus",
+    header: t('orders.paymentStatus'),
+    cell: ({ row }) => getPaymentStatusBadge(row.getValue("paymentStatus")),
   },
   {
     accessorKey: "totalValue",
@@ -224,6 +230,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
         orderNumber: order.orderNumber,
         dealer: order.dealerName || order.dealerId || 'Unknown',
         status: order.status,
+        paymentStatus: order.paymentStatus || 'unpaid',
         totalValue: Number(order.totalValue),
         estimatedDelivery: order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-US', {
           year: 'numeric',
@@ -265,14 +272,26 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
     inProduction: "default",
     delivered: "default"
   } as const;
-  
+
   const statusLabels = {
     received: t('orders.received'),
     sentToFactory: t('orders.sentToFactory'),
     inProduction: t('orders.inProduction'),
     delivered: t('orders.delivered')
   };
-  
+
+  const paymentStatusColors = {
+    unpaid: "destructive",
+    partiallyPaid: "outline",
+    fullyPaid: "default"
+  } as const;
+
+  const paymentStatusLabels = {
+    unpaid: t('orders.unpaid'),
+    partiallyPaid: t('orders.partiallyPaid'),
+    fullyPaid: t('orders.fullyPaid')
+  };
+
   const getStatusBadge = (status: string) => {
     return (
       <Badge variant={statusColors[status as keyof typeof statusColors]}>
@@ -281,12 +300,21 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
     );
   };
 
-  const columns = getColumns(t, statusLabels, getStatusBadge, onEditClick, onDeleteClick);
+  const getPaymentStatusBadge = (paymentStatus: string) => {
+    return (
+      <Badge variant={paymentStatusColors[paymentStatus as keyof typeof paymentStatusColors]}>
+        {paymentStatusLabels[paymentStatus as keyof typeof paymentStatusLabels] || paymentStatus}
+      </Badge>
+    );
+  };
+
+  const columns = getColumns(t, statusLabels, paymentStatusLabels, getStatusBadge, getPaymentStatusBadge, onEditClick, onDeleteClick);
 
   const columnLabels: Record<string, string> = {
     orderNumber: t('orders.orderNumber'),
     dealer: t('orders.columnDealer'),
     status: t('orders.columnStatus'),
+    paymentStatus: t('orders.paymentStatus'),
     totalValue: t('orders.columnTotalValue'),
     estimatedDelivery: t('orders.columnEstimatedShipDate'),
     signingDate: t('createOrder.signingDate'),
@@ -400,6 +428,22 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
             <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
             <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
             <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={(table.getColumn("paymentStatus")?.getFilterValue() as string) ?? ""}
+          onValueChange={(value) => {
+            table.getColumn("paymentStatus")?.setFilterValue(value === "all" ? "" : value);
+          }}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder={t('orders.filterByPaymentStatus')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('orders.allPaymentStatus')}</SelectItem>
+            <SelectItem value="unpaid">{t('orders.unpaid')}</SelectItem>
+            <SelectItem value="partiallyPaid">{t('orders.partiallyPaid')}</SelectItem>
+            <SelectItem value="fullyPaid">{t('orders.fullyPaid')}</SelectItem>
           </SelectContent>
         </Select>
         <Select
