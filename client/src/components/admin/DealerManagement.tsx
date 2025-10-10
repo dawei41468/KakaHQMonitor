@@ -30,6 +30,7 @@ function DealerManagement() {
   const [newDealer, setNewDealer] = useState({ name: '', territory: '', contactEmail: '', contactPhone: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDealer, setEditingDealer] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const createDealerMutation = useMutation({
     mutationFn: async (dealerData: any) => {
@@ -50,6 +51,10 @@ function DealerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/dealers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
+      setIsEditDialogOpen(false);
+      setEditingDealer(null);
     },
   });
 
@@ -141,9 +146,12 @@ function DealerManagement() {
               <TableCell>{new Date(dealer.createdAt).toLocaleDateString()}</TableCell>
               <TableCell>
                 <div className="flex space-x-2">
-                  <Dialog>
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setEditingDealer({ ...dealer })}>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setEditingDealer({ ...dealer });
+                        setIsEditDialogOpen(true);
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
@@ -193,7 +201,6 @@ function DealerManagement() {
                                   contactPhone: editingDealer.contactPhone
                                 }
                               });
-                              setEditingDealer(null);
                             }
                           }}
                           disabled={updateDealerMutation.isPending}

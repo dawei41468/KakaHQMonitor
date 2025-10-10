@@ -43,7 +43,7 @@
   "login": {
     "welcomeBack": "欢迎回来",
     "signInToDashboard": "登录到您的总部仪表板",
-    "emailPlaceholder": "admin@kaka-hq.com",
+    "emailPlaceholder": "输入您的邮箱",
     "passwordPlaceholder": "输入您的密码",
     "forgotPassword": "忘记密码？",
     "signIn": "登录",
