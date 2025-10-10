@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -10,15 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Search, Eye, Package } from "lucide-react"
-import { useState } from "react"
+import { Package } from "lucide-react"
 import { useOrders, useDealers } from "@/hooks/use-dashboard"
 import { Order } from "@shared/schema"
 import { useTranslation } from "react-i18next"
@@ -55,8 +46,6 @@ export function RecentOrdersTable({
   onViewAll = () => console.log("View all orders")
 }: RecentOrdersTableProps) {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
 
   const { data: orders, isLoading: ordersLoading } = useOrders(20)
   const { data: dealers, isLoading: dealersLoading } = useDealers()
@@ -98,16 +87,8 @@ export function RecentOrdersTable({
     )
   }
 
-  // Filter orders based on search term and status
-  const filteredOrders = (orders?.items || []).filter((order: Order) => {
-    const dealerName = dealerMap[order.dealerId]?.name || 'Unknown'
-    const itemsText = formatItems(order.items as { item: string; quantity: number }[])
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          itemsText.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  // Use all orders without filtering
+  const filteredOrders = orders?.items || []
 
   return (
     <Card>
@@ -131,31 +112,6 @@ export function RecentOrdersTable({
             {t('orders.viewAll')}
           </Button>
         </div>
-        
-        <div className="flex items-center space-x-2 pt-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('orders.searchOrders')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-              data-testid="input-search-orders"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48" data-testid="select-status-filter">
-              <SelectValue placeholder={t('orders.filterByStatus')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('orders.allStatus')}</SelectItem>
-              <SelectItem value="received">{t('orders.received')}</SelectItem>
-              <SelectItem value="sentToFactory">{t('orders.sentToFactory')}</SelectItem>
-              <SelectItem value="inProduction">{t('orders.inProduction')}</SelectItem>
-              <SelectItem value="delivered">{t('orders.delivered')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -167,7 +123,6 @@ export function RecentOrdersTable({
               <TableHead>{t('common.status')}</TableHead>
               <TableHead className="text-right">{t('common.value')}</TableHead>
               <TableHead>{t('orders.eta')}</TableHead>
-              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -185,7 +140,7 @@ export function RecentOrdersTable({
               ))
             ) : filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   {t('orders.noOrdersFound')}
                 </TableCell>
               </TableRow>
@@ -203,20 +158,6 @@ export function RecentOrdersTable({
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">¥{Number(order.totalValue).toLocaleString()}</TableCell>
                   <TableCell>{order.estimatedDelivery ? formatDate(order.estimatedDelivery) : t('common.tbd')}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onOrderClick(order.id)
-                      }}
-                      data-testid={`button-view-order-${order.orderNumber}`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))
             )}
