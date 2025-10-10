@@ -91,39 +91,39 @@ function ProductManagement() {
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Products: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalProducts', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Product
+              {t('admin.addProduct')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>Add a new product to the system.</DialogDescription>
+              <DialogTitle>{t('admin.addNewProduct')}</DialogTitle>
+              <DialogDescription>{t('admin.editProductDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('admin.name')}</Label>
                 <Input
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Default Specification</Label>
+                <Label>{t('admin.defaultSpecification')}</Label>
                 <Input
                   value={newProduct.defaultSpecification}
                   onChange={(e) => setNewProduct({ ...newProduct, defaultSpecification: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Category</Label>
+                <Label>{t('admin.category')}</Label>
                 <Select value={newProduct.categoryId} onValueChange={(value) => setNewProduct({ ...newProduct, categoryId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t('admin.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat: any) => (
@@ -135,7 +135,7 @@ function ProductManagement() {
                 </Select>
               </div>
               <Button onClick={() => createProductMutation.mutate(newProduct)} disabled={createProductMutation.isPending}>
-                {createProductMutation.isPending ? 'Creating...' : 'Create Product'}
+                {createProductMutation.isPending ? t('admin.creating') : t('admin.createProduct')}
               </Button>
             </div>
           </DialogContent>
@@ -163,26 +163,26 @@ function ProductManagement() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Edit Product</DialogTitle>
-                      <DialogDescription>Edit the details of the selected product.</DialogDescription>
+                      <DialogTitle>{t('admin.editProduct')}</DialogTitle>
+                      <DialogDescription>{t('admin.editProductDescription')}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
-                        <Label>Name</Label>
+                        <Label>{t('admin.name')}</Label>
                         <Input
                           value={editingProduct?.name || ''}
                           onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label>Specification</Label>
+                        <Label>{t('admin.specification')}</Label>
                         <Input
                           value={editingProduct?.defaultSpecification || ''}
                           onChange={(e) => setEditingProduct({ ...editingProduct, defaultSpecification: e.target.value })}
                         />
                       </div>
                       <div>
-                        <Label>Category</Label>
+                        <Label>{t('admin.category')}</Label>
                         <Select
                           value={editingProduct?.categoryId || ''}
                           onValueChange={(value) => setEditingProduct({ ...editingProduct, categoryId: value })}
@@ -215,7 +215,7 @@ function ProductManagement() {
                         }}
                         disabled={updateProductMutation.isPending}
                       >
-                        {updateProductMutation.isPending ? 'Updating...' : 'Update'}
+                        {updateProductMutation.isPending ? t('admin.updating') : t('admin.update')}
                       </Button>
                     </div>
                   </DialogContent>
@@ -228,15 +228,15 @@ function ProductManagement() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                      <AlertDialogTitle>{t('admin.deleteProduct')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete {product.name}?
+                        {t('admin.confirmDeleteProduct', { product: product.name })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                       <AlertDialogAction onClick={() => deleteProductMutation.mutate(product.id)}>
-                        Delete
+                        {t('common.delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

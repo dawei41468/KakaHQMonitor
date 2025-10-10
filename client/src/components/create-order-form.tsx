@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { FileInput } from "@/components/ui/file-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -246,15 +247,15 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   const handlePreview = () => {
     // Validate required fields
     if (!orderNumber.trim()) {
-      alert('Contract number is required');
+      alert(t('createOrder.contractNumberRequired'));
       return;
     }
     if (!dealerId) {
-      alert('Please select a dealer');
+      alert(t('createOrder.selectDealerRequired'));
       return;
     }
     if (contractItems.length === 0) {
-      alert('At least one contract item is required');
+      alert(t('createOrder.atLeastOneItemRequired'));
       return;
     }
 
@@ -266,7 +267,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     );
 
     if (validItems.length === 0) {
-      alert('Please add at least one valid contract item with product name, quantity, and unit');
+      alert(t('createOrder.validItemRequired'));
       return;
     }
 
@@ -297,7 +298,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
 
   const handleSubmit = () => {
     if (!dealerId) {
-      alert('Please select a dealer');
+      alert(t('createOrder.selectDealerRequired'));
       return;
     }
 
@@ -308,7 +309,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     );
 
     if (validItems.length === 0) {
-      alert('Please add at least one valid contract item');
+      alert(t('createOrder.validItemRequired'));
       return;
     }
 
@@ -493,27 +494,13 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label htmlFor="attachments">Attachments</Label>
-                <Input
+                <Label htmlFor="attachments">{t('createOrder.attachments')}</Label>
+                <FileInput
                   id="attachments"
-                  type="file"
                   multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.dwg"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setAttachments(files);
-                  }}
+                  accept=".pdf"
+                  onFilesChange={setAttachments}
                 />
-                {attachments.length > 0 && (
-                  <div className="mt-2">
-                    <p>Selected files:</p>
-                    <ul>
-                      {attachments.map((file, index) => (
-                        <li key={index}>{file.name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
             <DialogFooter>
@@ -873,7 +860,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label htmlFor="attachments">Attachments</Label>
+                <Label htmlFor="attachments">{t('createOrder.attachments')}</Label>
                 <Input
                   id="attachments"
                   type="file"
@@ -886,7 +873,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                 />
                 {attachments.length > 0 && (
                   <div className="mt-2">
-                    <p>Selected files:</p>
+                    <p>{t('createOrder.selectedFiles')}</p>
                     <ul>
                       {attachments.map((file, index) => (
                         <li key={index}>{file.name}</li>

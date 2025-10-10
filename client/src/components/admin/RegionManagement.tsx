@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SortableList } from "@/components/ui/sortable-list";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,28 +84,28 @@ function RegionManagement() {
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Regions: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalRegions', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Region
+              {t('admin.addRegion')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Region</DialogTitle>
+              <DialogTitle>{t('admin.addNewRegion')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('admin.name')}</Label>
                 <Input
                   value={newRegion.name}
                   onChange={(e) => setNewRegion({ name: e.target.value })}
                 />
               </div>
               <Button onClick={() => createRegionMutation.mutate(newRegion)} disabled={createRegionMutation.isPending}>
-                {createRegionMutation.isPending ? 'Creating...' : 'Create Region'}
+                {createRegionMutation.isPending ? t('admin.creating') : t('admin.createRegion')}
               </Button>
             </div>
           </DialogContent>
@@ -131,11 +131,12 @@ function RegionManagement() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Region</DialogTitle>
+                    <DialogTitle>{t('admin.editRegion')}</DialogTitle>
+                    <DialogDescription>{t('admin.editRegionDescription')}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Name</Label>
+                      <Label>{t('admin.name')}</Label>
                       <Input
                         value={editingRegion?.name || ''}
                         onChange={(e) => setEditingRegion({ ...editingRegion, name: e.target.value })}
@@ -150,7 +151,7 @@ function RegionManagement() {
                       }}
                       disabled={updateRegionMutation.isPending}
                     >
-                      {updateRegionMutation.isPending ? 'Updating...' : 'Update'}
+                      {updateRegionMutation.isPending ? t('admin.updating') : t('admin.update')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -163,15 +164,15 @@ function RegionManagement() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Region</AlertDialogTitle>
+                    <AlertDialogTitle>{t('admin.deleteRegion')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete {region.name}?
+                      {t('admin.confirmDeleteRegion', { region: region.name })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => deleteRegionMutation.mutate(region.id)}>
-                      Delete
+                      {t('common.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

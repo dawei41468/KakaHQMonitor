@@ -150,7 +150,7 @@ function DealerManagement() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>{t('admin.editDealer')}</DialogTitle>
-                        <DialogDescription>Update dealer information.</DialogDescription>
+                        <DialogDescription>{t('admin.editDealerDescription')}</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>

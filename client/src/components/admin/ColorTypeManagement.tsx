@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SortableList } from "@/components/ui/sortable-list";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,28 +84,28 @@ function ColorTypeManagement() {
   return (
     <div>
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Total Color Types: {total}</p>
+        <p className="text-sm text-muted-foreground">{t('admin.totalColorTypes', { count: total })}</p>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Color Type
+              {t('admin.addColorType')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Color Type</DialogTitle>
+              <DialogTitle>{t('admin.addNewColorType')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <Label>{t('admin.name')}</Label>
                 <Input
                   value={newColorType.name}
                   onChange={(e) => setNewColorType({ name: e.target.value })}
                 />
               </div>
               <Button onClick={() => createColorTypeMutation.mutate(newColorType)} disabled={createColorTypeMutation.isPending}>
-                {createColorTypeMutation.isPending ? 'Creating...' : 'Create Color Type'}
+                {createColorTypeMutation.isPending ? t('admin.creating') : t('admin.createColorType')}
               </Button>
             </div>
           </DialogContent>
@@ -131,11 +131,12 @@ function ColorTypeManagement() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Color Type</DialogTitle>
+                    <DialogTitle>{t('admin.editColorType')}</DialogTitle>
+                    <DialogDescription>{t('admin.editColorTypeDescription')}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Name</Label>
+                      <Label>{t('admin.name')}</Label>
                       <Input
                         value={editingColorType?.name || ''}
                         onChange={(e) => setEditingColorType({ ...editingColorType, name: e.target.value })}
@@ -150,7 +151,7 @@ function ColorTypeManagement() {
                       }}
                       disabled={updateColorTypeMutation.isPending}
                     >
-                      {updateColorTypeMutation.isPending ? 'Updating...' : 'Update'}
+                      {updateColorTypeMutation.isPending ? t('admin.updating') : t('admin.update')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -163,15 +164,15 @@ function ColorTypeManagement() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Color Type</AlertDialogTitle>
+                    <AlertDialogTitle>{t('admin.deleteColorType')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete {colorType.name}?
+                      {t('admin.confirmDeleteColorType', { colorType: colorType.name })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => deleteColorTypeMutation.mutate(colorType.id)}>
-                      Delete
+                      {t('common.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
