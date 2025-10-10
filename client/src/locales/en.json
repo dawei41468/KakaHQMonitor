@@ -43,7 +43,7 @@
   "login": {
     "welcomeBack": "Welcome Back",
     "signInToDashboard": "Sign in to your headquarters dashboard",
-    "emailPlaceholder": "admin@kaka-hq.com",
+    "emailPlaceholder": "Enter your email",
     "passwordPlaceholder": "Enter your password",
     "forgotPassword": "Forgot password?",
     "signIn": "Sign In",

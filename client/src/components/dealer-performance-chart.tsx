@@ -24,6 +24,7 @@ export function DealerPerformanceChart({
 
   const dealerData = dealers?.map(dealer => ({
     name: dealer.name,
+    territory: dealer.territory,
     orders: dealer.performance?.totalOrders || 0,
     revenue: dealer.performance?.revenue || 0,
     onTimeRate: dealer.performance?.onTimeRate || 0
@@ -64,12 +65,9 @@ export function DealerPerformanceChart({
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={dealerData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
+              <XAxis
+                dataKey="territory"
                 tick={{ fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={60}
               />
               <YAxis 
                 tick={{ fontSize: 12 }}
@@ -136,28 +134,31 @@ export function DealerPerformanceChart({
             </ResponsiveContainer>
             
             <div className="space-y-2">
-              {dealerData.map((dealer, index) => (
-                <div 
-                  key={dealer.name}
-                  className="flex items-center justify-between p-2 rounded hover-elevate cursor-pointer"
-                  onClick={() => onDealerClick(dealer.name)}
-                  data-testid={`dealer-${dealer.name.toLowerCase()}`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: pieColors[index % pieColors.length] }}
-                    />
-                    <span className="text-sm font-medium">{dealer.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">{dealer.orders}</span>
-                    <Badge variant={dealer.onTimeRate >= 90 ? "default" : "secondary"}>
-                      {dealer.onTimeRate}%
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+              {(() => {
+                const totalOrders = dealerData.reduce((sum, d) => sum + d.orders, 0);
+                return dealerData.map((dealer, index) => {
+                  const percentage = totalOrders > 0 ? ((dealer.orders / totalOrders) * 100).toFixed(1) : '0';
+                  return (
+                    <div
+                      key={dealer.name}
+                      className="flex items-center justify-between p-2 rounded hover-elevate cursor-pointer"
+                      onClick={() => onDealerClick(dealer.name)}
+                      data-testid={`dealer-${dealer.territory.toLowerCase()}`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: pieColors[index % pieColors.length] }}
+                        />
+                        <span className="text-sm font-medium">{dealer.territory}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {dealer.orders} orders ({percentage}%)
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </CardContent>
