@@ -55,14 +55,16 @@ export function DashboardHeader({
             <ClipboardList className="h-4 w-4" />
             <span>{t('nav.orders')}</span>
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/inventory')}
-            className="flex items-center space-x-2"
-          >
-            <Package className="h-4 w-4" />
-            <span>{t('nav.inventory')}</span>
-          </Button>
+          {user?.role === 'admin' && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/inventory')}
+              className="flex items-center space-x-2"
+            >
+              <Package className="h-4 w-4" />
+              <span>{t('nav.inventory')}</span>
+            </Button>
+          )}
         </nav>
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
