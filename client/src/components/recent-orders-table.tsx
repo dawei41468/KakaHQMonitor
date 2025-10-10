@@ -29,13 +29,6 @@ const statusColors = {
   delivered: "default"
 } as const
 
-const statusLabels = {
-  received: "Received",
-  sentToFactory: "Sent to Factory",
-  inProduction: "In Production",
-  delivered: "Delivered"
-}
-
 interface RecentOrdersTableProps {
   onOrderClick?: (orderId: string) => void
   onViewAll?: () => void

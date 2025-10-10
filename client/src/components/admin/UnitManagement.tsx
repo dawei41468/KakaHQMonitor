@@ -16,11 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 function UnitManagement() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const limit = 10;
   const { data: result, isLoading } = useQuery({
-    queryKey: ['/api/admin/units', page],
-    queryFn: () => apiRequest('GET', `/api/admin/units?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
+    queryKey: ['/api/admin/units'],
+    queryFn: () => apiRequest('GET', '/api/admin/units').then(res => res.json()),
   });
   const units = result?.items || [];
   const total = result?.total || 0;

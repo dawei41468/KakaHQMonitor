@@ -8,16 +8,6 @@ import { useTranslation } from "react-i18next"
 import { useAlerts } from "@/hooks/use-dashboard"
 import type { Alert as AlertType } from "@shared/schema"
 
-interface Alert {
-  id: string
-  type: "lowStock" | "delay" | "critical" | "info"
-  title: string
-  message: string
-  priority: "high" | "medium" | "low"
-  timestamp: string
-  resolved?: boolean
-}
-
 
 const alertIcons = {
   lowStock: Package,

@@ -6,7 +6,6 @@ import {
   IRunOptions,
   ITableCellOptions,
   ImageRun,
-  Media,
   Packer,
   Paragraph,
   ShadingType,
@@ -320,8 +319,6 @@ function createLabelValueCell(label: string, value: string): TableCell {
 }
 
 function createSummaryParagraphs(contractData: ContractData): (Paragraph | Table)[] {
-  const font = { ascii: DEFAULT_FONT, eastAsia: DEFAULT_FONT, hAnsi: DEFAULT_FONT };
-
   const summaryTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     columnWidths: [3500, 3200, 3400],

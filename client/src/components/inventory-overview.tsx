@@ -7,17 +7,6 @@ import { useTranslation } from "react-i18next"
 import { useMaterials } from "@/hooks/use-dashboard"
 import type { Material } from "@shared/schema"
 
-interface InventoryItem {
-  id: string
-  name: string
-  currentStock: number
-  maxStock: number
-  threshold: number
-  unit: string
-  category: string
-}
-
-
 interface InventoryOverviewProps {
   onRestockClick?: (itemId: string) => void
   onViewAll?: () => void
@@ -31,7 +20,6 @@ export function InventoryOverview({
   const { data: materialsData = { items: [] } } = useMaterials();
   const materials: Material[] = (materialsData as { items: Material[] }).items || [];
   const lowStockItems = materials.filter(item => item.currentStock <= item.threshold)
-  const totalItems = materials.length
   const lowStockCount = lowStockItems.length
 
   return (

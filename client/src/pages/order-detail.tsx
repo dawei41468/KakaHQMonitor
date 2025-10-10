@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { Order } from "@shared/schema";
 import { useState } from "react";
 
 export default function OrderDetail() {
@@ -153,31 +151,6 @@ export default function OrderDetail() {
     );
   }
 
-  const statusLabels = {
-    received: t('orders.received'),
-    sentToFactory: t('orders.sentToFactory'),
-    inProduction: t('orders.inProduction'),
-    delivered: t('orders.delivered')
-  };
-
-  const statusColors = {
-    received: "secondary",
-    sentToFactory: "outline",
-    inProduction: "default",
-    delivered: "default"
-  } as const;
-
-  const paymentStatusLabels = {
-    unpaid: t('orders.unpaid'),
-    partiallyPaid: t('orders.partiallyPaid'),
-    fullyPaid: t('orders.fullyPaid')
-  };
-
-  const paymentStatusColors = {
-    unpaid: "destructive",
-    partiallyPaid: "outline",
-    fullyPaid: "default"
-  } as const;
 
   return (
     <div className="container mx-auto p-6">

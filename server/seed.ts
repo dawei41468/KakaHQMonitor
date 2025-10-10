@@ -14,7 +14,7 @@ export async function seedDatabase() {
     const existingUser = await db.select().from(users).where(eq(users.email, 'admin@kaka-hq.com'));
     if (existingUser.length === 0) {
       const hashedPassword = await hashPassword('admin123');
-      const [adminUser] = await db.insert(users).values({
+      await db.insert(users).values({
         email: 'admin@kaka-hq.com',
         password: hashedPassword,
         name: 'Admin User',

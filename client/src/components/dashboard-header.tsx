@@ -33,7 +33,7 @@ export function DashboardHeader({
   alertCount = 3,
   onProfileClick = () => console.log("Profile clicked")
 }: Partial<DashboardHeaderProps> = {}) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const userName = user?.name || t('header.adminUser');

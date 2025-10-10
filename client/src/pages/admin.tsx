@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 
 import UserManagement from "@/components/admin/UserManagement";
 import DealerManagement from "@/components/admin/DealerManagement";
-import OrderManagement from "@/components/admin/OrderManagement";
 import MaterialManagement from "@/components/admin/MaterialManagement";
 import AlertManagement from "@/components/admin/AlertManagement";
 import ProductManagement from "@/components/admin/ProductManagement";

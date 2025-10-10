@@ -57,7 +57,7 @@ export type Order = {
   signingDate: Date | null;
 };
 
-const getColumns = (t: (key: string) => string, statusLabels: Record<string, string>, paymentStatusLabels: Record<string, string>, getStatusBadge: (status: string) => JSX.Element, getPaymentStatusBadge: (paymentStatus: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
+const getColumns = (t: (key: string) => string, getStatusBadge: (status: string) => JSX.Element, getPaymentStatusBadge: (paymentStatus: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: t('orders.orderNumber'),
@@ -174,7 +174,6 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [data, setData] = React.useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(false);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
   const { data: dealers = [] } = useQuery<any[]>({
@@ -183,7 +182,6 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
 
   const fetchData = async () => {
     if (!user) return;
-    setIsLoading(true);
     try {
       const response = await apiRequest("GET", "/api/orders");
       const result = await response.json();
@@ -214,8 +212,6 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       setData([]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -339,7 +335,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
     );
   };
 
-  const columns = getColumns(t, statusLabels, paymentStatusLabels, getStatusBadge, getPaymentStatusBadge, onEditClick, onDeleteClick);
+  const columns = getColumns(t, getStatusBadge, getPaymentStatusBadge, onEditClick, onDeleteClick);
 
   const columnLabels: Record<string, string> = {
     orderNumber: t('orders.orderNumber'),

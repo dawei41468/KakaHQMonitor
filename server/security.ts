@@ -24,6 +24,22 @@ export const apiRateLimit = rateLimit({
   },
 });
 
+// Security headers middleware
+export function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+  // CORS headers (adjust origins as needed)
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+
+  next();
+}
+
 // CSRF protection
 const tokens = new Tokens();
 
@@ -41,22 +57,6 @@ export function validateCsrfToken(req: Request, res: Response, next: NextFunctio
   if (!tokens.verify(process.env.CSRF_SECRET || 'csrf-secret-change-in-production', token)) {
     return res.status(403).json({ error: 'Invalid CSRF token' });
   }
-
-  next();
-}
-
-// Security headers middleware
-export function securityHeaders(req: Request, res: Response, next: NextFunction) {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
-  // CORS headers (adjust origins as needed)
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
 
   next();
 }

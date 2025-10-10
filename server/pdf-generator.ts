@@ -1,5 +1,4 @@
 import libre from 'libreoffice-convert';
-import fs from 'fs';
 
 export async function convertDocxToPdf(docxBuffer: Buffer): Promise<Buffer> {
   return new Promise((resolve, reject) => {
