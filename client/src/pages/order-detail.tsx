@@ -228,7 +228,7 @@ export default function OrderDetail() {
                 <p><strong>¥{Number(order.totalValue).toLocaleString()}</strong></p>
               </div>
               <div>
-                <label className="text-sm font-medium">{t('common.status')}</label>
+                <label className="text-sm font-medium">{t('orders.orderStatus')}</label>
                 <div className="mt-1">
                   <Select
                     value={order.status}

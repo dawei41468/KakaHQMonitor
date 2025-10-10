@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown, Edit, MoreHorizontal, Trash2, X } from "lucide-react";
+import { ChevronDown, Download, Edit, MoreHorizontal, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -70,7 +70,7 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
   },
   {
     accessorKey: "status",
-    header: t('common.status'),
+    header: t('orders.orderStatus'),
     cell: ({ row }) => getStatusBadge(row.getValue("status")),
   },
   {
@@ -84,10 +84,10 @@ const getColumns = (t: (key: string) => string, statusLabels: Record<string, str
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("totalValue"));
 
-      // Format the amount as a dollar amount
-      const formatted = new Intl.NumberFormat("en-US", {
+      // Format the amount as a CNY amount
+      const formatted = new Intl.NumberFormat("zh-CN", {
         style: "currency",
-        currency: "USD",
+        currency: "CNY",
       }).format(amount);
 
       return <div className="text-left font-medium">{formatted}</div>;
@@ -216,6 +216,73 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
       setData([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      // Collect current filter state
+      const filters: any = {};
+
+      // Dealer filter
+      const dealerFilter = table.getColumn("dealer")?.getFilterValue() as string;
+      if (dealerFilter) {
+        filters.dealer = dealerFilter;
+      }
+
+      // Status filter
+      const statusFilter = table.getColumn("status")?.getFilterValue() as string;
+      if (statusFilter) {
+        filters.status = statusFilter;
+      }
+
+      // Payment status filter
+      const paymentStatusFilter = table.getColumn("paymentStatus")?.getFilterValue() as string;
+      if (paymentStatusFilter) {
+        filters.paymentStatus = paymentStatusFilter;
+      }
+
+      // Date range filter
+      const signingDateFilter = table.getColumn("signingDate")?.getFilterValue() as { from?: Date; to?: Date };
+      if (signingDateFilter?.from || signingDateFilter?.to) {
+        filters.signingDateFrom = signingDateFilter.from?.toISOString();
+        filters.signingDateTo = signingDateFilter.to?.toISOString();
+      }
+
+      // Sorting
+      const sorting = table.getState().sorting;
+      if (sorting.length > 0) {
+        filters.sortBy = sorting[0].id;
+        filters.sortOrder = sorting[0].desc ? 'desc' : 'asc';
+      }
+
+      // Build query string
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value as string);
+        }
+      });
+
+      const response = await apiRequest("GET", `/api/export-orders?${queryParams.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Export failed:", error);
+      // You might want to show a toast notification here
     }
   };
 
@@ -441,6 +508,10 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
             </Button>
           )}
         </div>
+        <Button variant="outline" onClick={handleExport} className="ml-2">
+          <Download className="mr-2 h-4 w-4" />
+          {t('orders.exportToExcel')}
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">

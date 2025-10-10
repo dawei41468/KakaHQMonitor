@@ -16,6 +16,7 @@
     "filter": "Filter",
     "all": "All",
     "status": "Order Status",
+    "orderStatus": "Order Status",
     "name": "Name",
     "email": "Email",
     "role": "Role",
@@ -36,7 +37,8 @@
     "tbd": "TBD",
     "morePages": "More pages",
     "backToDashboard": "Back to Dashboard",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "pickADate": "Pick a date"
   },
   "login": {
     "welcomeBack": "Welcome Back",
@@ -134,6 +136,7 @@
     "columnCreatedAt": "Created At",
     "columnActions": "Actions",
     "orderInformation": "Order Information",
+    "orderStatus": "Order Status",
     "contractDetails": "Contract Details",
     "orderItems": "Order Items",
     "totalValue": "Total Value",
@@ -152,7 +155,8 @@
     "filterByDateRange": "Filter by date range",
     "startDate": "Start Date",
     "endDate": "End Date",
-    "clearDates": "Clear dates"
+    "clearDates": "Clear dates",
+    "exportToExcel": "Export to Excel"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",
