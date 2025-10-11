@@ -9,6 +9,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import DealerManagement from "@/components/admin/DealerManagement";
 import MaterialManagement from "@/components/admin/MaterialManagement";
 import AlertManagement from "@/components/admin/AlertManagement";
+import ApplicationManagement from "@/components/admin/ApplicationManagement";
 import ProductManagement from "@/components/admin/ProductManagement";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import ColorManagement from "@/components/admin/ColorManagement";
@@ -48,12 +49,13 @@ export default function Admin() {
 
         <TabsContent value="app-management" className="mt-4">
           <Tabs defaultValue="users">
-            <TabsList className="grid grid-cols-4 w-full p-1">
+            <TabsList className="grid grid-cols-5 w-full p-1">
               <TabsTrigger value="users">{t('admin.users')}</TabsTrigger>
               <TabsTrigger value="dealers">{t('admin.dealers')}</TabsTrigger>
               {/* <TabsTrigger value="orders">{t('admin.orders')}</TabsTrigger> */}
               <TabsTrigger value="materials">{t('admin.materials')}</TabsTrigger>
               <TabsTrigger value="alerts">{t('admin.alerts')}</TabsTrigger>
+              <TabsTrigger value="application">{t('application.applicationSettings')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="users">
@@ -103,6 +105,16 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <AlertManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="application">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('application.applicationSettings')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ApplicationManagement />
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,4 +1,4 @@
-import { Building2, Bell, User, LogOut, Shield, ClipboardList, Package } from "lucide-react"
+import { Bell, User, LogOut, Shield, ClipboardList, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -18,6 +18,7 @@ import {
 import { ThemeToggle } from "./theme-toggle"
 import { LanguageToggle } from "./language-toggle"
 import { useAuth } from "@/lib/auth"
+import { useSettings } from "@/lib/settings"
 import { useLocation } from "wouter"
 import { useTranslation } from "react-i18next"
 
@@ -35,9 +36,17 @@ export function DashboardHeader({
 }: Partial<DashboardHeaderProps> = {}) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
   const [, navigate] = useLocation();
   const userName = user?.name || t('header.adminUser');
   const userRole = user?.role === 'admin' ? t('header.administrator') : t('header.hqTeam');
+
+  // Helper function to check button visibility
+  const isButtonVisible = (buttonKey: string) => {
+    if (user?.role === 'admin') return true; // Admin always sees everything
+    if (!settings?.dashboardVisibility?.standard) return true; // Default to visible if no settings
+    return settings.dashboardVisibility.standard[buttonKey as keyof typeof settings.dashboardVisibility.standard] ?? true;
+  };
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center px-4">
@@ -50,15 +59,17 @@ export function DashboardHeader({
         </div>
 
         <nav className="hidden md:flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/orders')}
-            className="flex items-center space-x-2"
-          >
-            <ClipboardList className="h-4 w-4" />
-            <span>{t('nav.orders')}</span>
-          </Button>
-          {user?.role === 'admin' && (
+          {isButtonVisible('ordersButton') && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/orders')}
+              className="flex items-center space-x-2"
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span>{t('nav.orders')}</span>
+            </Button>
+          )}
+          {isButtonVisible('inventoryButton') && (
             <Button
               variant="ghost"
               onClick={() => navigate('/inventory')}
@@ -76,30 +87,32 @@ export function DashboardHeader({
           </div>
           
           <div className="flex items-center space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative cursor-pointer"
-                  onClick={() => navigate('/alerts')}
-                  data-testid="button-notifications"
-                >
-                  <Bell className="h-4 w-4" />
-                  {alertCount > 0 && (
-                    <Badge
-                      variant="default"
-                      className="absolute -top-0.5 -right-0.5 h-5 w-5 min-w-5 rounded-full flex items-center justify-center p-0 text-xs"
-                    >
-                      {alertCount}
-                    </Badge>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('header.activeAlerts', { count: alertCount })}</p>
-              </TooltipContent>
-            </Tooltip>
+            {isButtonVisible('alertsButton') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative cursor-pointer"
+                    onClick={() => navigate('/alerts')}
+                    data-testid="button-notifications"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {alertCount > 0 && (
+                      <Badge
+                        variant="default"
+                        className="absolute -top-0.5 -right-0.5 h-5 w-5 min-w-5 rounded-full flex items-center justify-center p-0 text-xs"
+                      >
+                        {alertCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('header.activeAlerts', { count: alertCount })}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             
             <ThemeToggle />
 
