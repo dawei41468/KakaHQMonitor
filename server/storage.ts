@@ -1,13 +1,14 @@
 import {
   users, dealers, orders, materials, alerts, orderDocuments, orderAttachments,
-  categories, products, colors, productColors, regions, productDetails, colorTypes, units,
+  categories, products, colors, productColors, regions, productDetails, colorTypes, units, applicationSettings,
   type User, type InsertUser, type Dealer, type InsertDealer,
   type Order, type InsertOrder, type Material, type InsertMaterial,
   type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument, type OrderAttachment, type InsertOrderAttachment,
   type Category, type InsertCategory, type Product, type InsertProduct,
   type Color, type InsertColor,
   type Region, type InsertRegion, type ProductDetail, type InsertProductDetail,
-  type ColorType, type InsertColorType, type Unit, type InsertUnit
+  type ColorType, type InsertColorType, type Unit, type InsertUnit,
+  type ApplicationSetting, type InsertApplicationSetting
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lte, count } from "drizzle-orm";
@@ -107,6 +108,11 @@ export interface IStorage {
   createUnit(unit: InsertUnit): Promise<Unit>;
   updateUnit(id: string, unit: Partial<InsertUnit>): Promise<Unit | undefined>;
   deleteUnit(id: string): Promise<boolean>;
+
+  // Application settings management
+  getAllApplicationSettings(): Promise<ApplicationSetting[]>;
+  createApplicationSetting(setting: InsertApplicationSetting): Promise<ApplicationSetting>;
+  updateApplicationSetting(key: string, value: any): Promise<ApplicationSetting | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -845,6 +851,52 @@ export class DatabaseStorage implements IStorage {
   async deleteUnit(id: string): Promise<boolean> {
     const result = await db.delete(units).where(eq(units.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  // Application settings methods
+  async getAllApplicationSettings(): Promise<ApplicationSetting[]> {
+    return await db.select().from(applicationSettings).orderBy(applicationSettings.key);
+  }
+
+  async createApplicationSetting(insertSetting: InsertApplicationSetting): Promise<ApplicationSetting> {
+    const [setting] = await db
+      .insert(applicationSettings)
+      .values({
+        ...insertSetting,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return setting;
+  }
+
+  async updateApplicationSetting(key: string, value: any): Promise<ApplicationSetting> {
+    // First try to update existing setting
+    const [existingSetting] = await db
+      .update(applicationSettings)
+      .set({
+        value: value,
+        updatedAt: new Date()
+      })
+      .where(eq(applicationSettings.key, key))
+      .returning();
+
+    if (existingSetting) {
+      return existingSetting;
+    }
+
+    // If no existing setting, create new one
+    const [newSetting] = await db
+      .insert(applicationSettings)
+      .values({
+        key,
+        value: value,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+
+    return newSetting;
   }
 }
 

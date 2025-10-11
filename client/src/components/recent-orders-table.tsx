@@ -32,15 +32,17 @@ const statusColors = {
 interface RecentOrdersTableProps {
   onOrderClick?: (orderId: string) => void
   onViewAll?: () => void
+  limit?: number
 }
 
 export function RecentOrdersTable({
   onOrderClick = (id) => console.log(`Viewing order ${id}`),
-  onViewAll = () => console.log("View all orders")
+  onViewAll = () => console.log("View all orders"),
+  limit = 20
 }: RecentOrdersTableProps) {
   const { t } = useTranslation();
 
-  const { data: orders, isLoading: ordersLoading } = useOrders(20)
+  const { data: orders, isLoading: ordersLoading } = useOrders(limit)
   const { data: dealers, isLoading: dealersLoading } = useDealers()
   
   const isLoading = ordersLoading || dealersLoading

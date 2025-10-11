@@ -13,7 +13,7 @@ import {
   hashPassword,
   comparePassword
 } from "./auth";
-import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema } from "@shared/schema";
+import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema, insertApplicationSettingSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
@@ -131,6 +131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Logged out successfully" });
     } catch (error) {
       res.status(500).json({ error: "Logout failed" });
+    }
+  });
+
+  // Public application settings endpoint (before auth middleware)
+  app.get("/api/application-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getAllApplicationSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch application settings" });
     }
   });
 
@@ -1205,6 +1215,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Stuck orders alert check completed", ...result });
     } catch (error) {
       res.status(500).json({ error: "Failed to check stuck alerts" });
+    }
+  });
+
+  // Application settings admin routes
+  app.get("/api/admin/application-settings", requireAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getAllApplicationSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch application settings" });
+    }
+  });
+
+  app.put("/api/admin/application-settings/:key", requireAdmin, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+
+      if (value === undefined) {
+        return res.status(400).json({ error: "Value is required" });
+      }
+
+      const setting = await storage.updateApplicationSetting(key, value);
+      res.json(setting);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid setting data" });
+    }
+  });
+
+  app.post("/api/admin/application-settings", requireAdmin, async (req, res) => {
+    try {
+      const settingData = insertApplicationSettingSchema.parse(req.body);
+      const setting = await storage.createApplicationSetting(settingData);
+      res.status(201).json(setting);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid application setting data" });
     }
   });
 

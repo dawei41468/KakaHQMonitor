@@ -197,6 +197,15 @@ export const units = pgTable("units", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Application settings table for configurable app settings
+export const applicationSettings = pgTable("application_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const dealersRelations = relations(dealers, ({ many }) => ({
   orders: many(orders),
@@ -386,6 +395,12 @@ export const insertUnitSchema = createInsertSchema(units).omit({
   updatedAt: true,
 });
 
+export const insertApplicationSettingSchema = createInsertSchema(applicationSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -419,6 +434,8 @@ export type ColorType = typeof colorTypes.$inferSelect;
 export type InsertColorType = z.infer<typeof insertColorTypeSchema>;
 export type Unit = typeof units.$inferSelect;
 export type InsertUnit = z.infer<typeof insertUnitSchema>;
+export type ApplicationSetting = typeof applicationSettings.$inferSelect;
+export type InsertApplicationSetting = z.infer<typeof insertApplicationSettingSchema>;
 
 // Login schema for authentication
 export const loginSchema = z.object({

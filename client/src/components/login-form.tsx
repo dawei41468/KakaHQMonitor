@@ -10,11 +10,13 @@ import { useTranslation } from "react-i18next"
 interface LoginFormProps {
   onLogin?: (email: string, password: string) => void
   onForgotPassword?: () => void
+  theme?: 'light' | 'dark'
 }
 
 export function LoginForm({
   onLogin = (email, password) => console.log("Login attempt:", { email, password }),
-  onForgotPassword = () => console.log("Forgot password clicked")
+  onForgotPassword = () => console.log("Forgot password clicked"),
+  theme = 'light'
 }: LoginFormProps) {
   const { t } = useTranslation()
   const [email, setEmail] = useState("")
@@ -47,86 +49,103 @@ export function LoginForm({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center mb-2">
-            <img src="/images/kaka_logo_noBG.png" alt="Kaka Logo" className="h-20 w-auto" />
-          </div>
-          <CardTitle className="text-xl">{t('login.welcomeBack')}</CardTitle>
-          <CardDescription>
+    <Card className={`w-full max-w-md ${
+      theme === 'dark'
+        ? 'bg-gray-800 border-gray-700 text-white'
+        : 'bg-white border-gray-200 text-gray-900'
+    }`}>
+      <CardHeader className="space-y-1 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <img src="/images/kaka_logo_noBG.png" alt="Kaka Logo" className="h-20 w-auto" />
+        </div>
+        <CardTitle className={`text-xl ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{t('login.welcomeBack')}</CardTitle>
+          <CardDescription className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
             {t('login.signInToDashboard')}
           </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('common.email')}</Label>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>{t('common.email')}</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder={t('login.emailPlaceholder')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="username"
+              data-testid="input-email"
+              className={theme === 'dark'
+                ? 'bg-gray-700 border-gray-600 text-white placeholder:text-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>{t('common.password')}</Label>
+            <div className="relative">
               <Input
-                id="email"
-                type="email"
-                placeholder={t('login.emailPlaceholder')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder={t('login.passwordPlaceholder')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="username"
-                data-testid="input-email"
+                autoComplete="current-password"
+                data-testid="input-password"
+                className={`pr-12 ${theme === 'dark'
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder:text-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500'
+                }`}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('common.password')}</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={t('login.passwordPlaceholder')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  data-testid="input-password"
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  data-testid="button-toggle-password"
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                className="p-0 h-auto text-sm text-primary hover:text-primary"
-                onClick={onForgotPassword}
-                data-testid="button-forgot-password"
+                className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                  theme === 'dark'
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setShowPassword(!showPassword)}
+                data-testid="button-toggle-password"
+                tabIndex={-1}
               >
-                {t('login.forgotPassword')}
-              </Button>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
+          </div>
 
+          <div className="flex items-center justify-between">
             <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-              data-testid="button-login"
+              type="button"
+              variant="ghost"
+              className={`p-0 h-auto text-sm ${
+                theme === 'dark'
+                  ? 'text-blue-400 hover:text-blue-300'
+                  : 'text-blue-600 hover:text-blue-800'
+              }`}
+              onClick={onForgotPassword}
+              data-testid="button-forgot-password"
             >
-              {isLoading ? t('login.signingIn') : t('login.signIn')}
+              {t('login.forgotPassword')}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading}
+            data-testid="button-login"
+          >
+            {isLoading ? t('login.signingIn') : t('login.signIn')}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
