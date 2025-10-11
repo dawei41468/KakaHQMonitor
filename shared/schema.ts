@@ -83,7 +83,10 @@ export const alerts = pgTable("alerts", {
   relatedMaterialId: varchar("related_material_id").references(() => materials.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
-});
+}, (table) => ({
+  // Unique constraint to prevent duplicate unresolved alerts for same order/type
+  orderTypeUnresolvedUnique: sql`UNIQUE(${table.relatedOrderId}, ${table.type}, ${table.resolved}) WHERE ${table.resolved} = false`,
+}));
 
 // Order documents table for storing generated PDFs
 export const orderDocuments = pgTable("order_documents", {
@@ -204,6 +207,21 @@ export const applicationSettings = pgTable("application_settings", {
   value: jsonb("value").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Audit logs table for comprehensive system auditing
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // Nullable for system events
+  action: text("action").notNull(), // e.g., 'ORDER_CREATE', 'LOGIN', 'ALERT_RESOLVE'
+  entityType: text("entity_type").notNull(), // e.g., 'order', 'user', 'alert'
+  entityId: varchar("entity_id"), // Nullable
+  ipAddress: text("ip_address").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  oldValues: jsonb("old_values"), // Nullable
+  newValues: jsonb("new_values"), // Nullable
+  changesDiff: jsonb("changes_diff"), // Nullable
+  sessionId: varchar("session_id"), // Nullable for auth events
 });
 
 // Relations
@@ -328,6 +346,27 @@ export const insertOrderDocumentSchema = createInsertSchema(orderDocuments).omit
 export const insertOrderAttachmentSchema = createInsertSchema(orderAttachments).omit({
   id: true,
   uploadedAt: true,
+}).refine((data) => {
+  // Limit file types to PDF, DOCX, images
+  const allowedTypes = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp'
+  ];
+  return allowedTypes.includes(data.mimeType);
+}, {
+  message: "File type not allowed. Only PDF, DOCX, and image files are permitted.",
+  path: ["mimeType"]
+}).refine((data) => {
+  // Limit file size to 10MB
+  const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+  return data.fileSize <= maxSize;
+}, {
+  message: "File size exceeds 10MB limit.",
+  path: ["fileSize"]
 });
 
 export const insertMaterialSchema = createInsertSchema(materials).omit({
@@ -401,6 +440,20 @@ export const insertApplicationSettingSchema = createInsertSchema(applicationSett
   updatedAt: true,
 });
 
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Schema for order updates (stricter than partial insert)
+export const updateOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  dealerId: true, // Cannot change dealer
+  orderNumber: true, // Cannot change order number
+}).partial();
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -436,6 +489,8 @@ export type Unit = typeof units.$inferSelect;
 export type InsertUnit = z.infer<typeof insertUnitSchema>;
 export type ApplicationSetting = typeof applicationSettings.$inferSelect;
 export type InsertApplicationSetting = z.infer<typeof insertApplicationSettingSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 
 // Login schema for authentication
 export const loginSchema = z.object({

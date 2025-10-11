@@ -64,6 +64,7 @@ A full-stack web application for monitoring and managing orders from dealers at 
     CSRF_SECRET=your_secure_csrf_secret_here
     ```
 
+
 ## Usage
 
 - **Application**: Access at `http://localhost:3000` (serves both frontend and API in development)

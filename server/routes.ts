@@ -2,6 +2,8 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { storage } from "./storage";
+
+const routesDir = path.resolve();
 import { authenticateToken, requireAdmin } from "./middleware";
 import { authRateLimit } from "./security";
 import {
@@ -13,15 +15,16 @@ import {
   hashPassword,
   comparePassword
 } from "./auth";
-import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema, insertApplicationSettingSchema } from "@shared/schema";
+import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, updateOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema, insertApplicationSettingSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
+import { logAuditEvent } from "./middleware";
 import ExcelJS from "exceljs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Static files
-  app.use('/images', express.static(path.join(import.meta.dirname, 'images')));
+  app.use('/images', express.static(path.join(routesDir, 'images')));
 
   // Auth routes
   app.post("/api/auth/login", authRateLimit, async (req, res) => {
@@ -49,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logAuthEvent('LOGIN_SUCCESS', user.id, { email: user.email, role: user.role });
 
+      // Audit logging
+      await logAuditEvent(req, 'LOGIN_SUCCESS', 'user', user.id);
+
       res.json({
         user: {
           id: user.id,
@@ -61,6 +67,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessToken
       });
     } catch (error) {
+      // Audit logging for failed login
+      await logAuditEvent(req, 'LOGIN_FAIL', 'user', undefined, undefined, { reason: 'Invalid request data' });
       res.status(400).json({ error: `Invalid request data. Received: ${JSON.stringify(req.body)}` });
     }
   });
@@ -103,6 +111,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logAuthEvent('TOKEN_REFRESH', user.id);
 
+      // Audit logging
+      await logAuditEvent(req, 'TOKEN_REFRESH', 'user', user.id);
+
       res.json({
         accessToken: newAccessToken
       });
@@ -128,10 +139,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logAuthEvent('LOGOUT', user.userId);
 
+      // Audit logging
+      await logAuditEvent(req, 'LOGOUT', 'user', user.userId);
+
       res.json({ message: "Logged out successfully" });
     } catch (error) {
       res.status(500).json({ error: "Logout failed" });
     }
+  });
+
+  // Health check endpoint (public, no auth required)
+  app.get("/health", async (_req, res) => {
+    const startTime = process.uptime();
+    const healthcheck = {
+      uptime: startTime,
+      message: 'OK',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: 'pending',
+        memory: 'pending'
+      }
+    };
+
+    try {
+      // Check database connectivity by running a simple query
+      await storage.getAllUsers(1, 0);
+      healthcheck.checks.database = 'healthy';
+    } catch (error) {
+      healthcheck.checks.database = 'unhealthy';
+      healthcheck.message = 'Database connection failed';
+      return res.status(503).json(healthcheck);
+    }
+
+    // Check memory usage
+    const memUsage = process.memoryUsage();
+    healthcheck.checks.memory = memUsage.heapUsed < memUsage.heapTotal * 0.9 ? 'healthy' : 'warning';
+
+    // Return 200 if all checks pass
+    res.status(200).json(healthcheck);
   });
 
   // Public application settings endpoint (before auth middleware)
@@ -511,10 +556,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid status" });
       }
 
-      const order = await storage.updateOrderStatus(req.params.id, status, actualDelivery ? new Date(actualDelivery) : undefined);
-      if (!order) {
+      // Fetch current order for optimistic locking
+      const currentOrder = await storage.getOrderById(req.params.id);
+      if (!currentOrder) {
         return res.status(404).json({ error: "Order not found" });
       }
+
+      const order = await storage.updateOrderStatus(req.params.id, status, actualDelivery ? new Date(actualDelivery) : undefined, currentOrder.updatedAt);
+      if (!order) {
+        return res.status(409).json({ error: "Order was modified by another user. Please refresh and try again." });
+      }
+
+      // Audit logging
+      await logAuditEvent(req, 'ORDER_STATUS_UPDATE', 'order', req.params.id, { status: currentOrder.status }, { status });
 
       res.json(order);
     } catch (error) {
@@ -529,10 +583,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid payment status" });
       }
 
-      const order = await storage.updateOrderPaymentStatus(req.params.id, paymentStatus);
-      if (!order) {
+      // Fetch current order for optimistic locking
+      const currentOrder = await storage.getOrderById(req.params.id);
+      if (!currentOrder) {
         return res.status(404).json({ error: "Order not found" });
       }
+
+      const order = await storage.updateOrderPaymentStatus(req.params.id, paymentStatus, currentOrder.updatedAt);
+      if (!order) {
+        return res.status(409).json({ error: "Order was modified by another user. Please refresh and try again." });
+      }
+
+      // Audit logging
+      await logAuditEvent(req, 'ORDER_PAYMENT_UPDATE', 'order', req.params.id, { paymentStatus: currentOrder.paymentStatus }, { paymentStatus });
 
       res.json(order);
     } catch (error) {
@@ -551,11 +614,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(overallDealTotal != null && { overallDealTotal: overallDealTotal.toString() }),
       };
 
-      const orderData = insertOrderSchema.partial().parse(processedBody);
-      const order = await storage.updateOrder(req.params.id, orderData);
-      if (!order) {
+      const orderData = updateOrderSchema.parse(processedBody);
+
+      // Fetch current order for optimistic locking
+      const currentOrder = await storage.getOrderById(req.params.id);
+      if (!currentOrder) {
         return res.status(404).json({ error: "Order not found" });
       }
+
+      const order = await storage.updateOrder(req.params.id, orderData, currentOrder.updatedAt);
+      if (!order) {
+        return res.status(409).json({ error: "Order was modified by another user. Please refresh and try again." });
+      }
+
+      // Audit logging
+      await logAuditEvent(req, 'ORDER_UPDATE', 'order', req.params.id, currentOrder, orderData);
 
       // Regenerate DOCX if order has contract items
       if (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) {
@@ -613,6 +686,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ error: "Order not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'ORDER_DELETE', 'order', req.params.id, order);
 
       res.json({ message: "Order deleted successfully" });
     } catch (error) {
@@ -806,6 +882,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Order data after validation:', JSON.stringify(orderData, null, 2));
       const order = await storage.createOrder(orderData);
 
+      // Audit logging
+      await logAuditEvent(req, 'ORDER_CREATE', 'order', order.id, undefined, orderData);
+
       let docxData = null;
   
       // Generate PDF if contract data is provided
@@ -904,6 +983,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!alert) {
         return res.status(404).json({ error: "Alert not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'ALERT_RESOLVE', 'alert', req.params.id, { resolved: false }, { resolved: true });
+
       res.json(alert);
     } catch (error) {
       res.status(500).json({ error: "Failed to resolve alert" });
@@ -916,6 +999,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!alert) {
         return res.status(404).json({ error: "Alert not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'ALERT_UNRESOLVE', 'alert', req.params.id, { resolved: true }, { resolved: false });
+
       res.json(alert);
     } catch (error) {
       res.status(500).json({ error: "Failed to unresolve alert" });
@@ -952,6 +1039,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: hashedPassword
       });
 
+      // Audit logging
+      await logAuditEvent(req, 'USER_CREATE', 'user', user.id, undefined, { email: user.email, name: user.name, role: user.role });
+
       // Don't return password
       const { password, ...userResponse } = user;
       res.status(201).json(userResponse);
@@ -977,10 +1067,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
       const success = await storage.deleteUser(req.params.id);
       if (!success) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'USER_DELETE', 'user', req.params.id, { email: user.email, name: user.name, role: user.role });
+
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete user" });
@@ -1251,6 +1350,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(setting);
     } catch (error) {
       res.status(400).json({ error: "Invalid application setting data" });
+    }
+  });
+
+  // Admin audit logs endpoint
+  app.get("/api/admin/audit-logs", requireAdmin, async (req, res) => {
+    try {
+      const filters = {
+        dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
+        dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
+        userId: req.query.userId as string,
+        action: req.query.action as string,
+        entityType: req.query.entityType as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+      };
+
+      const result = await storage.getAuditLogs(filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch audit logs" });
     }
   });
 

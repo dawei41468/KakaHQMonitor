@@ -19,9 +19,8 @@ import {
 } from 'docx';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const docxDir = path.resolve();
 
 interface ContractItem {
   region: string;
@@ -223,7 +222,7 @@ function createHeaderTable(contractData: ContractData): Table {
   };
 
   // Read logo image
-  const logoPath = path.join(__dirname, 'images', 'agio_kaka_logo.png');
+  const logoPath = path.join(docxDir, 'images', 'agio_kaka_logo.png');
   const logoBuffer = fs.readFileSync(logoPath);
 
   return new Table({

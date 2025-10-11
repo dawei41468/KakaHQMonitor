@@ -121,7 +121,7 @@ To ensure overall stability for production:
 
 - **Backup and Recovery**:
   - DB: Daily pg_dump backups; store off-server.
-  - App: Git for code; Docker for reproducible deploys.
+  - App: Git for code; reproducible builds.
 
 - **Dependencies**:
   - Run `npm audit fix`; update critical deps (e.g., express to latest patch).
@@ -304,7 +304,7 @@ Since this is your first internal LAN deployment (vs. cloud), assume a Linux ser
 - PM2 issues: `pm2 logs`, `pm2 monit`.
 - For LAN access: Update internal DNS or use `/etc/hosts` on clients.
 
-This setup ensures a secure, reliable internal deployment. For cloud migration later, adapt to Docker/K8s.
+This setup ensures a secure, reliable internal deployment. For cloud migration later, adapt to container orchestration platforms.
 
 ## 5. Updated Documentation Notes
 - Append to `docs/current-state-review.md`: Add sections on hardening (link to this doc) and deployment summary.

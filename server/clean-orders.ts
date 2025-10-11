@@ -29,6 +29,6 @@ export async function cleanOrders() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   cleanOrders().then(() => process.exit(0)).catch(() => process.exit(1));
 }

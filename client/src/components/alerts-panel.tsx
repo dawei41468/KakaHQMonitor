@@ -82,7 +82,7 @@ export function AlertsPanel({
         <ScrollArea className="h-96">
           <div className="space-y-1 p-4">
             {activeAlerts.map((alert) => {
-              const Icon = alertIcons[alert.type as keyof typeof alertIcons]
+              const Icon = alertIcons[alert.type as keyof typeof alertIcons] || AlertTriangle
               return (
                 <div
                   key={alert.id}
@@ -140,7 +140,7 @@ export function AlertsPanel({
                   <h4 className="text-sm font-medium text-muted-foreground">{t('alerts.recentResolved')}</h4>
                 </div>
                 {resolvedAlerts.slice(0, 2).map((alert) => {
-                  const Icon = alertIcons[alert.type as keyof typeof alertIcons]
+                  const Icon = alertIcons[alert.type as keyof typeof alertIcons] || AlertTriangle
                   return (
                     <div
                       key={alert.id}

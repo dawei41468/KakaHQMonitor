@@ -6,6 +6,8 @@ import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
+const viteDir = path.resolve();
+
 const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
@@ -41,13 +43,13 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  app.use("/images", express.static(path.resolve(viteDir, "server", "images")));
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
+        viteDir,
         "client",
         "index.html",
       );
@@ -68,12 +70,18 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(viteDir, "public");
+  const imagesPath = path.resolve(viteDir, "server", "images");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
+  }
+
+  // Serve static images
+  if (fs.existsSync(imagesPath)) {
+    app.use("/images", express.static(imagesPath));
   }
 
   app.use(express.static(distPath));

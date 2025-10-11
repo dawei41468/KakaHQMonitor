@@ -115,7 +115,7 @@ PostgreSQL with 18 tables (via Drizzle):
 
 ### Configuration Files
 - **tsconfig.json**: Strict TypeScript with ESNext modules, paths for @/* (client/src) and @shared/*.
-- **vite.config.ts**: React plugin, aliases, root in client/, build to dist/public. Replit-specific plugins (cartographer, runtime-error-modal).
+- **vite.config.ts**: React plugin, aliases, root in client/, build to dist/public.
 - **drizzle.config.ts**: (Inferred) For schema migrations to PostgreSQL.
 - **tailwind.config.ts**, **postcss.config.js**: Standard Tailwind setup.
 - **Environment**: dotenv for secrets (e.g., DATABASE_URL, JWT_SECRET).

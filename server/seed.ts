@@ -293,6 +293,6 @@ export async function seedDatabase() {
 }
 
 // Run seed if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   seedDatabase().then(() => process.exit(0)).catch(() => process.exit(1));
 }

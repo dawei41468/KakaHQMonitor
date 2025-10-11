@@ -198,7 +198,7 @@ export default function Alerts() {
               <ScrollArea className="h-96">
                 <div className="space-y-1 p-4">
                   {activeAlerts.map((alert) => {
-                    const Icon = alertIcons[alert.type as keyof typeof alertIcons];
+                    const Icon = alertIcons[alert.type as keyof typeof alertIcons] || AlertTriangle;
                     const formattedAlert = formattedAlerts.find(fa => fa.id === alert.id);
                     const { title: translatedTitle, message: translatedMessage } = translateAlertContent(alert.title, alert.message, t);
                     return (
@@ -273,7 +273,7 @@ export default function Alerts() {
               <ScrollArea className="h-96">
                 <div className="space-y-1 p-4">
                   {resolvedAlerts.map((alert) => {
-                    const Icon = alertIcons[alert.type as keyof typeof alertIcons];
+                    const Icon = alertIcons[alert.type as keyof typeof alertIcons] || AlertTriangle;
                     const formattedAlert = formattedAlerts.find(fa => fa.id === alert.id);
                     const { title: translatedTitle, message: translatedMessage } = translateAlertContent(alert.title, alert.message, t);
                     return (

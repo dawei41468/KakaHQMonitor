@@ -1,6 +1,6 @@
 import {
   users, dealers, orders, materials, alerts, orderDocuments, orderAttachments,
-  categories, products, colors, productColors, regions, productDetails, colorTypes, units, applicationSettings,
+  categories, products, colors, productColors, regions, productDetails, colorTypes, units, applicationSettings, auditLogs,
   type User, type InsertUser, type Dealer, type InsertDealer,
   type Order, type InsertOrder, type Material, type InsertMaterial,
   type Alert, type InsertAlert, type OrderDocument, type InsertOrderDocument, type OrderAttachment, type InsertOrderAttachment,
@@ -8,10 +8,12 @@ import {
   type Color, type InsertColor,
   type Region, type InsertRegion, type ProductDetail, type InsertProductDetail,
   type ColorType, type InsertColorType, type Unit, type InsertUnit,
-  type ApplicationSetting, type InsertApplicationSetting
+  type ApplicationSetting, type InsertApplicationSetting,
+  type AuditLog, type InsertAuditLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, lte, count } from "drizzle-orm";
+import { eq, desc, and, lte, gte, count } from "drizzle-orm";
+import { notificationService } from "./notifications";
 
 export interface IStorage {
   // User management
@@ -113,6 +115,19 @@ export interface IStorage {
   getAllApplicationSettings(): Promise<ApplicationSetting[]>;
   createApplicationSetting(setting: InsertApplicationSetting): Promise<ApplicationSetting>;
   updateApplicationSetting(key: string, value: any): Promise<ApplicationSetting | undefined>;
+
+  // Audit log management
+  createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(filters?: {
+    dateFrom?: Date;
+    dateTo?: Date;
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: AuditLog[], total: number }>;
+  purgeOldLogs(cutoffDate: Date): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -311,41 +326,65 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async updateOrderStatus(id: string, status: string, actualDelivery?: Date): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({
+  async updateOrderStatus(id: string, status: string, actualDelivery?: Date, expectedUpdatedAt?: Date): Promise<Order | undefined> {
+    return await db.transaction(async (tx) => {
+      const updateData = {
         status,
         actualDelivery: status === 'delivered' ? (actualDelivery || new Date()) : null,
         updatedAt: new Date()
-      })
-      .where(eq(orders.id, id))
-      .returning();
-    return order || undefined;
+      };
+
+      const conditions = [eq(orders.id, id)];
+      if (expectedUpdatedAt) {
+        conditions.push(eq(orders.updatedAt, expectedUpdatedAt));
+      }
+
+      const result = await tx.update(orders).set(updateData).where(and(...conditions)).returning();
+      if (result.length === 0) {
+        return undefined; // Indicates conflict
+      }
+      return result[0];
+    });
   }
 
-  async updateOrderPaymentStatus(id: string, paymentStatus: string): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({
+  async updateOrderPaymentStatus(id: string, paymentStatus: string, expectedUpdatedAt?: Date): Promise<Order | undefined> {
+    return await db.transaction(async (tx) => {
+      const updateData = {
         paymentStatus,
         updatedAt: new Date()
-      })
-      .where(eq(orders.id, id))
-      .returning();
-    return order || undefined;
+      };
+
+      const conditions = [eq(orders.id, id)];
+      if (expectedUpdatedAt) {
+        conditions.push(eq(orders.updatedAt, expectedUpdatedAt));
+      }
+
+      const result = await tx.update(orders).set(updateData).where(and(...conditions)).returning();
+      if (result.length === 0) {
+        return undefined; // Indicates conflict
+      }
+      return result[0];
+    });
   }
 
-  async updateOrder(id: string, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({
+  async updateOrder(id: string, orderData: Partial<InsertOrder>, expectedUpdatedAt?: Date): Promise<Order | undefined> {
+    return await db.transaction(async (tx) => {
+      const updateData = {
         ...orderData,
         updatedAt: new Date()
-      })
-      .where(eq(orders.id, id))
-      .returning();
-    return order || undefined;
+      };
+
+      const conditions = [eq(orders.id, id)];
+      if (expectedUpdatedAt) {
+        conditions.push(eq(orders.updatedAt, expectedUpdatedAt));
+      }
+
+      const result = await tx.update(orders).set(updateData).where(and(...conditions)).returning();
+      if (result.length === 0) {
+        return undefined; // Indicates conflict
+      }
+      return result[0];
+    });
   }
 
   async deleteOrder(id: string): Promise<boolean> {
@@ -504,6 +543,22 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date()
       })
       .returning();
+
+    // Send notification for high-priority alerts
+    if (insertAlert.priority === 'high') {
+      // Run notification asynchronously to avoid blocking alert creation
+      setImmediate(async () => {
+        try {
+          await notificationService.notifyAdminsOfCriticalAlert(
+            insertAlert.title,
+            insertAlert.message
+          );
+        } catch (error) {
+          console.error('Failed to send alert notification:', error);
+        }
+      });
+    }
+
     return alert;
   }
 
@@ -897,6 +952,62 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return newSetting;
+  }
+
+  // Audit log methods
+  async createAuditLog(insertAuditLog: InsertAuditLog): Promise<AuditLog> {
+    const [auditLog] = await db
+      .insert(auditLogs)
+      .values(insertAuditLog)
+      .returning();
+    return auditLog;
+  }
+
+  async getAuditLogs(filters?: {
+    dateFrom?: Date;
+    dateTo?: Date;
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: AuditLog[], total: number }> {
+    // Build where conditions
+    const whereConditions = [];
+    if (filters?.dateFrom) {
+      whereConditions.push(gte(auditLogs.timestamp, filters.dateFrom));
+    }
+    if (filters?.dateTo) {
+      whereConditions.push(lte(auditLogs.timestamp, filters.dateTo));
+    }
+    if (filters?.userId) {
+      whereConditions.push(eq(auditLogs.userId, filters.userId));
+    }
+    if (filters?.action) {
+      whereConditions.push(eq(auditLogs.action, filters.action));
+    }
+    if (filters?.entityType) {
+      whereConditions.push(eq(auditLogs.entityType, filters.entityType));
+    }
+
+    // Get total count
+    const countQuery = whereConditions.length > 0
+      ? db.select({ count: count() }).from(auditLogs).where(and(...whereConditions))
+      : db.select({ count: count() }).from(auditLogs);
+    const countResult = await countQuery;
+    const total = countResult[0].count;
+
+    // Get items with pagination
+    const items = await (whereConditions.length > 0
+      ? db.select().from(auditLogs).where(and(...whereConditions)).orderBy(desc(auditLogs.timestamp)).limit(filters?.limit || 50).offset(filters?.offset || 0)
+      : db.select().from(auditLogs).orderBy(desc(auditLogs.timestamp)).limit(filters?.limit || 50).offset(filters?.offset || 0)
+    );
+    return { items, total };
+  }
+
+  async purgeOldLogs(cutoffDate: Date): Promise<number> {
+    const result = await db.delete(auditLogs).where(lte(auditLogs.timestamp, cutoffDate));
+    return result.rowCount || 0;
   }
 }
 

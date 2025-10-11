@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, extractTokenFromHeader, type JWTPayload } from './auth';
+import { storage } from './storage';
+import { auditLogger, getClientIP } from './logger';
+import { insertAuditLogSchema } from '@shared/schema';
+import * as diff from 'deep-diff';
 
 declare global {
   namespace Express {
@@ -37,4 +41,59 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   }
 
   next();
+}
+
+// Audit logging function
+export async function logAuditEvent(
+  req: Request,
+  action: string,
+  entityType: string,
+  entityId?: string,
+  oldValues?: any,
+  newValues?: any
+) {
+  try {
+    const userId = req.user?.userId;
+    const ipAddress = getClientIP(req);
+    const sessionId = req.user?.jti;
+
+    // Compute diff if both old and new values provided
+    let changesDiff = null;
+    if (oldValues && newValues) {
+      const differences = diff.diff(oldValues, newValues);
+      if (differences) {
+        changesDiff = differences;
+      }
+    }
+
+    const auditData = insertAuditLogSchema.parse({
+      userId,
+      action,
+      entityType,
+      entityId,
+      ipAddress,
+      oldValues,
+      newValues,
+      changesDiff,
+      sessionId
+    });
+
+    // Log to database
+    await storage.createAuditLog(auditData);
+
+    // Log to Winston
+    auditLogger.log(`Audit: ${action}`, {
+      userId,
+      action,
+      entityType,
+      entityId,
+      ipAddress,
+      sessionId,
+      changesDiff: changesDiff ? JSON.stringify(changesDiff) : null
+    });
+
+  } catch (error) {
+    console.error('Failed to log audit event:', error);
+    // Don't throw - audit logging failure shouldn't break the main operation
+  }
 }

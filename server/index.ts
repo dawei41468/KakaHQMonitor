@@ -6,8 +6,51 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { apiRateLimit, securityHeaders } from "./security";
 import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
+import { storage } from "./storage";
+import * as cron from "node-cron";
+import { logger } from "./logger";
 
-const app = express();
+/**
+ * Run all alert checks with retry logic and error handling
+ */
+async function runAlertChecks() {
+  const maxRetries = 3;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    try {
+      logger.info('Running scheduled alert checks...');
+      await checkPaymentOverdueAlerts();
+      await resolveCompletedPaymentAlerts();
+      await checkOverdueOrdersAlerts();
+      await checkStuckOrdersAlerts();
+      await resolveCompletedOverdueAlerts();
+      logger.info('Scheduled alert checks completed successfully');
+      return; // Success, exit retry loop
+    } catch (error) {
+      attempt++;
+      const isLastAttempt = attempt >= maxRetries;
+      const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Exponential backoff, max 30s
+
+      logger.error(`Scheduled alert checks failed (attempt ${attempt}/${maxRetries})`, {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        attempt,
+        maxRetries
+      });
+
+      if (isLastAttempt) {
+        logger.error('All retry attempts exhausted. Alert checks will be retried in next scheduled run.');
+        return;
+      }
+
+      logger.warn(`Retrying alert checks in ${backoffDelay}ms...`, { attempt, backoffDelay });
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+    }
+  }
+}
+
+export const app = express();
 app.use(securityHeaders);
 app.use(apiRateLimit);
 app.use(cookieParser());
@@ -47,12 +90,29 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // Log the error with context
+    logger.error('Request error', {
+      error: err.message,
+      stack: err.stack,
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      status
+    });
+
+    // Don't expose internal error details in production
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const responseMessage = isDevelopment ? message : "Internal Server Error";
+
+    res.status(status).json({
+      message: responseMessage,
+      ...(isDevelopment && { stack: err.stack })
+    });
   });
 
   // importantly only setup vite in development and after
@@ -70,27 +130,37 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '3000', 10);
   server.listen(port, () => {
-    log(`serving on port ${port}`);
+    logger.info(`Server started successfully`, {
+      port,
+      environment: process.env.NODE_ENV || 'development',
+      nodeVersion: process.version,
+      platform: process.platform
+    });
 
-    // Set up periodic payment alert checking
+    // Set up periodic alert checking with cron jobs
     // In development: check every 5 minutes for testing
-    // In production: should be daily (24 * 60 * 60 * 1000)
-    const checkInterval = app.get("env") === "development" ? 5 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    // In production: check hourly at the top of each hour
+    const cronExpression = app.get("env") === "development" ? '*/5 * * * *' : '0 * * * *';
 
-    setInterval(async () => {
+    cron.schedule(cronExpression, async () => {
+      await runAlertChecks();
+    });
+
+    logger.info(`Alert checking scheduled with cron: ${cronExpression} (${app.get("env") === "development" ? 'every 5 minutes' : 'hourly'})`);
+
+    // Set up audit log retention - run daily at midnight
+    cron.schedule('0 0 * * *', async () => {
       try {
-        log('Running scheduled alert checks...');
-        await checkPaymentOverdueAlerts();
-        await resolveCompletedPaymentAlerts();
-        await checkOverdueOrdersAlerts();
-        await checkStuckOrdersAlerts();
-        await resolveCompletedOverdueAlerts();
-        log('Scheduled alert checks completed');
+        logger.info('Running audit log retention cleanup...');
+        const cutoffDate = new Date();
+        cutoffDate.setFullYear(cutoffDate.getFullYear() - 2); // 2 years ago
+        const deletedCount = await storage.purgeOldLogs(cutoffDate);
+        logger.info(`Audit log retention completed. Deleted ${deletedCount} old logs.`);
       } catch (error) {
-        log(`Scheduled alert checks failed: ${error}`);
+        logger.error('Audit log retention failed', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined });
       }
-    }, checkInterval);
+    });
 
-    log(`Payment alert checking scheduled every ${checkInterval / (60 * 1000)} minutes`);
+    logger.info('Audit log retention scheduled daily at midnight');
   });
 })();
