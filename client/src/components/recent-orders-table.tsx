@@ -36,8 +36,8 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({
-  onOrderClick = (id) => console.log(`Viewing order ${id}`),
-  onViewAll = () => console.log("View all orders"),
+  onOrderClick = () => {},
+  onViewAll = () => {},
   limit = 20
 }: RecentOrdersTableProps) {
   const { t } = useTranslation();

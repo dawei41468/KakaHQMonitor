@@ -14,8 +14,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({
-  onLogin = (email, password) => console.log("Login attempt:", { email, password }),
-  onForgotPassword = () => console.log("Forgot password clicked"),
+  onLogin = () => {},
+  onForgotPassword = () => {},
   theme = 'light'
 }: LoginFormProps) {
   const { t } = useTranslation()

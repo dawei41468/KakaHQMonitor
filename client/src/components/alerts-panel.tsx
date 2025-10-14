@@ -48,8 +48,8 @@ interface AlertsPanelProps {
 }
 
 export function AlertsPanel({
-  onResolveAlert = (id) => console.log(`Resolving alert ${id}`),
-  onViewAll = () => console.log("View all alerts")
+  onResolveAlert = () => {},
+  onViewAll = () => {}
 }: AlertsPanelProps) {
   const { t } = useTranslation();
   const { data: alertsData = { items: [] } } = useAlerts(false);

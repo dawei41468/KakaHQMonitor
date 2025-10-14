@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
-import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { db } from '../db.js';

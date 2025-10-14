@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { checkPaymentOverdueAlerts, checkOverdueOrdersAlerts, checkStuckOrdersAlerts, resolveCompletedPaymentAlerts, resolveCompletedOverdueAlerts } from '../alert-checker.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';

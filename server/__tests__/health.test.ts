@@ -2,7 +2,6 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import express from 'express';
 import { registerRoutes } from '../routes.js';
-import { db } from '../db.js';
 import { storage } from '../storage.js';
 
 describe('Health Check Endpoint', () => {

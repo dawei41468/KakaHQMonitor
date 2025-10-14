@@ -4,7 +4,6 @@ import { registerRoutes } from '../routes.js';
 import express from 'express';
 import { apiRateLimit, securityHeaders } from '../security.js';
 import cookieParser from 'cookie-parser';
-import { logger } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
 

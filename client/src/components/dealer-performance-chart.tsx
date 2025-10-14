@@ -16,7 +16,7 @@ interface DealerPerformanceChartProps {
 }
 
 export function DealerPerformanceChart({
-  onDealerClick = (dealer) => console.log(`Clicked on ${dealer}`)
+  onDealerClick = () => {}
 }: DealerPerformanceChartProps) {
   const { t } = useTranslation();
   const { data: dealers, isLoading } = useDealers();

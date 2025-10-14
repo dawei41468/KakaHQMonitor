@@ -13,8 +13,8 @@ interface InventoryOverviewProps {
 }
 
 export function InventoryOverview({
-  onRestockClick = (id) => console.log(`Restocking item ${id}`),
-  onViewAll = () => console.log("View all inventory")
+  onRestockClick = () => {},
+  onViewAll = () => {}
 }: InventoryOverviewProps) {
   const { t } = useTranslation();
   const { data: materialsData = { items: [] } } = useMaterials();

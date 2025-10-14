@@ -32,7 +32,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({
   alertCount = 3,
-  onProfileClick = () => console.log("Profile clicked")
+  onProfileClick = () => {}
 }: Partial<DashboardHeaderProps> = {}) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
