@@ -53,12 +53,14 @@ A full-stack web application for monitoring and managing orders from dealers at 
 
 5. Start the development server:
     ```bash
-    DATABASE_URL="postgresql://dawei@localhost:5432/kaka_monitor" JWT_SECRET="your_secure_jwt_secret_here" REFRESH_SECRET="your_secure_refresh_secret_here" CSRF_SECRET="your_secure_csrf_secret_here" npm run dev
+    npm run dev
     ```
 
-    Or create a `.env` file in the project root with:
+    Ensure you have a `.env` file in the project root with the required environment variables (see example below). The application will automatically load these variables.
+
+    Example `.env` file:
     ```env
-    DATABASE_URL=postgresql://dawei@localhost:5432/kaka_monitor
+    DATABASE_URL=postgresql://your_username@localhost:5432/your_database_name
     JWT_SECRET=your_secure_jwt_secret_here
     REFRESH_SECRET=your_secure_refresh_secret_here
     CSRF_SECRET=your_secure_csrf_secret_here
