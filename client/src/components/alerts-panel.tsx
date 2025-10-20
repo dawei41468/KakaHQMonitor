@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertTriangle, Package, Clock, CheckCircle, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { useAlerts } from "@/hooks/use-dashboard"
 import type { Alert as AlertType } from "@shared/schema"
 
@@ -23,7 +24,7 @@ const priorityColors = {
 } as const
 
 // Helper function to translate alert titles and messages
-function translateAlertContent(title: string, message: string, t: any) {
+function translateAlertContent(title: string, message: string, t: TFunction) {
   // Translate known alert titles
   const titleTranslations: Record<string, string> = {
     "Payment Required Before Shipping": t('alerts.alertTitles.paymentRequired'),
