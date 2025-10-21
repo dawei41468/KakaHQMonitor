@@ -56,7 +56,7 @@ export default function Admin() {
               {/* <TabsTrigger value="orders">{t('admin.orders')}</TabsTrigger> */}
               <TabsTrigger value="materials">{t('admin.materials')}</TabsTrigger>
               <TabsTrigger value="alerts">{t('admin.alerts')}</TabsTrigger>
-              <TabsTrigger value="audit-logs">Audit Logs</TabsTrigger>
+              <TabsTrigger value="audit-logs">{t('admin.auditLogs')}</TabsTrigger>
               <TabsTrigger value="application">{t('application.applicationSettings')}</TabsTrigger>
             </TabsList>
 
@@ -113,7 +113,7 @@ export default function Admin() {
             <TabsContent value="audit-logs">
               <Card>
                 <CardHeader>
-                  <CardTitle>Audit Logs</CardTitle>
+                  <CardTitle>{t('admin.auditLogs')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <AuditLogs />

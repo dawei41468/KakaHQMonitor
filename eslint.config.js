@@ -39,6 +39,13 @@ export default [
           jsx: true,
         },
       },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        Blob: 'readonly',
+        URLSearchParams: 'readonly',
+        URL: 'readonly',
+      },
     },
   },
   {
