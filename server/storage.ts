@@ -1079,23 +1079,30 @@ export class DatabaseStorage implements IStorage {
     const items = await query;
 
     // Transform items to include computed display names
-    const transformedItems = items.map(item => ({
+    const transformedItems = await Promise.all(items.map(async (item) => ({
       ...item,
       userDisplayName: item.userEmail || 'System',
-      entityDisplayName: (() => {
+      entityDisplayName: await (async () => {
         switch (item.entityType) {
-          case 'order': return item.orderNumber || item.entityId;
-          case 'alert': return item.alertTitle || item.entityId;
-          case 'dealer': return item.dealerName || item.entityId;
-          case 'material': return item.materialName || item.entityId;
+          case 'order': return item.orderNumber ? `Order ${item.orderNumber}` : `Order: ${item.entityId}`;
+          case 'alert': return item.alertTitle || `Alert: ${item.entityId}`;
+          case 'dealer': return item.dealerName || `Dealer: ${item.entityId}`;
+          case 'material': return item.materialName || `Material: ${item.entityId}`;
           case 'user':
-            // For user entities, we need to fetch the user separately since we can't self-join
-            // For now, return the entityId - we'll handle this case in the frontend or with a separate query
+            // For user entities, just show the email (Entity Type column already shows "user")
+            if (item.entityId) {
+              try {
+                const entityUser = await this.getUser(item.entityId);
+                return entityUser ? entityUser.email : item.entityId;
+              } catch {
+                return item.entityId;
+              }
+            }
             return item.entityId;
-          default: return item.entityId || '-';
+          default: return item.entityId ? `${item.entityType}: ${item.entityId}` : '-';
         }
       })(),
-    }));
+    })));
 
     return { items: transformedItems, total };
   }
