@@ -18,6 +18,29 @@ import {
 import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, updateOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema, insertApplicationSettingSchema } from "@shared/schema";
 import { generateContractDOCX } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
+
+// Contract item interface for type safety
+interface ContractItem {
+  region: string;
+  category: string;
+  productName: string;
+  productDetail: string;
+  specification: string;
+  color: string;
+  quantity: number;
+  unit: string;
+  retailPrice: number;
+  retailTotal: number;
+  dealPrice: number;
+  dealTotal: number;
+  remarks?: string;
+}
+
+// Order item interface for legacy items
+interface OrderItem {
+  item: string;
+  quantity: number;
+}
 import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueOrdersAlerts, resolveCompletedOverdueAlerts, checkStuckOrdersAlerts } from "./alert-checker";
 import { logAuditEvent } from "./middleware";
 import ExcelJS from "exceljs";
@@ -66,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         accessToken
       });
-    } catch (error) {
+    } catch {
       // Audit logging for failed login
       await logAuditEvent(req, 'LOGIN_FAIL', 'user', undefined, undefined, { reason: 'Invalid request data' });
       res.status(400).json({ error: `Invalid request data. Received: ${JSON.stringify(req.body)}` });
@@ -117,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         accessToken: newAccessToken
       });
-    } catch (error) {
+    } catch {
       res.status(403).json({ error: "Invalid refresh token" });
     }
   });
@@ -143,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'LOGOUT', 'user', user.userId);
 
       res.json({ message: "Logged out successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Logout failed" });
     }
   });
@@ -165,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check database connectivity by running a simple query
       await storage.getAllUsers(1, 0);
       healthcheck.checks.database = 'healthy';
-    } catch (error) {
+    } catch {
       healthcheck.checks.database = 'unhealthy';
       healthcheck.message = 'Database connection failed';
       return res.status(503).json(healthcheck);
@@ -184,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getAllApplicationSettings();
       res.json(settings);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch application settings" });
     }
   });
@@ -208,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         theme: user.theme,
         language: user.language
       });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch user" });
     }
   });
@@ -232,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         theme: user.theme,
         language: user.language
       });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update user" });
     }
   });
@@ -247,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid language" });
       }
 
-      const updates: any = {};
+      const updates: { theme?: string; language?: string } = {};
       if (theme) updates.theme = theme;
       if (language) updates.language = language;
 
@@ -263,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         theme: user.theme,
         language: user.language
       });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update preferences" });
     }
   });
@@ -288,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUser(req.user!.userId, { password: hashedPassword });
 
       res.json({ message: "Password updated successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update password" });
     }
   });
@@ -324,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recentOrders: orders.items.slice(0, 10),
         alerts: alerts.slice(0, 5)
       });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch dashboard data" });
     }
   });
@@ -362,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       res.json(dealersWithPerformance);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch dealers" });
     }
   });
@@ -373,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
        const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
        const orders = await storage.getAllOrders(limit);
        res.json(orders);
-     } catch (error) {
+     } catch {
        res.status(500).json({ error: "Failed to fetch orders" });
      }
    });
@@ -420,13 +443,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
        // Apply sorting
        if (sortBy) {
          filteredOrders.sort((a, b) => {
-           let aValue: any = a[sortBy as keyof typeof a];
-           let bValue: any = b[sortBy as keyof typeof b];
+           let aValue: unknown = a[sortBy as keyof typeof a];
+           let bValue: unknown = b[sortBy as keyof typeof b];
 
            // Handle date fields
            if (sortBy === 'createdAt' || sortBy === 'estimatedDelivery' || sortBy === 'signingDate') {
-             aValue = aValue ? new Date(aValue).getTime() : 0;
-             bValue = bValue ? new Date(bValue).getTime() : 0;
+             aValue = aValue ? new Date(aValue as string | number | Date).getTime() : 0;
+             bValue = bValue ? new Date(bValue as string | number | Date).getTime() : 0;
            }
 
            // Handle numeric fields
@@ -435,8 +458,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
              bValue = Number(bValue) || 0;
            }
 
-           if (aValue < bValue) return sortOrder === 'desc' ? 1 : -1;
-           if (aValue > bValue) return sortOrder === 'desc' ? -1 : 1;
+           const aNum = typeof aValue === 'number' ? aValue : 0;
+           const bNum = typeof bValue === 'number' ? bValue : 0;
+
+           if (aNum < bNum) return sortOrder === 'desc' ? 1 : -1;
+           if (aNum > bNum) return sortOrder === 'desc' ? -1 : 1;
            return 0;
          });
        }
@@ -544,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const dealer = order.dealerId ? await storage.getDealerById(order.dealerId) : null;
       res.json({ ...order, dealer });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch order" });
     }
   });
@@ -571,7 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'ORDER_STATUS_UPDATE', 'order', req.params.id, { status: currentOrder.status }, { status });
 
       res.json(order);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update order status" });
     }
   });
@@ -598,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'ORDER_PAYMENT_UPDATE', 'order', req.params.id, { paymentStatus: currentOrder.paymentStatus }, { paymentStatus });
 
       res.json(order);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update order payment status" });
     }
   });
@@ -647,9 +673,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buyerAddress: order.buyerAddress || undefined,
           buyerPhone: order.buyerPhone || undefined,
           buyerTaxNumber: order.buyerTaxNumber || undefined,
-          items: order.contractItems as any[],
+          items: order.contractItems as ContractItem[],
           totalAmount: Number(order.totalValue),
-          retailTotalAmount: order.contractItems ? (order.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
+          retailTotalAmount: order.contractItems ? (order.contractItems as ContractItem[]).reduce((sum: number, item: ContractItem) => sum + (item.retailTotal || 0), 0) : 0
         };
 
         const docxBuffer = await generateContractDOCX(contractData);
@@ -691,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'ORDER_DELETE', 'order', req.params.id, order);
 
       res.json({ message: "Order deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete order" });
     }
   });
@@ -707,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', document.mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
       res.send(buffer);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to retrieve document" });
     }
   });
@@ -716,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const attachments = await storage.getOrderAttachments(req.params.id);
       res.json(attachments);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch attachments" });
     }
   });
@@ -754,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
       res.send(buffer);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to retrieve attachment" });
     }
   });
@@ -772,7 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Attachment deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete attachment" });
     }
   });
@@ -796,7 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buyerAddress: order.buyerAddress || undefined,
         buyerPhone: order.buyerPhone || undefined,
         buyerTaxNumber: order.buyerTaxNumber || undefined,
-        items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as any[]).map((item: any) => ({
+        items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as OrderItem[]).map((item: OrderItem) => ({
           ...item,
           productName: item.item,
           quantity: item.quantity,
@@ -814,7 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           remarks: ''
         })) : []),
         totalAmount: Number(order.totalValue),
-        retailTotalAmount: order.contractItems ? (order.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
+        retailTotalAmount: order.contractItems ? (order.contractItems as ContractItem[]).reduce((sum: number, item: ContractItem) => sum + (item.retailTotal || 0), 0) : 0
       };
 
       const docxBuffer = await generateContractDOCX(contractData);
@@ -900,9 +926,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buyerAddress: orderData.buyerAddress || undefined,
           buyerPhone: orderData.buyerPhone || undefined,
           buyerTaxNumber: orderData.buyerTaxNumber || undefined,
-          items: orderData.contractItems as any[],
+          items: orderData.contractItems as ContractItem[],
           totalAmount: Number(orderData.totalValue),
-          retailTotalAmount: orderData.contractItems ? (orderData.contractItems as any[]).reduce((sum: number, item: any) => sum + (item.retailTotal || 0), 0) : 0
+          retailTotalAmount: orderData.contractItems ? (orderData.contractItems as ContractItem[]).reduce((sum: number, item: ContractItem) => sum + (item.retailTotal || 0), 0) : 0
         };
   
         const docxBuffer = await generateContractDOCX(contractData);
@@ -932,7 +958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const materials = await storage.getAllMaterials();
       res.json(materials);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch materials" });
     }
   });
@@ -961,7 +987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(material);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to update material stock" });
     }
   });
@@ -972,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const includeResolved = req.query.includeResolved === 'true';
       const alerts = await storage.getAllAlerts(includeResolved);
       res.json(alerts);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch alerts" });
     }
   });
@@ -988,7 +1014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'ALERT_RESOLVE', 'alert', req.params.id, { resolved: false }, { resolved: true });
 
       res.json(alert);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to resolve alert" });
     }
   });
@@ -1004,7 +1030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'ALERT_UNRESOLVE', 'alert', req.params.id, { resolved: true }, { resolved: false });
 
       res.json(alert);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to unresolve alert" });
     }
   });
@@ -1016,7 +1042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const result = await storage.getAllUsers(limit, offset);
       res.json({ items: result.items, total: result.total });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch users" });
     }
   });
@@ -1043,9 +1069,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'USER_CREATE', 'user', user.id, undefined, { email: user.email, name: user.name, role: user.role });
 
       // Don't return password
-      const { password, ...userResponse } = user;
+      const { password: _, ...userResponse } = user;
       res.status(201).json(userResponse);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid user data" });
     }
   });
@@ -1058,9 +1084,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       // Don't return password
-      const { password, ...userResponse } = user;
+      const { password: _, ...userResponse } = user;
       res.json(userResponse);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid user data" });
     }
   });
@@ -1081,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await logAuditEvent(req, 'USER_DELETE', 'user', req.params.id, { email: user.email, name: user.name, role: user.role });
 
       res.json({ message: "User deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete user" });
     }
   });
@@ -1092,7 +1118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const result = await storage.getAllDealers(limit, offset);
       res.json({ items: result.items, total: result.total });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch dealers" });
     }
   });
@@ -1102,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dealerData = insertDealerSchema.parse(req.body);
       const dealer = await storage.createDealer(dealerData);
       res.status(201).json(dealer);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid dealer data" });
     }
   });
@@ -1115,7 +1141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Dealer not found" });
       }
       res.json(dealer);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid dealer data" });
     }
   });
@@ -1127,7 +1153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Dealer not found" });
       }
       res.json({ message: "Dealer deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete dealer" });
     }
   });
@@ -1138,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const result = await storage.getAllOrders(limit, offset);
       res.json({ items: result.items, total: result.total });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch orders" });
     }
   });
@@ -1148,7 +1174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderData = insertOrderSchema.parse(req.body);
       const order = await storage.createOrder(orderData);
       res.status(201).json(order);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid order data" });
     }
   });
@@ -1161,7 +1187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Order not found" });
       }
       res.json(order);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid order data" });
     }
   });
@@ -1173,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Order not found" });
       }
       res.json({ message: "Order deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete order" });
     }
   });
@@ -1184,7 +1210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const result = await storage.getAllMaterials(limit, offset);
       res.json({ items: result.items, total: result.total });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch materials" });
     }
   });
@@ -1194,7 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const materialData = insertMaterialSchema.parse(req.body);
       const material = await storage.createMaterial(materialData);
       res.status(201).json(material);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid material data" });
     }
   });
@@ -1207,7 +1233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Material not found" });
       }
       res.json(material);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid material data" });
     }
   });
@@ -1219,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Material not found" });
       }
       res.json({ message: "Material deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete material" });
     }
   });
@@ -1231,7 +1257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       const result = await storage.getAllAlerts(includeResolved, limit, offset);
       res.json({ items: result.items, total: result.total });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch alerts" });
     }
   });
@@ -1241,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alertData = insertAlertSchema.parse(req.body);
       const alert = await storage.createAlert(alertData);
       res.status(201).json(alert);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid alert data" });
     }
   });
@@ -1254,7 +1280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Alert not found" });
       }
       res.json(alert);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid alert data" });
     }
   });
@@ -1266,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Alert not found" });
       }
       res.json({ message: "Alert deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete alert" });
     }
   });
@@ -1276,7 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await checkPaymentOverdueAlerts();
       res.json({ message: "Payment alert check completed", ...result });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to check payment alerts" });
     }
   });
@@ -1285,7 +1311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await resolveCompletedPaymentAlerts();
       res.json({ message: "Payment alert resolution completed", ...result });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to resolve payment alerts" });
     }
   });
@@ -1294,7 +1320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await checkOverdueOrdersAlerts();
       res.json({ message: "Overdue orders alert check completed", ...result });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to check overdue alerts" });
     }
   });
@@ -1303,7 +1329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await resolveCompletedOverdueAlerts();
       res.json({ message: "Overdue alert resolution completed", ...result });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to resolve overdue alerts" });
     }
   });
@@ -1312,7 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = await checkStuckOrdersAlerts();
       res.json({ message: "Stuck orders alert check completed", ...result });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to check stuck alerts" });
     }
   });
@@ -1322,7 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getAllApplicationSettings();
       res.json(settings);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch application settings" });
     }
   });
@@ -1338,7 +1364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const setting = await storage.updateApplicationSetting(key, value);
       res.json(setting);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid setting data" });
     }
   });
@@ -1348,7 +1374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settingData = insertApplicationSettingSchema.parse(req.body);
       const setting = await storage.createApplicationSetting(settingData);
       res.status(201).json(setting);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid application setting data" });
     }
   });
@@ -1359,7 +1385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filters = {
         dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
         dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
-        userId: req.query.userId as string,
+        userEmail: req.query.userEmail as string,
         action: req.query.action as string,
         entityType: req.query.entityType as string,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
@@ -1368,7 +1394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await storage.getAuditLogs(filters);
       res.json(result);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch audit logs" });
     }
   });
@@ -1378,7 +1404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const categories = await storage.getAllCategories();
       res.json(categories.items);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch categories" });
     }
   });
@@ -1393,7 +1419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const products = await storage.getAllProducts();
         res.json(products.items);
       }
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch products" });
     }
   });
@@ -1408,7 +1434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const colors = await storage.getAllColors();
         res.json(colors.items);
       }
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch colors" });
     }
   });
@@ -1417,7 +1443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const regions = await storage.getAllRegions();
       res.json(regions.items);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch regions" });
     }
   });
@@ -1426,7 +1452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productDetails = await storage.getAllProductDetails();
       res.json(productDetails.items);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch product details" });
     }
   });
@@ -1435,7 +1461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const colorTypes = await storage.getAllColorTypes();
       res.json(colorTypes.items);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch color types" });
     }
   });
@@ -1450,7 +1476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const units = await storage.getAllUnits();
         res.json(units.items);
       }
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch units" });
     }
   });
@@ -1460,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const categories = await storage.getAllCategories();
       res.json(categories);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch categories" });
     }
   });
@@ -1470,7 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categoryData = insertCategorySchema.parse(req.body);
       const category = await storage.createCategory(categoryData);
       res.status(201).json(category);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid category data" });
     }
   });
@@ -1489,7 +1515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Categories reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder categories" });
     }
   });
@@ -1502,7 +1528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Category not found" });
       }
       res.json(category);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid category data" });
     }
   });
@@ -1514,7 +1540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Category not found" });
       }
       res.json({ message: "Category deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete category" });
     }
   });
@@ -1524,7 +1550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const products = await storage.getAllProducts();
       res.json(products);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch products" });
     }
   });
@@ -1534,7 +1560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid product data" });
     }
   });
@@ -1553,7 +1579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Products reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder products" });
     }
   });
@@ -1566,7 +1592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
       res.json(product);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid product data" });
     }
   });
@@ -1578,7 +1604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product not found" });
       }
       res.json({ message: "Product deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete product" });
     }
   });
@@ -1588,7 +1614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const colors = await storage.getAllColors();
       res.json(colors);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch colors" });
     }
   });
@@ -1598,7 +1624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const colorData = insertColorSchema.parse(req.body);
       const color = await storage.createColor(colorData);
       res.status(201).json(color);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid color data" });
     }
   });
@@ -1617,7 +1643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Colors reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder colors" });
     }
   });
@@ -1630,7 +1656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Color not found" });
       }
       res.json(color);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid color data" });
     }
   });
@@ -1642,7 +1668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Color not found" });
       }
       res.json({ message: "Color deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete color" });
     }
   });
@@ -1652,7 +1678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const regions = await storage.getAllRegions();
       res.json(regions);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch regions" });
     }
   });
@@ -1662,7 +1688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const regionData = insertRegionSchema.parse(req.body);
       const region = await storage.createRegion(regionData);
       res.status(201).json(region);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid region data" });
     }
   });
@@ -1681,7 +1707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Regions reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder regions" });
     }
   });
@@ -1694,7 +1720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Region not found" });
       }
       res.json(region);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid region data" });
     }
   });
@@ -1706,7 +1732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Region not found" });
       }
       res.json({ message: "Region deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete region" });
     }
   });
@@ -1716,7 +1742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productDetails = await storage.getAllProductDetails();
       res.json(productDetails);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch product details" });
     }
   });
@@ -1726,7 +1752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productDetailData = insertProductDetailSchema.parse(req.body);
       const productDetail = await storage.createProductDetail(productDetailData);
       res.status(201).json(productDetail);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid product detail data" });
     }
   });
@@ -1745,7 +1771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Product details reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder product details" });
     }
   });
@@ -1758,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product detail not found" });
       }
       res.json(productDetail);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid product detail data" });
     }
   });
@@ -1770,7 +1796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Product detail not found" });
       }
       res.json({ message: "Product detail deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete product detail" });
     }
   });
@@ -1780,7 +1806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const colorTypes = await storage.getAllColorTypes();
       res.json(colorTypes);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch color types" });
     }
   });
@@ -1790,7 +1816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const colorTypeData = insertColorTypeSchema.parse(req.body);
       const colorType = await storage.createColorType(colorTypeData);
       res.status(201).json(colorType);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid color type data" });
     }
   });
@@ -1809,7 +1835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Color types reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder color types" });
     }
   });
@@ -1822,7 +1848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Color type not found" });
       }
       res.json(colorType);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid color type data" });
     }
   });
@@ -1834,7 +1860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Color type not found" });
       }
       res.json({ message: "Color type deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete color type" });
     }
   });
@@ -1844,7 +1870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const units = await storage.getAllUnits();
       res.json(units);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch units" });
     }
   });
@@ -1854,7 +1880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const unitData = insertUnitSchema.parse(req.body);
       const unit = await storage.createUnit(unitData);
       res.status(201).json(unit);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid unit data" });
     }
   });
@@ -1873,7 +1899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ message: "Units reordered successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to reorder units" });
     }
   });
@@ -1886,7 +1912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Unit not found" });
       }
       res.json(unit);
-    } catch (error) {
+    } catch {
       res.status(400).json({ error: "Invalid unit data" });
     }
   });
@@ -1898,7 +1924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Unit not found" });
       }
       res.json({ message: "Unit deleted successfully" });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to delete unit" });
     }
   });

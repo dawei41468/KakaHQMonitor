@@ -36,7 +36,7 @@ export default function AuditLogs() {
   const [filters, setFilters] = useState({
     dateFrom: "",
     dateTo: "",
-    userId: "",
+    userEmail: "",
     action: "",
     entityType: "",
     limit: "50",
@@ -127,11 +127,11 @@ export default function AuditLogs() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">{t("admin.userId")}</label>
+              <label className="text-sm font-medium">{t("admin.user")}</label>
               <Input
-                placeholder={t("admin.userId")}
-                value={filters.userId}
-                onChange={(e) => handleFilterChange("userId", e.target.value)}
+                placeholder={t("admin.userEmail")}
+                value={filters.userEmail}
+                onChange={(e) => handleFilterChange("userEmail", e.target.value)}
               />
             </div>
             <div>

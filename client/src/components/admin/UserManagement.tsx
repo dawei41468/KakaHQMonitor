@@ -12,6 +12,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import type { User, InsertUser } from "@shared/schema";
 
 /**
  * User Management Component
@@ -33,7 +34,7 @@ function UserManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const createUserMutation = useMutation({
-    mutationFn: async (userData: any) => {
+    mutationFn: async (userData: InsertUser) => {
       const response = await apiRequest('POST', '/api/admin/users', userData);
       return response.json();
     },
@@ -45,7 +46,7 @@ function UserManagement() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertUser> }) => {
       const response = await apiRequest('PUT', `/api/admin/users/${id}`, data);
       return response.json();
     },
@@ -131,16 +132,18 @@ function UserManagement() {
           <TableRow>
             <TableHead>{t('common.name')}</TableHead>
             <TableHead>{t('common.email')}</TableHead>
+            <TableHead>{t('admin.id')}</TableHead>
             <TableHead>{t('common.role')}</TableHead>
             <TableHead>{t('admin.created')}</TableHead>
             <TableHead>{t('admin.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users?.map((user: any) => (
+          {users?.map((user: User) => (
             <TableRow key={user.id}>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>
+              <TableCell className="font-mono text-xs">{user.id}</TableCell>
               <TableCell>
                 <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                   {t(`admin.${user.role}`)}

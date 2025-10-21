@@ -22,7 +22,7 @@ type ContractItem = {
   // Add other fields as needed
 };
 
-type OrderWithDealer = Omit<Order, 'paymentStatus' | 'overallRetailTotal' | 'overallDealTotal'> & { dealerName: string | null };
+type OrderWithDealer = Omit<Order, 'overallRetailTotal' | 'overallDealTotal'> & { dealerName: string | null };
 
 type ProductWithCategory = Product & { category: Category | null };
 
@@ -54,9 +54,9 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getAllUsers(limit?: number, offset?: number): Promise<{ items: User[], total: number }>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
-  updateUserRefreshTokens(id: string, tokens: string[]): Promise<void>;
+  updateUserRefreshTokens(id: string, tokens: { token: string; expires: Date }[]): Promise<void>;
 
   // Dealer management
   getAllDealers(limit?: number, offset?: number): Promise<{ items: Dealer[], total: number }>;
@@ -154,7 +154,7 @@ export interface IStorage {
   getAuditLogs(filters?: {
     dateFrom?: Date;
     dateTo?: Date;
-    userId?: string;
+    userEmail?: string;
     action?: string;
     entityType?: string;
     limit?: number;
@@ -187,7 +187,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserRefreshTokens(id: string, tokens: string[]): Promise<void> {
+  async updateUserRefreshTokens(id: string, tokens: { token: string; expires: Date }[]): Promise<void> {
     await db
       .update(users)
       .set({
@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
     return { items, total };
   }
 
-  async updateUser(id: string, userData: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, userData: Partial<User>): Promise<User | undefined> {
     const [user] = await db
       .update(users)
       .set({
@@ -276,6 +276,7 @@ export class DatabaseStorage implements IStorage {
       dealerId: orders.dealerId,
       orderNumber: orders.orderNumber,
       status: orders.status,
+      paymentStatus: orders.paymentStatus,
       items: orders.items,
       totalValue: orders.totalValue,
       productionLeadTime: orders.productionLeadTime,
@@ -999,7 +1000,7 @@ export class DatabaseStorage implements IStorage {
   async getAuditLogs(filters?: {
     dateFrom?: Date;
     dateTo?: Date;
-    userId?: string;
+    userEmail?: string;
     action?: string;
     entityType?: string;
     limit?: number;
@@ -1013,8 +1014,8 @@ export class DatabaseStorage implements IStorage {
     if (filters?.dateTo) {
       whereConditions.push(lte(auditLogs.timestamp, filters.dateTo));
     }
-    if (filters?.userId) {
-      whereConditions.push(eq(auditLogs.userId, filters.userId));
+    if (filters?.userEmail) {
+      whereConditions.push(eq(users.email, filters.userEmail));
     }
     if (filters?.action) {
       whereConditions.push(eq(auditLogs.action, filters.action));
@@ -1023,10 +1024,19 @@ export class DatabaseStorage implements IStorage {
       whereConditions.push(eq(auditLogs.entityType, filters.entityType));
     }
 
-    // Get total count
-    const countQuery = whereConditions.length > 0
-      ? db.select({ count: count() }).from(auditLogs).where(and(...whereConditions))
-      : db.select({ count: count() }).from(auditLogs);
+    // Get total count - need to join with users if filtering by email
+    let countQuery;
+    if (filters?.userEmail) {
+      // When filtering by email, we need to join with users table
+      countQuery = db.select({ count: count() })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.userId, users.id))
+        .where(eq(users.email, filters.userEmail));
+    } else {
+      countQuery = whereConditions.length > 0
+        ? db.select({ count: count() }).from(auditLogs).where(and(...whereConditions))
+        : db.select({ count: count() }).from(auditLogs);
+    }
     const countResult = await countQuery;
     const total = countResult[0].count;
 
@@ -1071,7 +1081,7 @@ export class DatabaseStorage implements IStorage {
     // Transform items to include computed display names
     const transformedItems = items.map(item => ({
       ...item,
-      userDisplayName: item.userName || item.userEmail || 'System',
+      userDisplayName: item.userEmail || 'System',
       entityDisplayName: (() => {
         switch (item.entityType) {
           case 'order': return item.orderNumber || item.entityId;
