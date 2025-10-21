@@ -27,6 +27,8 @@ interface AuditLog {
   newValues?: Record<string, unknown>;
   changesDiff?: Record<string, unknown>;
   sessionId?: string;
+  userDisplayName?: string;
+  entityDisplayName?: string;
 }
 
 export default function AuditLogs() {
@@ -59,16 +61,16 @@ export default function AuditLogs() {
     // Simple CSV export
     if (!data?.items) return;
 
-    const headers = ["Timestamp", "User ID", "Action", "Entity Type", "Entity ID", "IP Address"];
+    const headers = ["Timestamp", "User", "Action", "Entity Type", "Entity", "IP Address"];
     const csvContent = [
       headers.join(","),
       ...data.items.map((log: AuditLog) =>
         [
           new Date(log.timestamp).toLocaleString(),
-          log.userId || "",
+          log.userDisplayName || "",
           log.action,
           log.entityType,
-          log.entityId || "",
+          log.entityDisplayName || "",
           log.ipAddress,
         ].join(",")
       ),
@@ -189,10 +191,10 @@ export default function AuditLogs() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t("admin.timestamp")}</TableHead>
-                <TableHead>{t("admin.userId")}</TableHead>
+                <TableHead>{t("admin.user")}</TableHead>
                 <TableHead>{t("admin.action")}</TableHead>
                 <TableHead>{t("admin.entityType")}</TableHead>
-                <TableHead>{t("admin.entityId")}</TableHead>
+                <TableHead>{t("admin.entity")}</TableHead>
                 <TableHead>{t("admin.ipAddress")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -215,10 +217,10 @@ export default function AuditLogs() {
                     <TableCell>
                       {new Date(log.timestamp).toLocaleString()}
                     </TableCell>
-                    <TableCell>{log.userId || t("admin.system")}</TableCell>
+                    <TableCell>{log.userDisplayName || t("admin.system")}</TableCell>
                     <TableCell>{log.action}</TableCell>
                     <TableCell>{log.entityType}</TableCell>
-                    <TableCell>{log.entityId || "-"}</TableCell>
+                    <TableCell>{log.entityDisplayName || "-"}</TableCell>
                     <TableCell>{log.ipAddress}</TableCell>
                   </TableRow>
                 ))

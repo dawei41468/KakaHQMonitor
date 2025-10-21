@@ -15,6 +15,39 @@ import { db } from "./db";
 import { eq, desc, and, lte, gte, count } from "drizzle-orm";
 import { notificationService } from "./notifications";
 
+// Additional types for joined queries
+type ContractItem = {
+  productName: string;
+  colorCode: string;
+  // Add other fields as needed
+};
+
+type OrderWithDealer = Omit<Order, 'paymentStatus' | 'overallRetailTotal' | 'overallDealTotal'> & { dealerName: string | null };
+
+type ProductWithCategory = Product & { category: Category | null };
+
+type AuditLogWithDisplay = {
+  id: string;
+  userId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  ipAddress: string;
+  timestamp: Date;
+  oldValues: unknown | null;
+  newValues: unknown | null;
+  changesDiff: unknown | null;
+  sessionId: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  orderNumber: string | null;
+  alertTitle: string | null;
+  dealerName: string | null;
+  materialName: string | null;
+  userDisplayName: string;
+  entityDisplayName: string | null;
+};
+
 export interface IStorage {
   // User management
   getUser(id: string): Promise<User | undefined>;
@@ -23,7 +56,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
-  updateUserRefreshTokens(id: string, tokens: any[]): Promise<void>;
+  updateUserRefreshTokens(id: string, tokens: string[]): Promise<void>;
 
   // Dealer management
   getAllDealers(limit?: number, offset?: number): Promise<{ items: Dealer[], total: number }>;
@@ -33,7 +66,7 @@ export interface IStorage {
   deleteDealer(id: string): Promise<boolean>;
 
   // Order management
-  getAllOrders(limit?: number, offset?: number): Promise<{ items: Order[], total: number }>;
+  getAllOrders(limit?: number, offset?: number): Promise<{ items: OrderWithDealer[], total: number }>;
   getOrderById(id: string): Promise<Order | undefined>;
   getOrdersByDealer(dealerId: string): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
@@ -78,7 +111,7 @@ export interface IStorage {
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: string): Promise<boolean>;
 
-  getAllProducts(): Promise<{ items: Product[], total: number }>;
+  getAllProducts(): Promise<{ items: ProductWithCategory[], total: number }>;
   getProductsByCategory(categoryId: string): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
@@ -114,7 +147,7 @@ export interface IStorage {
   // Application settings management
   getAllApplicationSettings(): Promise<ApplicationSetting[]>;
   createApplicationSetting(setting: InsertApplicationSetting): Promise<ApplicationSetting>;
-  updateApplicationSetting(key: string, value: any): Promise<ApplicationSetting | undefined>;
+  updateApplicationSetting(key: string, value: unknown): Promise<ApplicationSetting | undefined>;
 
   // Audit log management
   createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog>;
@@ -126,7 +159,7 @@ export interface IStorage {
     entityType?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ items: AuditLog[], total: number }>;
+  }): Promise<{ items: AuditLogWithDisplay[], total: number }>;
   purgeOldLogs(cutoffDate: Date): Promise<number>;
 }
 
@@ -154,7 +187,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserRefreshTokens(id: string, tokens: any[]): Promise<void> {
+  async updateUserRefreshTokens(id: string, tokens: string[]): Promise<void> {
     await db
       .update(users)
       .set({
@@ -237,7 +270,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Order methods
-  async getAllOrders(limit?: number, offset?: number): Promise<{ items: any[], total: number }> {
+  async getAllOrders(limit?: number, offset?: number): Promise<{ items: OrderWithDealer[], total: number }> {
     const query = db.select({
       id: orders.id,
       dealerId: orders.dealerId,
@@ -295,7 +328,7 @@ export class DatabaseStorage implements IStorage {
 
     // Update product-color usage counts
     if (insertOrder.contractItems && Array.isArray(insertOrder.contractItems)) {
-      for (const item of insertOrder.contractItems as any[]) {
+      for (const item of (insertOrder.contractItems as ContractItem[])) {
         if (item.productName && item.colorCode) {
           const [product] = await db.select().from(products).where(eq(products.name, item.productName));
           const [color] = await db.select().from(colors).where(eq(colors.name, item.colorCode));
@@ -547,7 +580,7 @@ export class DatabaseStorage implements IStorage {
     // Send notification for high-priority alerts
     if (insertAlert.priority === 'high') {
       // Run notification asynchronously to avoid blocking alert creation
-      setImmediate(async () => {
+      process.nextTick(async () => {
         try {
           await notificationService.notifyAdminsOfCriticalAlert(
             insertAlert.title,
@@ -650,7 +683,7 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
-  async getAllProducts(): Promise<{ items: any[], total: number }> {
+  async getAllProducts(): Promise<{ items: ProductWithCategory[], total: number }> {
     const items = await db.select({
       id: products.id,
       name: products.name,
@@ -925,7 +958,7 @@ export class DatabaseStorage implements IStorage {
     return setting;
   }
 
-  async updateApplicationSetting(key: string, value: any): Promise<ApplicationSetting> {
+  async updateApplicationSetting(key: string, value: unknown): Promise<ApplicationSetting> {
     // First try to update existing setting
     const [existingSetting] = await db
       .update(applicationSettings)
@@ -971,7 +1004,7 @@ export class DatabaseStorage implements IStorage {
     entityType?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ items: AuditLog[], total: number }> {
+  }): Promise<{ items: AuditLogWithDisplay[], total: number }> {
     // Build where conditions
     const whereConditions = [];
     if (filters?.dateFrom) {
@@ -997,12 +1030,64 @@ export class DatabaseStorage implements IStorage {
     const countResult = await countQuery;
     const total = countResult[0].count;
 
-    // Get items with pagination
-    const items = await (whereConditions.length > 0
-      ? db.select().from(auditLogs).where(and(...whereConditions)).orderBy(desc(auditLogs.timestamp)).limit(filters?.limit || 50).offset(filters?.offset || 0)
-      : db.select().from(auditLogs).orderBy(desc(auditLogs.timestamp)).limit(filters?.limit || 50).offset(filters?.offset || 0)
-    );
-    return { items, total };
+    // Get items with LEFT JOINs for display names
+    const baseQuery = db.select({
+      // Audit log fields
+      id: auditLogs.id,
+      userId: auditLogs.userId,
+      action: auditLogs.action,
+      entityType: auditLogs.entityType,
+      entityId: auditLogs.entityId,
+      ipAddress: auditLogs.ipAddress,
+      timestamp: auditLogs.timestamp,
+      oldValues: auditLogs.oldValues,
+      newValues: auditLogs.newValues,
+      changesDiff: auditLogs.changesDiff,
+      sessionId: auditLogs.sessionId,
+      // User display name (who performed the action)
+      userName: users.name,
+      userEmail: users.email,
+      // Entity display names based on entityType
+      orderNumber: orders.orderNumber,
+      alertTitle: alerts.title,
+      dealerName: dealers.name,
+      materialName: materials.name,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .leftJoin(orders, and(eq(auditLogs.entityType, 'order'), eq(auditLogs.entityId, orders.id)))
+    .leftJoin(alerts, and(eq(auditLogs.entityType, 'alert'), eq(auditLogs.entityId, alerts.id)))
+    .leftJoin(dealers, and(eq(auditLogs.entityType, 'dealer'), eq(auditLogs.entityId, dealers.id)))
+    .leftJoin(materials, and(eq(auditLogs.entityType, 'material'), eq(auditLogs.entityId, materials.id)))
+    .orderBy(desc(auditLogs.timestamp));
+
+    // Apply filters and pagination
+    const query = whereConditions.length > 0
+      ? baseQuery.where(and(...whereConditions)).limit(filters?.limit || 50).offset(filters?.offset || 0)
+      : baseQuery.limit(filters?.limit || 50).offset(filters?.offset || 0);
+
+    const items = await query;
+
+    // Transform items to include computed display names
+    const transformedItems = items.map(item => ({
+      ...item,
+      userDisplayName: item.userName || item.userEmail || 'System',
+      entityDisplayName: (() => {
+        switch (item.entityType) {
+          case 'order': return item.orderNumber || item.entityId;
+          case 'alert': return item.alertTitle || item.entityId;
+          case 'dealer': return item.dealerName || item.entityId;
+          case 'material': return item.materialName || item.entityId;
+          case 'user':
+            // For user entities, we need to fetch the user separately since we can't self-join
+            // For now, return the entityId - we'll handle this case in the frontend or with a separate query
+            return item.entityId;
+          default: return item.entityId || '-';
+        }
+      })(),
+    }));
+
+    return { items: transformedItems, total };
   }
 
   async purgeOldLogs(cutoffDate: Date): Promise<number> {
