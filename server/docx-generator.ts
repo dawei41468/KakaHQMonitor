@@ -54,7 +54,7 @@ interface ContractData {
   retailTotalAmount: number;
 }
 
-const DEFAULT_FONT = 'Microsoft YaHei';
+const DEFAULT_FONT = 'Noto Sans CJK SC';
 const PAGE_MARGIN_TWIPS = 540;
 const HEADER_FOOTER_MARGIN_TWIPS = 360;
 const DEFAULT_LINE_SPACING = 260;
