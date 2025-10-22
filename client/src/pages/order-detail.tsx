@@ -11,6 +11,12 @@ import { ArrowLeft, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Order, OrderAttachment } from "@shared/schema";
+
+interface OrderItem {
+  item: string;
+  quantity: number;
+}
 
 export default function OrderDetail() {
   const { t } = useTranslation();
@@ -25,8 +31,9 @@ export default function OrderDetail() {
     return today.toISOString().split('T')[0]; // YYYY-MM-DD format
   });
 
-  const { data: order, isLoading, error } = useQuery<any>({
+  const { data: order, isLoading, error } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
+    queryFn: () => apiRequest("GET", `/api/orders/${id}`).then(res => res.json()),
     enabled: !!id,
   });
 
@@ -35,8 +42,9 @@ export default function OrderDetail() {
     enabled: !!id && !!order,
   });
 
-  const { data: attachments = [] } = useQuery<any[]>({
+  const { data: attachments = [] } = useQuery<OrderAttachment[]>({
     queryKey: [`/api/orders/${id}/attachments`],
+    queryFn: () => apiRequest("GET", `/api/orders/${id}/attachments`).then(res => res.json()),
     enabled: !!id,
   });
 
@@ -82,6 +90,7 @@ export default function OrderDetail() {
   };
 
   const handleDownloadDocx = async () => {
+    if (!order) return;
     try {
       const response = await apiRequest("GET", `/api/orders/${id}/document`);
       const blob = await response.blob();
@@ -102,7 +111,7 @@ export default function OrderDetail() {
     }
   };
 
-  const handleDownloadAttachment = async (attachment: any) => {
+  const handleDownloadAttachment = async (attachment: OrderAttachment) => {
     try {
       const response = await apiRequest("GET", `/api/orders/${id}/attachments/${attachment.id}/download`);
       const blob = await response.blob();
@@ -117,7 +126,7 @@ export default function OrderDetail() {
     } catch (error) {
       toast({
         title: t('common.error'),
-        description: t('orders.downloadFailed'),
+        description: error instanceof Error ? error.message : t('orders.downloadFailed'),
         variant: 'destructive',
       });
     }
@@ -284,14 +293,14 @@ export default function OrderDetail() {
           </CardContent>
         </Card>
 
-        {order.items && order.items.length > 0 && (
+        {Array.isArray(order.items) && order.items.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>{t('orders.orderItems')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {order.items.map((item: any, index: number) => (
+                {Array.isArray(order.items) && (order.items as OrderItem[]).map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-2 border rounded">
                     <span>{item.item} x{item.quantity}</span>
                   </div>
@@ -308,7 +317,7 @@ export default function OrderDetail() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {attachments.map((attachment: any) => (
+                {attachments.map((attachment: OrderAttachment) => (
                   <div key={attachment.id} className="flex justify-between items-center p-2 border rounded">
                     <span>{attachment.fileName}</span>
                     <Button
@@ -336,6 +345,7 @@ export default function OrderDetail() {
               <iframe
                 src={`data:application/pdf;base64,${pdfPreview}`}
                 className="w-full h-[2000px] border"
+                allow="fullscreen"
                 title={t('createOrder.contractPreview')}
               />
             </CardContent>

@@ -730,7 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const buffer = Buffer.from(document.fileData, 'base64');
-      res.setHeader('Content-Type', document.mimeType);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
       res.send(buffer);
     } catch {
