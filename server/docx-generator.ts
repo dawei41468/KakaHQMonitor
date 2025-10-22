@@ -55,7 +55,7 @@ interface ContractData {
 }
 
 const DEFAULT_FONT = 'Noto Sans CJK SC';
-const PAGE_MARGIN_TWIPS = 540;
+const PAGE_MARGIN_TWIPS = 720;
 const HEADER_FOOTER_MARGIN_TWIPS = 360;
 const DEFAULT_LINE_SPACING = 260;
 const DEFAULT_PARAGRAPH_SPACING = { before: 20, after: 20 };
@@ -215,7 +215,7 @@ function createTableCell(text: string, options: TableCellConfig = {}): TableCell
 function createHeaderTable(contractData: ContractData): Table {
   const cellMargins = {
     marginUnitType: WidthType.DXA,
-    top: 80,
+    top: 40,
     bottom: 40,
     left: 80,
     right: 80,
@@ -248,7 +248,7 @@ function createHeaderTable(contractData: ContractData): Table {
                    }),
                  ],
                  alignment: AlignmentType.LEFT,
-                 spacing: { before: 120, after: 40 },
+                 spacing: { before: 40, after: 40 },
                }),
              ],
            }),
