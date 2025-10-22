@@ -68,8 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set refresh token as httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
+        secure: req.secure,
+        sameSite: req.secure ? 'lax' : false,
         maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
       });
 
@@ -127,8 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set new refresh token cookie
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : false,
+        secure: req.secure,
+        sameSite: req.secure ? 'lax' : false,
         maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
       });
 
@@ -844,7 +844,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const docxBuffer = await generateContractDOCX(contractData);
-      const pdfBuffer = await convertDocxToPdf(docxBuffer);
+      let pdfBuffer: Buffer;
+
+      try {
+        pdfBuffer = await convertDocxToPdf(docxBuffer);
+      } catch (pdfError) {
+        console.error('PDF conversion failed:', pdfError);
+        return res.status(500).json({ error: "PDF conversion failed. LibreOffice may not be installed or configured properly." });
+      }
 
       const base64PDF = pdfBuffer.toString('base64');
 
