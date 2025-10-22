@@ -215,7 +215,7 @@ function createTableCell(text: string, options: TableCellConfig = {}): TableCell
 function createHeaderTable(contractData: ContractData): Table {
   const cellMargins = {
     marginUnitType: WidthType.DXA,
-    top: 40,
+    top: 80,
     bottom: 40,
     left: 80,
     right: 80,
@@ -248,7 +248,7 @@ function createHeaderTable(contractData: ContractData): Table {
                    }),
                  ],
                  alignment: AlignmentType.LEFT,
-                 spacing: { before: 40, after: 40 },
+                 spacing: { before: 120, after: 40 },
                }),
              ],
            }),
