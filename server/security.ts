@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 // Rate limiting for auth endpoints
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 50, // Higher limit in development
+  max: process.env.NODE_ENV === 'production' ? 50 : 50, // Relaxed limit for internal company use
   message: { error: 'Too many authentication attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -14,7 +14,7 @@ export const authRateLimit = rateLimit({
 // General API rate limiting
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in development
+  max: process.env.NODE_ENV === 'production' ? 500 : 1000, // Relaxed limit for internal company use
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
