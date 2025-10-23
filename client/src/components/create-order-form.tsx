@@ -239,6 +239,10 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
+      // Invalidate the specific order query when editing
+      if (order) {
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${order.id}`] });
+      }
       handleDialogOpenChange(false);
       onOrderCreated();
     },
