@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { PDFPreview } from "./pdf-preview";
+import { ContractPreview } from "./pdf-preview";
 
 declare global {
   function alert(message: string): void;
@@ -73,6 +73,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   const [activeTab, setActiveTab] = React.useState("basic");
   const [docxPreview, setDocxPreview] = React.useState<string | null>(null);
   const [pdfPreview, setPdfPreview] = React.useState<string | null>(null);
+  const [htmlPreview, setHtmlPreview] = React.useState<string | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
 
   // Fetch dealers for buyer selection
@@ -221,6 +222,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     onSuccess: (data) => {
       setDocxPreview(data.docxData);
       setPdfPreview(data.pdfPreview);
+      setHtmlPreview(data.htmlPreview);
       setActiveTab("preview");
     },
   });
@@ -736,7 +738,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             {pdfPreview && (
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">{t('createOrder.contractPreview')}</h3>
-                <PDFPreview pdfBase64={pdfPreview} height={800} />
+                <ContractPreview htmlString={htmlPreview} pdfBase64={pdfPreview} height={800} />
               </div>
             )}
             {docxPreview && (
@@ -1111,7 +1113,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             {pdfPreview && (
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">{t('createOrder.contractPreview')}</h3>
-                <PDFPreview pdfBase64={pdfPreview} height={600} />
+                <ContractPreview htmlString={htmlPreview} pdfBase64={pdfPreview} height={600} />
               </div>
             )}
             {docxPreview && (

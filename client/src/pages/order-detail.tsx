@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Order, OrderAttachment } from "@shared/schema";
-import { PDFPreview } from "@/components/pdf-preview";
+import { ContractPreview } from "@/components/pdf-preview";
 
 interface OrderItem {
   item: string;
@@ -41,6 +41,12 @@ export default function OrderDetail() {
   const { data: pdfPreview } = useQuery<string>({
     queryKey: [`/api/orders/${id}/pdf-preview`],
     enabled: !!id && !!order,
+  });
+
+  const { data: htmlPreviewData } = useQuery({
+    queryKey: [`/api/orders/${id}/html-preview`],
+    enabled: !!id && !!order,
+    queryFn: () => apiRequest("GET", `/api/orders/${id}/html-preview`).then(res => res.json()),
   });
 
   const { data: attachments = [] } = useQuery<OrderAttachment[]>({
@@ -343,7 +349,7 @@ export default function OrderDetail() {
               <CardTitle>{t('createOrder.contractPreview')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <PDFPreview pdfBase64={pdfPreview} height={800} />
+              <ContractPreview htmlString={htmlPreviewData?.html} pdfBase64={pdfPreview} height={800} />
             </CardContent>
           </Card>
         )}

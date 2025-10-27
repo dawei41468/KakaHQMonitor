@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Document, Page } from 'react-pdf';
 
-interface PDFPreviewProps {
-  pdfBase64: string | null;
+interface ContractPreviewProps {
+  pdfBase64?: string | null;
+  htmlString?: string | null;
   height?: number;
 }
 
-export function PDFPreview({ pdfBase64, height = 800 }: PDFPreviewProps) {
+export function ContractPreview({ pdfBase64, htmlString, height = 500 }: ContractPreviewProps) {
   const [numPages, setNumPages] = useState<number>(0);
+  const shadowRef = useRef<any>(null);
 
-  if (!pdfBase64) {
+  useEffect(() => {
+    if (shadowRef.current && htmlString) {
+      const shadow = shadowRef.current.attachShadow({ mode: 'open' });
+      shadow.innerHTML = htmlString;
+      const style = document.createElement('style');
+      style.textContent = `
+        html {
+          transform: scale(0.8);
+          transform-origin: top left;
+        }
+      `;
+      shadow.appendChild(style);
+    }
+  }, [htmlString]);
+
+  if (!htmlString && !pdfBase64) {
     return <div className="text-muted-foreground">No preview available</div>;
+  }
+
+  // Prefer HTML if available
+  if (htmlString) {
+    return (
+      <div className={`w-full h-[${height}px] overflow-auto border p-0`}>
+        <div ref={shadowRef} />
+      </div>
+    );
+  }
+
+  // Fallback to PDF
+  if (!pdfBase64) {
+    return <div className="text-muted-foreground">No PDF available</div>;
   }
 
   const pdfData = (() => {

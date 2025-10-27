@@ -16,7 +16,7 @@ import {
   comparePassword
 } from "./auth";
 import { loginSchema, insertUserSchema, insertDealerSchema, insertOrderSchema, updateOrderSchema, insertMaterialSchema, insertAlertSchema, insertCategorySchema, insertProductSchema, insertColorSchema, insertRegionSchema, insertProductDetailSchema, insertColorTypeSchema, insertUnitSchema, insertOrderAttachmentSchema, insertApplicationSettingSchema } from "@shared/schema";
-import { generateContractDOCX } from "./docx-generator";
+import { generateContractDOCX, generateContractHTML } from "./docx-generator";
 import { convertDocxToPdf } from "./pdf-generator";
 
 // Contract item interface for type safety
@@ -862,6 +862,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/orders/:id/html-preview", async (req, res) => {
+    try {
+      const order = await storage.getOrderById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Construct contract data from order (same as PDF preview)
+      const contractData = {
+        contractNumber: order.orderNumber,
+        projectName: order.projectName || '',
+        signingDate: order.signingDate || new Date(),
+        designer: order.designer || '',
+        salesRep: order.salesRep || '',
+        estimatedDelivery: order.estimatedDelivery || new Date(),
+        buyerCompanyName: order.buyerCompanyName || '',
+        buyerAddress: order.buyerAddress || undefined,
+        buyerPhone: order.buyerPhone || undefined,
+        buyerTaxNumber: order.buyerTaxNumber || undefined,
+        items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as OrderItem[]).map((item: OrderItem) => ({
+          ...item,
+          productName: item.item,
+          quantity: item.quantity,
+          unit: '个', // default
+          dealPrice: 0, // not available
+          dealTotal: 0,
+          retailPrice: 0,
+          retailTotal: 0,
+          colorType: '',
+          colorCode: '',
+          specification: '',
+          productDetail: '',
+          region: '',
+          category: '',
+          remarks: ''
+        })) : []),
+        totalAmount: Number(order.totalValue),
+        retailTotalAmount: order.contractItems ? (order.contractItems as ContractItem[]).reduce((sum: number, item: ContractItem) => sum + (item.retailTotal || 0), 0) : 0
+      };
+
+      const html = generateContractHTML(contractData);
+      res.json({ html });
+    } catch (error) {
+      console.error('HTML preview generation error:', error);
+      res.status(500).json({ error: "Failed to generate HTML preview" });
+    }
+  });
+
   app.post("/api/orders/preview", async (req, res) => {
     try {
       console.log('Preview request received');
@@ -882,6 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docxBuffer = await generateContractDOCX(contractData);
       const pdfBuffer = await convertDocxToPdf(docxBuffer);
+      const html = generateContractHTML(contractData);
 
       const base64DOCX = docxBuffer.toString('base64');
       const base64PDF = pdfBuffer.toString('base64');
@@ -889,6 +938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         docxData: base64DOCX,
         pdfPreview: base64PDF,
+        htmlPreview: html,
         fileName: `${contractData.contractNumber}_contract.docx`
       });
     } catch (error) {

@@ -651,3 +651,233 @@ export function generateContractDOCX(contractData: ContractData): Promise<Buffer
     }
   });
 }
+
+// HTML generation for preview
+function generateHeaderHTML(contractData: ContractData): string {
+  const logoPath = path.join(docxDir, 'server', 'images', 'agio_kaka_logo.png');
+  const logoBuffer = fs.readFileSync(logoPath);
+  const logoBase64 = logoBuffer.toString('base64');
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; border: none;">
+      <tr>
+        <td style="width: 20%; padding: 0.5in 0.1in 0.5in 0.1in; border: none; vertical-align: top;">
+          <img src="data:image/png;base64,${logoBase64}" alt="Logo" style="width: 100px; height: 65px;" />
+        </td>
+        <td style="width: 50%; padding: 0.5in 0.1in; border: none; text-align: right; vertical-align: middle;">
+          <p style="margin: 0.2in 0; font-size: 18pt; font-weight: bold; font-family: '${DEFAULT_FONT}', sans-serif;">agio咖咖时光阳台花园项目经销合同</p>
+        </td>
+        <td style="width: 30%; padding: 0.5in 0.1in; border: none; text-align: right; vertical-align: top;">
+          <p style="margin: 0.2in 0; font-size: 12pt; font-family: '${DEFAULT_FONT}', sans-serif;">合同编号：${contractData.contractNumber}</p>
+          <p style="margin: 0.2in 0; font-size: 12pt; font-family: '${DEFAULT_FONT}', sans-serif;">签订日期：${formatDate(contractData.signingDate)}</p>
+          <p style="margin: 0.2in 0; font-size: 12pt; font-family: '${DEFAULT_FONT}', sans-serif;">预计发货日期：${formatDate(contractData.estimatedDelivery)}</p>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function generateSummaryHTML(contractData: ContractData): string {
+  return `
+    <table style="width: 100%; border-collapse: collapse; border: none; margin: 0.4in 0;">
+      <tr>
+        <td style="width: 33%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>项目名称：</strong>${contractData.projectName || '-'}
+        </td>
+        <td style="width: 33%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>甲方：</strong>${contractData.buyerCompanyName || '-'}
+        </td>
+        <td style="width: 34%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>乙方：</strong>佛山市顺德区西山家居科技有限公司
+        </td>
+      </tr>
+      <tr>
+        <td style="width: 33%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>设计师：</strong>${contractData.designer || '-'}
+        </td>
+        <td style="width: 33%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>业务代表：</strong>${contractData.salesRep || '-'}
+        </td>
+        <td style="width: 34%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
+          <strong>统一社会信用代码：</strong>914406060621766268
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function generateItemsTableHTML(contractData: ContractData): string {
+  const headerCells = [
+    '区域', '分项', '产品名称或编号', '产品细分', '产品规格', '颜色', '数量', '单位',
+    '零售单价', '零售总价', '成交单价', '成交金额 (RMB)', '备注'
+  ];
+  const widths = [510, 510, 2000, 510, 1098, 693, 510, 510, 838, 838, 838, 984, 620]; // Approximate percentages based on twips
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; margin: 0.4in 0; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 11pt; table-layout: fixed;">
+      <thead>
+        <tr style="background-color: #f2f2f2; text-align: center; font-weight: bold;">
+  `;
+
+  headerCells.forEach((cell, index) => {
+    const widthPercent = (widths[index] / 10459 * 100).toFixed(1) + '%';
+    html += `<th style="border: 1px solid #000; padding: 0.1in; width: ${widthPercent};">${cell}</th>`;
+  });
+
+  html += '</tr></thead><tbody>';
+
+  contractData.items.forEach((item) => {
+    html += `
+      <tr>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.region || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.category || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.productName || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.productDetail || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.specification || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.color || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right;">${item.quantity || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: center;">${item.unit || ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right;">${item.retailPrice ? formatCurrency(item.retailPrice) : ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right;">${item.retailTotal ? formatCurrency(item.retailTotal) : ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right;">${item.dealPrice ? formatCurrency(item.dealPrice) : ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right;">${item.dealTotal ? formatCurrency(item.dealTotal) : ''}</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: left;">${item.remarks || ''}</td>
+      </tr>
+    `;
+  });
+
+  // Total row
+  html += `
+      <tr>
+        <td colspan="11" style="border: 1px solid #000; padding: 0.1in; text-align: right; font-weight: bold;">合计 Total</td>
+        <td style="border: 1px solid #000; padding: 0.1in; text-align: right; font-weight: bold;">${formatCurrency(contractData.totalAmount)}</td>
+        <td style="border: 1px solid #000; padding: 0.1in;"></td>
+      </tr>
+    </tbody>
+    </table>
+  `;
+
+  return html;
+}
+
+function generateRemarksHTML(): string {
+  const remarks = [
+    '1、本合同订购单内价格含税，不含安装。',
+    '2、货款支付：客户确图后签订正式销售合同，本合同签订之日起2日内，客户需要按照货款总金额100%支付到公司收款账号。',
+    '3、运输方式和费用：物流或者专车配送；费用由甲方承担。',
+    '4、质量保证：产品在符合Agio的标准安装且正常使用情况下，产品保质期为：（   ）年，自甲方签收之日起算。',
+    '5、材料规格说明：',
+    '   a. 材料本身可能因生产批次不同而有色调的些许差异，此为正常现象，买方不得以此要求退货。',
+    '   b. 板材出厂时已完成表面砂磨和上漆处理。',
+    '   c. 因材料特性在温度变化下而产生尺寸膨胀收缩的变化，此属自然现象，买方不得以此要求退货。',
+    '6、提出异议的时间和方法：',
+    '   * 买方在验收中，如发现货物及质量不合规定或约定，应在妥善保管货物的同时，自收到货物后3日内向卖方口头提出（需聊天记录+图片佐证）或书面异议，并提供图片/视频证据。',
+    '   * 买方逾期未提出异议，则视为货物合乎规定。',
+    '   * 买方因使用、保管、保养不善等造成产品质量问题者，不得提出异议。',
+    '   * 乙方在收到甲方提出的异议之后，应在3个工作日内安排工作人员协商处理。',
+    '7、争议的解决：本合同适用于中华人民共和国法律。甲乙双方均同意，在本合同履行过程中产生的任何争议，双方本着友好协商的原则进行解决；如协商仍无法解决，任何一方均有权将争议提交卖方所在地人民法院诉讼解决。',
+    '8、扫描件与原件具有同等法律效力。',
+  ];
+
+  let html = '<div style="margin: 0.4in 0; font-family: \'' + DEFAULT_FONT + '\', sans-serif; font-size: 11pt; line-height: 1.2;">';
+  remarks.forEach((remark) => {
+    html += `<p style="margin: 0.1in 0;">${remark}</p>`;
+  });
+  html += '</div>';
+
+  return html;
+}
+
+function generateSignatureHTML(contractData: ContractData): string {
+  let buyerInfo = '<strong>[甲方开票信息]</strong><br/>公司名称：' + contractData.buyerCompanyName + '<br/>';
+  if (contractData.buyerTaxNumber) buyerInfo += '税号：' + contractData.buyerTaxNumber + '<br/>';
+  if (contractData.buyerAddress) buyerInfo += '地址：' + contractData.buyerAddress + '<br/>';
+  if (contractData.buyerPhone) buyerInfo += '电话：' + contractData.buyerPhone + '<br/>';
+
+  const sellerInfo = '<strong>[乙方银行账户信息]</strong><br/>公司名称 Company：佛山市顺德区西山家居科技有限公司<br/>统一社会信用代码：914406060621766268<br/>开户银行 Bank：中国工商银行股份有限公司北滘支行<br/>帐号 Account：2013013919201297869<br/>地址：广东省佛山市顺德区北滘镇工业大道35号<br/>电话：0757-26322737';
+
+  return `
+    <table style="width: 7in; border-collapse: collapse; border: none; margin: 1.2in 0; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 11pt;">
+      <tr>
+        <td style="width: 50%; padding: 0.1in; border: none; vertical-align: top;">
+          <p style="margin: 0.1in 0; font-weight: bold;">甲方（买方）：</p>
+          <p style="margin: 0.1in 0;">签章：</p>
+          <p style="margin: 0.1in 0;">日期：</p>
+          <div style="margin-top: 0.2in;">${buyerInfo}</div>
+        </td>
+        <td style="width: 50%; padding: 0.1in; border: none; vertical-align: top;">
+          <p style="margin: 0.1in 0; font-weight: bold;">乙方（供货方）：佛山市顺德区西山家居科技有限公司</p>
+          <p style="margin: 0.1in 0;">签章：</p>
+          <p style="margin: 0.1in 0;">日期：</p>
+          <div style="margin-top: 0.2in;">${sellerInfo}</div>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+export function generateContractHTML(contractData: ContractData): string {
+  const logoPath = path.join(docxDir, 'server', 'images', 'agio_kaka_logo.png');
+  const logoBuffer = fs.readFileSync(logoPath);
+  const logoBase64 = logoBuffer.toString('base64');
+
+  const introText = '根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守';
+
+  const chineseTotal = numberToChinese(contractData.totalAmount);
+
+  return `
+    <!DOCTYPE html>
+    <html lang="zh">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Contract Preview</title>
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          font-family: 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+          font-size: 11pt;
+          line-height: 1.2;
+          margin: 0;
+          padding: 25.4mm;
+          width: 210mm;
+          max-width: 210mm;
+          background: white;
+        }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #000; padding: 2.54mm; vertical-align: top; }
+        th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+        .bold { font-weight: bold; }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .left { text-align: left; }
+        .no-border { border: none !important; }
+        .header-table td { border: none; }
+        .summary-table td { border: none; }
+        .signature-table td { border: none; vertical-align: top; }
+        .intro { margin: 10.16mm 0; text-align: justify; text-indent: 2em; }
+        .total { margin: 15.24mm 0; font-weight: bold; text-align: left; }
+        .remarks { margin: 10.16mm 0; }
+        .remarks p { margin: 2.54mm 0; text-indent: 2em; }
+        .batch-note { margin: 10.16mm 0; font-weight: bold; }
+        .signature { margin: 30.48mm 0; }
+        @media print { body { padding: 0; margin: 0; width: 210mm; height: 297mm; } }
+        @page { size: A4; margin: 25.4mm; }
+      </style>
+    </head>
+    <body>
+      ${generateHeaderHTML(contractData)}
+      <div style="height: 5.08mm;"></div>
+      ${generateSummaryHTML(contractData)}
+      <div style="height: 10.16mm;"></div>
+      <p class="intro">${introText}</p>
+      ${generateItemsTableHTML(contractData)}
+      <p class="total">（大写）人民币 ${chineseTotal}</p>
+      <p class="batch-note">批注 Remark：</p>
+      ${generateRemarksHTML()}
+      <div style="height: 30.48mm;"></div>
+      ${generateSignatureHTML(contractData)}
+    </body>
+    </html>
+  `;
+}
