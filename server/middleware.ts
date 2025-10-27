@@ -3,7 +3,7 @@ import { verifyAccessToken, extractTokenFromHeader, type JWTPayload } from './au
 import { storage } from './storage';
 import { auditLogger, getClientIP } from './logger';
 import { insertAuditLogSchema } from '@shared/schema';
-import * as diff from 'deep-diff';
+import diff from 'deep-diff';
 
 declare global {
   namespace Express {
@@ -49,8 +49,8 @@ export async function logAuditEvent(
   action: string,
   entityType: string,
   entityId?: string,
-  oldValues?: any,
-  newValues?: any
+  oldValues?: Record<string, unknown>,
+  newValues?: Record<string, unknown>
 ) {
   try {
     const userId = req.user?.userId;
@@ -60,7 +60,7 @@ export async function logAuditEvent(
     // Compute diff if both old and new values provided
     let changesDiff = null;
     if (oldValues && newValues) {
-      const differences = diff.diff(oldValues, newValues);
+      const differences = diff(oldValues, newValues);
       if (differences) {
         changesDiff = differences;
       }

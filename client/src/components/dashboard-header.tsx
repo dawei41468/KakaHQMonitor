@@ -15,12 +15,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ThemeToggle } from "./theme-toggle"
 import { LanguageToggle } from "./language-toggle"
 import { useAuth } from "@/lib/auth"
 import { useSettings } from "@/lib/settings"
 import { useLocation } from "wouter"
 import { useTranslation } from "react-i18next"
+import * as React from "react"
 
 interface DashboardHeaderProps {
   userName?: string
@@ -40,6 +47,7 @@ export function DashboardHeader({
   const [, navigate] = useLocation();
   const userName = user?.name || t('header.adminUser');
   const userRole = user?.role === 'admin' ? t('header.administrator') : t('header.hqTeam');
+  const [andrewOpen, setAndrewOpen] = React.useState(false);
 
   // Helper function to check button visibility
   const isButtonVisible = (buttonKey: string) => {
@@ -79,6 +87,13 @@ export function DashboardHeader({
               <span>{t('nav.inventory')}</span>
             </Button>
           )}
+          <Button
+            variant="ghost"
+            onClick={() => setAndrewOpen(true)}
+            className="flex items-center space-x-2"
+          >
+            <span>Andrew</span>
+          </Button>
         </nav>
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
@@ -166,6 +181,15 @@ export function DashboardHeader({
           </div>
         </div>
       </div>
+
+      <Dialog open={andrewOpen} onOpenChange={setAndrewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Andrew</DialogTitle>
+          </DialogHeader>
+          <p>Andrew is Great!</p>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }

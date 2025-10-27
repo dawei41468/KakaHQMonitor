@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Order, OrderAttachment } from "@shared/schema";
+import { PDFPreview } from "@/components/pdf-preview";
 
 interface OrderItem {
   item: string;
@@ -342,12 +343,7 @@ export default function OrderDetail() {
               <CardTitle>{t('createOrder.contractPreview')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <iframe
-                src={`data:application/pdf;base64,${pdfPreview}`}
-                className="w-full h-[2000px] border"
-                allow="fullscreen"
-                title={t('createOrder.contractPreview')}
-              />
+              <PDFPreview pdfBase64={pdfPreview} height={800} />
             </CardContent>
           </Card>
         )}

@@ -17,6 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { PDFPreview } from "./pdf-preview";
+
+declare global {
+  function alert(message: string): void;
+}
 
 interface ContractItem {
   region: string;
@@ -731,11 +736,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             {pdfPreview && (
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">{t('createOrder.contractPreview')}</h3>
-                <iframe
-                  src={`data:application/pdf;base64,${pdfPreview}`}
-                  className="w-full h-[80vh] border"
-                  title={t('createOrder.contractPreview')}
-                />
+                <PDFPreview pdfBase64={pdfPreview} height={800} />
               </div>
             )}
             {docxPreview && (
@@ -1110,11 +1111,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             {pdfPreview && (
               <div className="border rounded p-4">
                 <h3 className="font-semibold mb-2">{t('createOrder.contractPreview')}</h3>
-                <iframe
-                  src={`data:application/pdf;base64,${pdfPreview}`}
-                  className="w-full h-[80vh] border"
-                  title={t('createOrder.contractPreview')}
-                />
+                <PDFPreview pdfBase64={pdfPreview} height={600} />
               </div>
             )}
             {docxPreview && (
