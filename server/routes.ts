@@ -724,17 +724,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/orders/:id/document", async (req, res) => {
     try {
-      const document = await storage.getOrderDocument(req.params.id);
+      let document = await storage.getOrderDocument(req.params.id);
+      
+      if (!document) {
+        // Generate document if it doesn't exist
+        const order = await storage.getOrderById(req.params.id);
+        if (!order) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Construct contract data from order (same logic as PDF preview)
+        const contractData = {
+          contractNumber: order.orderNumber,
+          projectName: order.projectName || '',
+          signingDate: order.signingDate || new Date(),
+          designer: order.designer || '',
+          salesRep: order.salesRep || '',
+          estimatedDelivery: order.estimatedDelivery || new Date(),
+          buyerCompanyName: order.buyerCompanyName || '',
+          buyerAddress: order.buyerAddress || undefined,
+          buyerPhone: order.buyerPhone || undefined,
+          buyerTaxNumber: order.buyerTaxNumber || undefined,
+          items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as OrderItem[]).map((item: OrderItem) => ({
+            ...item,
+            productName: item.item,
+            quantity: item.quantity,
+            unit: '个', // default
+            dealPrice: 0, // not available
+            dealTotal: 0,
+            retailPrice: 0,
+            retailTotal: 0,
+            colorType: '',
+            colorCode: '',
+            specification: '',
+            productDetail: '',
+            region: '',
+            category: '',
+            remarks: ''
+          })) : []),
+          totalAmount: Number(order.totalValue),
+          retailTotalAmount: order.contractItems ? (order.contractItems as ContractItem[]).reduce((sum: number, item: ContractItem) => sum + (item.retailTotal || 0), 0) : 0
+        };
+
+        const docxBuffer = await generateContractDOCX(contractData);
+        const base64DOCX = docxBuffer.toString('base64');
+
+        // Store the generated document
+        await storage.createOrderDocument({
+          orderId: order.id,
+          documentType: 'contract',
+          fileName: `${order.orderNumber}_contract.docx`,
+          fileData: base64DOCX,
+          fileSize: docxBuffer.length,
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+
+        // Refresh document from storage
+        document = await storage.getOrderDocument(req.params.id);
+      }
+
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
 
       const buffer = Buffer.from(document.fileData, 'base64');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(document.fileName)}`);
       res.send(buffer);
-    } catch {
-      res.status(500).json({ error: "Failed to retrieve document" });
+    } catch (error) {
+      console.error('Document retrieval/generation error:', error);
+      res.status(500).json({ error: "Failed to retrieve or generate document" });
     }
   });
 
@@ -882,20 +941,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buyerPhone: order.buyerPhone || undefined,
         buyerTaxNumber: order.buyerTaxNumber || undefined,
         items: (order.contractItems && Array.isArray(order.contractItems) && order.contractItems.length > 0) ? order.contractItems : (Array.isArray(order.items) ? (order.items as OrderItem[]).map((item: OrderItem) => ({
-          ...item,
-          productName: item.item,
-          quantity: item.quantity,
-          unit: '个', // default
-          dealPrice: 0, // not available
-          dealTotal: 0,
-          retailPrice: 0,
-          retailTotal: 0,
-          colorType: '',
-          colorCode: '',
-          specification: '',
-          productDetail: '',
           region: '',
           category: '',
+          productName: item.item,
+          productDetail: '',
+          specification: '',
+          color: '',
+          quantity: item.quantity,
+          unit: '个', // default
+          retailPrice: 0,
+          retailTotal: 0,
+          dealPrice: 0,
+          dealTotal: 0,
           remarks: ''
         })) : []),
         totalAmount: Number(order.totalValue),
