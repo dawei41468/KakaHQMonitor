@@ -40,7 +40,8 @@
     "comingSoon": "即将推出",
     "pickADate": "选择日期",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "download": "下载"
   },
   "login": {
     "welcomeBack": "欢迎回来",
@@ -163,7 +164,10 @@
     "confirmDeliveryDescription": "请选择此订单实际交付的日期。",
     "deliveryDate": "交付日期",
     "confirmDelivery": "确认交付",
-    "actualDeliveryDate": "实际交付日期"
+    "actualDeliveryDate": "实际交付日期",
+    "attachments": "附件",
+    "confirmDeleteAttachment": "删除附件",
+    "confirmDeleteAttachmentDescription": "您确定要删除此附件吗？此操作无法撤销。"
   },
   "profile": {
     "backToDashboard": "返回仪表板",

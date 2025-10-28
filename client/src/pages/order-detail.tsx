@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Order, OrderAttachment } from "@shared/schema";
 import { ContractPreview } from "@/components/pdf-preview";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface OrderItem {
   item: string;
@@ -31,6 +32,7 @@ export default function OrderDetail() {
     const today = new Date();
     return today.toISOString().split('T')[0]; // YYYY-MM-DD format
   });
+  const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null);
 
   const { data: order, isLoading, error } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -130,6 +132,53 @@ export default function OrderDetail() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('orders.downloadFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: string) => {
+      const response = await apiRequest("DELETE", `/api/orders/${id}/attachments/${attachmentId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/attachments`] });
+      toast({
+        title: t('common.success'),
+        description: t('orders.attachmentDeleted'),
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('orders.attachmentDeleteFailed'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setAttachmentToDelete(attachmentId);
+  };
+
+  const confirmDeleteAttachment = () => {
+    if (attachmentToDelete) {
+      deleteAttachmentMutation.mutate(attachmentToDelete);
+      setAttachmentToDelete(null);
+    }
+  };
+
+  const handleViewAttachment = async (attachment: OrderAttachment) => {
+    try {
+      const response = await apiRequest("GET", `/api/orders/${id}/attachments/${attachment.id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
     } catch (error) {
       toast({
         title: t('common.error'),
@@ -320,22 +369,68 @@ export default function OrderDetail() {
         {attachments.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Attachments</CardTitle>
+              <CardTitle>{t('orders.attachments')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {attachments.map((attachment: OrderAttachment) => (
                   <div key={attachment.id} className="flex justify-between items-center p-2 border rounded">
-                    <span>{attachment.fileName}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadAttachment(attachment)}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{attachment.fileName}</span>
+                      <span className="text-sm text-gray-500">
+                        {(attachment.fileSize / 1024).toFixed(1)} KB • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewAttachment(attachment)}
+                        className="flex items-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {t('common.view')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadAttachment(attachment)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        {t('common.download')}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={deleteAttachmentMutation.isPending}
+                            className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {t('common.delete')}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('orders.confirmDeleteAttachment')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('orders.confirmDeleteAttachmentDescription')}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteAttachment(attachment.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {t('common.delete')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 ))}
               </div>

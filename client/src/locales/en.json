@@ -40,7 +40,8 @@
     "comingSoon": "Coming Soon",
     "pickADate": "Pick a date",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "download": "Download"
   },
   "login": {
     "welcomeBack": "Welcome Back",
@@ -163,7 +164,10 @@
     "confirmDeliveryDescription": "Please select the actual date when this order was delivered.",
     "deliveryDate": "Delivery Date",
     "confirmDelivery": "Confirm Delivery",
-    "actualDeliveryDate": "Actual Delivery Date"
+    "actualDeliveryDate": "Actual Delivery Date",
+    "attachments": "Attachments",
+    "confirmDeleteAttachment": "Delete Attachment",
+    "confirmDeleteAttachmentDescription": "Are you sure you want to delete this attachment? This action cannot be undone."
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",

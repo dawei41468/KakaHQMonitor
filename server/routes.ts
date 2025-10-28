@@ -835,11 +835,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Attachment not found" });
       }
 
-      const buffer = Buffer.from(attachment.fileData, 'base64');
+      // Validate that fileData exists and is a string
+      if (!attachment.fileData || typeof attachment.fileData !== 'string') {
+        console.error('Invalid attachment fileData:', {
+          attachmentId: attachment.id,
+          fileDataType: typeof attachment.fileData,
+          fileDataLength: attachment.fileData?.length
+        });
+        return res.status(500).json({ error: "Attachment data is corrupted" });
+      }
+
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(attachment.fileData, 'base64');
+      } catch (decodeError) {
+        console.error('Base64 decode error for attachment:', {
+          attachmentId: attachment.id,
+          fileName: attachment.fileName,
+          error: decodeError instanceof Error ? decodeError.message : String(decodeError),
+          fileDataPreview: attachment.fileData.substring(0, 100) + '...'
+        });
+        return res.status(500).json({ error: "Attachment data is corrupted (invalid base64)" });
+      }
+
       res.setHeader('Content-Type', attachment.mimeType);
-      res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+      // Properly encode filename for Content-Disposition header (RFC 6266)
+      const encodedFilename = encodeURIComponent(attachment.fileName);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
       res.send(buffer);
-    } catch {
+    } catch (error) {
+      console.error('Attachment download error:', {
+        attachmentId: req.params.attachmentId,
+        orderId: req.params.orderId,
+        error: error instanceof Error ? error.message : String(error)
+      });
       res.status(500).json({ error: "Failed to retrieve attachment" });
     }
   });

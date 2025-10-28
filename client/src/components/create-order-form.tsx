@@ -18,6 +18,10 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { ContractPreview } from "./pdf-preview";
+import { Eye, Download, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { OrderAttachment } from "@shared/schema";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 declare global {
   function alert(message: string): void;
@@ -117,6 +121,13 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     queryFn: () => apiRequest('GET', '/api/units').then(res => res.json()),
   });
 
+  // Fetch existing attachments when editing an order
+  const { data: existingAttachments = [] } = useQuery<OrderAttachment[]>({
+    queryKey: [`/api/orders/${order?.id}/attachments`],
+    queryFn: () => apiRequest("GET", `/api/orders/${order?.id}/attachments`).then(res => res.json()),
+    enabled: !!order?.id,
+  });
+
   // Basic info state
   const [orderNumber, setOrderNumber] = React.useState("");
   const [projectName, setProjectName] = React.useState("");
@@ -137,6 +148,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
 
   // Attachments state
   const [attachments, setAttachments] = React.useState<File[]>([]);
+  const [isUploadingAttachments, setIsUploadingAttachments] = React.useState(false);
 
   const resetForm = React.useCallback(() => {
     setOrderNumber("");
@@ -234,7 +246,40 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       const response = await apiRequest(method, url, orderData);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      const orderId = order ? order.id : data.id;
+
+      // Upload attachments after order creation/update
+      if (attachments.length > 0) {
+        setIsUploadingAttachments(true);
+        try {
+          for (const file of attachments) {
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+            const base64Content = base64Data.split(',')[1];
+
+            await apiRequest("POST", `/api/orders/${orderId}/attachments`, {
+              fileName: file.name,
+              fileData: base64Content,
+              mimeType: file.type || 'application/pdf',
+              fileSize: file.size
+            });
+          }
+        } catch (error) {
+          console.error('Failed to upload attachments:', error);
+          // Show warning but don't fail the order creation
+          alert('Order created successfully, but some attachments failed to upload. You can try uploading them again from the order details page.');
+        } finally {
+          setIsUploadingAttachments(false);
+        }
+      }
+
       // Download DOCX if available and creating new order
       if (!order && data.docxData) {
         const link = document.createElement('a');
@@ -249,6 +294,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       // Invalidate the specific order query when editing
       if (order) {
         queryClient.invalidateQueries({ queryKey: [`/api/orders/${order.id}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${order.id}/attachments`] });
       }
       handleDialogOpenChange(false);
       onOrderCreated();
@@ -398,6 +444,88 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     setContractItems(contractItems.filter((_, i) => i !== index));
   };
 
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  const { toast } = useToast();
+
+  const handleViewAttachment = async (attachment: OrderAttachment) => {
+    try {
+      const response = await apiRequest("GET", `/api/orders/${order?.id}/attachments/${attachment.id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('orders.downloadFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: OrderAttachment) => {
+    try {
+      const response = await apiRequest("GET", `/api/orders/${order?.id}/attachments/${attachment.id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('orders.downloadFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: string) => {
+      const response = await apiRequest("DELETE", `/api/orders/${order?.id}/attachments/${attachmentId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${order?.id}/attachments`] });
+      toast({
+        title: t('common.success'),
+        description: t('orders.attachmentDeleted'),
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('orders.attachmentDeleteFailed'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    deleteAttachmentMutation.mutate(attachmentId);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+
+    const validFiles = files.filter(file => {
+      if (file.size > maxFileSize) {
+        alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setAttachments([...attachments, ...validFiles]);
+  };
+
   if (isDialog) {
     return (
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
@@ -513,6 +641,70 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                   accept=".pdf"
                   onFilesChange={setAttachments}
                 />
+                {order && existingAttachments.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium">{t('orders.attachments')}</Label>
+                    <div className="mt-2 space-y-2">
+                      {existingAttachments.map((attachment: OrderAttachment) => (
+                        <div key={attachment.id} className="flex justify-between items-center p-2 border rounded">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{attachment.fileName}</span>
+                            <span className="text-sm text-gray-500">
+                              {(attachment.fileSize / 1024).toFixed(1)} KB • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewAttachment(attachment)}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              {t('common.view')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadAttachment(attachment)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              {t('common.download')}
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={deleteAttachmentMutation.isPending}
+                                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t('common.delete')}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('orders.deleteAttachment')}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t('orders.confirmDeleteAttachment')}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAttachment(attachment.id)}>
+                                    {t('common.delete')}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -762,8 +954,13 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
               <Button variant="outline" onClick={() => setActiveTab("items")}>
                 {t('createOrder.backToEdit')}
               </Button>
-              <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
-                {submitMutation.isPending ? (order ? t('createOrder.updatingOrder') : t('createOrder.creatingOrder')) : (order ? t('createOrder.saveChanges') : t('createOrder.createOrderDownload'))}
+              <Button onClick={handleSubmit} disabled={submitMutation.isPending || isUploadingAttachments}>
+                {submitMutation.isPending
+                  ? (order ? t('createOrder.updatingOrder') : t('createOrder.creatingOrder'))
+                  : isUploadingAttachments
+                    ? t('createOrder.uploadingAttachments')
+                    : (order ? t('createOrder.saveChanges') : t('createOrder.createOrderDownload'))
+                }
               </Button>
             </DialogFooter>
           </TabsContent>
@@ -873,20 +1070,75 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                   id="attachments"
                   type="file"
                   multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.dwg"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setAttachments(files);
-                  }}
+                  accept=".pdf"
+                  onChange={handleFileChange}
                 />
                 {attachments.length > 0 && (
                   <div className="mt-2">
                     <p>{t('createOrder.selectedFiles')}</p>
-                    <ul>
+                    <ul className="space-y-1">
                       {attachments.map((file, index) => (
-                        <li key={index}>{file.name}</li>
+                        <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <span className="text-sm">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAttachment(index)}
+                            className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                          >
+                            ×
+                          </Button>
+                        </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+                {order && existingAttachments.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium">{t('orders.attachments')}</Label>
+                    <div className="mt-2 space-y-2">
+                      {existingAttachments.map((attachment: OrderAttachment) => (
+                        <div key={attachment.id} className="flex justify-between items-center p-2 border rounded">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{attachment.fileName}</span>
+                            <span className="text-sm text-gray-500">
+                              {(attachment.fileSize / 1024).toFixed(1)} KB • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewAttachment(attachment)}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              {t('common.view')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadAttachment(attachment)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              {t('common.download')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteAttachment(attachment.id)}
+                              disabled={deleteAttachmentMutation.isPending}
+                              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              {t('common.delete')}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
