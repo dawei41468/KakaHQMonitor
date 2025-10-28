@@ -327,7 +327,7 @@ function createSummaryParagraphs(contractData: ContractData): (Paragraph | Table
         children: [
           createLabelValueCell('项目名称：', contractData.projectName || '-'),
           createLabelValueCell('甲方：', contractData.buyerCompanyName || '-'),
-          createLabelValueCell('乙方：', '佛山市顺德区西山家居科技有限公司'),
+          createLabelValueCell('乙方：', '佛山市顺德区锡山家居科技有限公司'),
         ],
       }),
       new TableRow({
@@ -494,7 +494,7 @@ function createSignatureTable(contractData: ContractData): Table {
             margins: DEFAULT_CELL_MARGINS,
             borders: NO_TABLE_BORDERS,
             children: [
-              createParagraph('乙方（供货方）：佛山市顺德区西山家居科技有限公司', {
+              createParagraph('乙方（供货方）：佛山市顺德区锡山家居科技有限公司', {
                 run: { bold: true },
                 spacing: { before: 10, after: 5 },
               }),
@@ -572,7 +572,7 @@ function createBuyerInfoParagraphs(contractData: ContractData): Paragraph[] {
 function createSellerInfoParagraphs(): Paragraph[] {
   return [
     createParagraph('[乙方银行账户信息]', { run: { bold: true } }),
-    createParagraph('公司名称 Company：佛山市顺德区西山家居科技有限公司'),
+    createParagraph('公司名称 Company：佛山市顺德区锡山家居科技有限公司'),
     createParagraph('统一社会信用代码：914406060621766268'),
     createParagraph('开户银行 Bank：中国工商银行股份有限公司北滘支行'),
     createParagraph('帐号 Account：2013013919201297869'),
@@ -688,7 +688,7 @@ function generateSummaryHTML(contractData: ContractData): string {
           <strong>甲方：</strong>${contractData.buyerCompanyName || '-'}
         </td>
         <td style="width: 34%; padding: 0.1in; border: none; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 12pt;">
-          <strong>乙方：</strong>佛山市顺德区西山家居科技有限公司
+          <strong>乙方：</strong>佛山市顺德区锡山家居科技有限公司
         </td>
       </tr>
       <tr>
@@ -794,7 +794,7 @@ function generateSignatureHTML(contractData: ContractData): string {
   if (contractData.buyerAddress) buyerInfo += '地址：' + contractData.buyerAddress + '<br/>';
   if (contractData.buyerPhone) buyerInfo += '电话：' + contractData.buyerPhone + '<br/>';
 
-  const sellerInfo = '<strong>[乙方银行账户信息]</strong><br/>公司名称 Company：佛山市顺德区西山家居科技有限公司<br/>统一社会信用代码：914406060621766268<br/>开户银行 Bank：中国工商银行股份有限公司北滘支行<br/>帐号 Account：2013013919201297869<br/>地址：广东省佛山市顺德区北滘镇工业大道35号<br/>电话：0757-26322737';
+  const sellerInfo = '<strong>[乙方银行账户信息]</strong><br/>公司名称 Company：佛山市顺德区锡山家居科技有限公司<br/>统一社会信用代码：914406060621766268<br/>开户银行 Bank：中国工商银行股份有限公司北滘支行<br/>帐号 Account：2013013919201297869<br/>地址：广东省佛山市顺德区北滘镇工业大道35号<br/>电话：0757-26322737';
 
   return `
     <table style="width: 7in; border-collapse: collapse; border: none; margin: 1.2in 0; font-family: '${DEFAULT_FONT}', sans-serif; font-size: 11pt;">
@@ -806,7 +806,7 @@ function generateSignatureHTML(contractData: ContractData): string {
           <div style="margin-top: 0.2in;">${buyerInfo}</div>
         </td>
         <td style="width: 50%; padding: 0.1in; border: none; vertical-align: top;">
-          <p style="margin: 0.1in 0; font-weight: bold;">乙方（供货方）：佛山市顺德区西山家居科技有限公司</p>
+          <p style="margin: 0.1in 0; font-weight: bold;">乙方（供货方）：佛山市顺德区锡山家居科技有限公司</p>
           <p style="margin: 0.1in 0;">签章：</p>
           <p style="margin: 0.1in 0;">日期：</p>
           <div style="margin-top: 0.2in;">${sellerInfo}</div>
