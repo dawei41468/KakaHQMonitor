@@ -859,8 +859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.setHeader('Content-Type', attachment.mimeType);
-      // Properly encode filename for Content-Disposition header (RFC 6266)
-      const encodedFilename = encodeURIComponent(attachment.fileName);
+      // Set Content-Disposition header with properly encoded filename
+      const encodedFilename = encodeURIComponent(attachment.fileName).replace(/['()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`);
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFilename}`);
       res.send(buffer);
     } catch (error) {

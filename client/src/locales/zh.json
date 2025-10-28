@@ -167,7 +167,9 @@
     "actualDeliveryDate": "实际交付日期",
     "attachments": "附件",
     "confirmDeleteAttachment": "删除附件",
-    "confirmDeleteAttachmentDescription": "您确定要删除此附件吗？此操作无法撤销。"
+    "confirmDeleteAttachmentDescription": "您确定要删除此附件吗？此操作无法撤销。",
+    "attachmentPreview": "附件预览",
+    "attachmentPreviewDescription": "预览选定的附件文件"
   },
   "profile": {
     "backToDashboard": "返回仪表板",

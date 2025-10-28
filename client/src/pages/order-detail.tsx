@@ -33,6 +33,9 @@ export default function OrderDetail() {
     return today.toISOString().split('T')[0]; // YYYY-MM-DD format
   });
   const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null);
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerLoading, setPdfViewerLoading] = useState(false);
 
   const { data: order, isLoading, error } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -122,16 +125,16 @@ export default function OrderDetail() {
 
   const handleDownloadAttachment = async (attachment: OrderAttachment) => {
     try {
-      const response = await apiRequest("GET", `/api/orders/${id}/attachments/${attachment.id}/download`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Create a temporary anchor element that points to the download URL
       const a = document.createElement('a');
-      a.href = url;
+      a.href = `/api/orders/${id}/attachments/${attachment.id}/download`;
       a.download = attachment.fileName;
+      a.style.display = 'none';
+
+      // Add to DOM and click to trigger download
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
     } catch (error) {
       toast({
         title: t('common.error'),
@@ -175,17 +178,30 @@ export default function OrderDetail() {
 
   const handleViewAttachment = async (attachment: OrderAttachment) => {
     try {
+      setPdfViewerLoading(true);
+      setPdfViewerOpen(true);
+
       const response = await apiRequest("GET", `/api/orders/${id}/attachments/${attachment.id}/download`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+
+      setPdfViewerUrl(url);
     } catch (error) {
       toast({
         title: t('common.error'),
         description: error instanceof Error ? error.message : t('orders.downloadFailed'),
         variant: 'destructive',
       });
+      setPdfViewerOpen(false);
+    } finally {
+      setPdfViewerLoading(false);
     }
+  };
+
+  const closePdfViewer = () => {
+    setPdfViewerOpen(false);
+    setPdfViewerUrl(null);
+    setPdfViewerLoading(false);
   };
 
   if (isLoading) {
@@ -485,6 +501,40 @@ export default function OrderDetail() {
                 disabled={updateStatusMutation.isPending}
               >
                 {updateStatusMutation.isPending ? t('common.loading') : t('orders.confirmDelivery')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* PDF Viewer Modal */}
+        <Dialog open={pdfViewerOpen} onOpenChange={closePdfViewer}>
+          <DialogContent className="sm:max-w-[90vw] max-h-[90vh] w-full">
+            <DialogHeader>
+              <DialogTitle>{t('orders.attachmentPreview')}</DialogTitle>
+              <DialogDescription>
+                {t('orders.attachmentPreviewDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 min-h-[600px]">
+              {pdfViewerLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+                </div>
+              ) : pdfViewerUrl ? (
+                <iframe
+                  src={pdfViewerUrl}
+                  className="w-full h-full min-h-[600px] border-0"
+                  title="PDF Preview"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {t('common.error')}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={closePdfViewer}>
+                {t('common.close')}
               </Button>
             </DialogFooter>
           </DialogContent>

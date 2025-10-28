@@ -167,7 +167,9 @@
     "actualDeliveryDate": "Actual Delivery Date",
     "attachments": "Attachments",
     "confirmDeleteAttachment": "Delete Attachment",
-    "confirmDeleteAttachmentDescription": "Are you sure you want to delete this attachment? This action cannot be undone."
+    "confirmDeleteAttachmentDescription": "Are you sure you want to delete this attachment? This action cannot be undone.",
+    "attachmentPreview": "Attachment Preview",
+    "attachmentPreviewDescription": "Preview the selected attachment file"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",
