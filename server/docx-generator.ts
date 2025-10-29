@@ -345,25 +345,24 @@ function createSummaryParagraphs(contractData: ContractData): (Paragraph | Table
 
 function createItemsTable(contractData: ContractData): Table {
   const headerCells = [
-    { text: '区域', width: 510 },
-    { text: '分项', width: 510 },
+    { text: '区域', width: 600 },
+    { text: '分项', width: 600 },
     { text: '产品名称或编号', width: 2000 },
-    { text: '产品细分', width: 510 },
-    { text: '产品规格', width: 1098 },
-    { text: '颜色', width: 693 },
-    { text: '数量', width: 510 },
-    { text: '单位', width: 510 },
-    { text: '零售单价', width: 838 },
-    { text: '零售总价', width: 838 },
-    { text: '成交单价', width: 838 },
-    { text: '成交金额 (RMB)', width: 984 },
-    { text: '备注', width: 620 },
+    { text: '产品细分', width: 600 },
+    { text: '产品规格', width: 1100 },
+    { text: '颜色', width: 700 },
+    { text: '数量', width: 600 },
+    { text: '单位', width: 600 },
+    { text: '零售单价', width: 800 },
+    { text: '零售总价', width: 800 },
+    { text: '成交单价', width: 800 },
+    { text: '成交金额 (RMB)', width: 900 },
+    { text: '备注', width: 600 },
   ];
 
   const headerRow = new TableRow({
     children: headerCells.map((cell) =>
       createTableCell(cell.text, {
-        width: { size: cell.width, type: WidthType.DXA },
         paragraph: {
           alignment: AlignmentType.CENTER,
           run: { bold: true, size: 15 },
@@ -377,37 +376,31 @@ function createItemsTable(contractData: ContractData): Table {
   const itemRows = contractData.items.map((item) => {
     return new TableRow({
       children: [
-        createTableCell(item.region ?? '', { width: { size: headerCells[0].width, type: WidthType.DXA } }),
-        createTableCell(item.category ?? '', { width: { size: headerCells[1].width, type: WidthType.DXA } }),
-        createTableCell(item.productName ?? '', { width: { size: headerCells[2].width, type: WidthType.DXA } }),
-        createTableCell(item.productDetail ?? '', { width: { size: headerCells[3].width, type: WidthType.DXA } }),
-        createTableCell(item.specification ?? '', { width: { size: headerCells[4].width, type: WidthType.DXA } }),
-        createTableCell(item.color ?? '', { width: { size: headerCells[5].width, type: WidthType.DXA } }),
+        createTableCell(item.region ?? '', {}),
+        createTableCell(item.category ?? '', {}),
+        createTableCell(item.productName ?? '', {}),
+        createTableCell(item.productDetail ?? '', {}),
+        createTableCell(item.specification ?? '', {}),
+        createTableCell(item.color ?? '', {}),
         createTableCell(item.quantity != null ? String(item.quantity) : '', {
-          width: { size: headerCells[6].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.unit ?? '', {
-          width: { size: headerCells[7].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.CENTER },
         }),
         createTableCell(item.retailPrice != null ? formatCurrency(item.retailPrice) : '', {
-          width: { size: headerCells[8].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.retailTotal != null ? formatCurrency(item.retailTotal) : '', {
-          width: { size: headerCells[9].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.dealPrice != null ? formatCurrency(item.dealPrice) : '', {
-          width: { size: headerCells[10].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
         createTableCell(item.dealTotal != null ? formatCurrency(item.dealTotal) : '', {
-          width: { size: headerCells[11].width, type: WidthType.DXA },
           paragraph: { alignment: AlignmentType.RIGHT },
         }),
-        createTableCell(item.remarks ?? '', { width: { size: headerCells[12].width, type: WidthType.DXA } }),
+        createTableCell(item.remarks ?? '', {}),
       ],
     });
   });
@@ -441,10 +434,10 @@ function createItemsTable(contractData: ContractData): Table {
   });
 
   return new Table({
-    width: { size: 10459, type: WidthType.DXA },
+    width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [headerRow, ...itemRows, totalRow],
     borders: OUTLINE_TABLE_BORDERS,
-    layout: TableLayoutType.FIXED,
+    layout: TableLayoutType.AUTOFIT,
   });
 }
 
