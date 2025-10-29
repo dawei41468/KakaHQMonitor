@@ -198,7 +198,11 @@
     "threshold": "Threshold: {{value}}",
     "capacity": "{{percentage}}% capacity",
     "restock": "Restock",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "searchMaterials": "Search materials...",
+    "lowStockAlerts": "Low Stock Alerts",
+    "inStock": "In Stock",
+    "exportLowStock": "Export Low Stock"
   },
   "alerts": {
     "alertsNotifications": "Alerts & Notifications",
@@ -263,6 +267,8 @@
     "addUser": "Add User",
     "addDealer": "Add Dealer",
     "addMaterial": "Add Material",
+    "adjustStock": "Adjust Stock",
+    "manageMaterials": "Manage Materials",
     "addProduct": "Add Product",
     "addCategory": "Add Category",
     "addRegion": "Add Region",

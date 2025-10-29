@@ -198,7 +198,11 @@
     "threshold": "阈值：{{value}}",
     "capacity": "{{percentage}}% 容量",
     "restock": "补货",
-    "viewAll": "查看全部"
+    "viewAll": "查看全部",
+    "searchMaterials": "搜索材料...",
+    "lowStockAlerts": "低库存警报",
+    "inStock": "库存充足",
+    "exportLowStock": "导出低库存"
   },
   "alerts": {
     "alertsNotifications": "警报与通知",
@@ -261,6 +265,8 @@
     "addUser": "添加用户",
     "addDealer": "添加经销商",
     "addMaterial": "添加材料",
+    "adjustStock": "调整库存",
+    "manageMaterials": "管理材料",
     "addProduct": "添加产品",
     "addCategory": "添加类别",
     "addRegion": "添加区域",

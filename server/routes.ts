@@ -1155,7 +1155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Audit logging
       await logAuditEvent(req, 'MATERIAL_STOCK_UPDATE', 'material', req.params.id, oldMaterial ? { currentStock: oldMaterial.currentStock } : undefined, { currentStock: stock });
 
-      // Check if we need to create a low stock alert
+      // Check if we need to create or resolve low stock alerts
       if (stock <= material.threshold) {
         await storage.createAlert({
           type: 'lowStock',
@@ -1164,6 +1164,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: stock <= material.threshold * 0.5 ? 'high' : 'medium',
           relatedMaterialId: material.id
         });
+      } else {
+        // Resolve any existing unresolved low-stock alerts for this material
+        const existingAlerts = await storage.getAllAlerts(false); // Get unresolved alerts
+        const lowStockAlerts = existingAlerts.items.filter(alert => alert.type === 'lowStock' && alert.relatedMaterialId === material.id && !alert.resolved);
+        for (const alert of lowStockAlerts) {
+          await storage.resolveAlert(alert.id);
+        }
       }
 
       res.json(material);
