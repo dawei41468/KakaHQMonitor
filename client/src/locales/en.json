@@ -41,6 +41,7 @@
     "pickADate": "Pick a date",
     "yes": "Yes",
     "no": "No",
+    "none": "None",
     "download": "Download"
   },
   "login": {
@@ -168,8 +169,12 @@
     "attachments": "Attachments",
     "confirmDeleteAttachment": "Delete Attachment",
     "confirmDeleteAttachmentDescription": "Are you sure you want to delete this attachment? This action cannot be undone.",
+    "confirmDeleteOrder": "Delete Order",
+    "confirmDeleteOrderDescription": "Are you sure you want to delete order? This action cannot be undone.",
     "attachmentPreview": "Attachment Preview",
-    "attachmentPreviewDescription": "Preview the selected attachment file"
+    "attachmentPreviewDescription": "Preview the selected attachment file",
+    "selectDesigner": "Select designer",
+    "selectSalesRep": "Select sales representative"
   },
   "profile": {
     "backToDashboard": "Back to Dashboard",
@@ -405,7 +410,15 @@
     "noAuditLogsFound": "No audit logs found",
     "errorLoadingAuditLogs": "Error loading audit logs",
     "showingEntries": "Showing {{start}} to {{end}} of {{total}} entries",
-    "system": "System"
+    "system": "System",
+    "orderUsers": "Order Users",
+    "orderUsersManagement": "Order Users Management",
+    "orderUsersManagementDescription": "Manage which users can be assigned as designers and sales representatives in orders",
+    "canAssignToOrders": "Can assign to orders",
+    "cannotAssignToOrders": "Cannot assign to orders",
+    "userAssignmentUpdated": "User assignment updated",
+    "userAssignmentUpdateFailed": "Failed to update user assignment",
+    "noUsersFound": "No users found"
   },
   "notFound": {
     "pageNotFound": "404 Page Not Found",

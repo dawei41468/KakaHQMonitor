@@ -53,6 +53,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getAllUsers(limit?: number, offset?: number): Promise<{ items: User[], total: number }>;
+  getUsersAssignableToOrders(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<User>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
@@ -205,6 +206,14 @@ export class DatabaseStorage implements IStorage {
     const result = await db.select({ count: count() }).from(users);
     const total = result[0].count;
     return { items, total };
+  }
+
+  async getUsersAssignableToOrders(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.canAssignToOrders, true))
+      .orderBy(users.name);
   }
 
   async updateUser(id: string, userData: Partial<User>): Promise<User | undefined> {

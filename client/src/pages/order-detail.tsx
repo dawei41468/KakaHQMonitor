@@ -7,13 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Download, Trash2, Eye } from "lucide-react";
+import { ArrowLeft, Download, Eye, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Order, OrderAttachment } from "@shared/schema";
 import { ContractPreview } from "@/components/pdf-preview";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 interface OrderItem {
   item: string;
@@ -416,36 +416,24 @@ export default function OrderDetail() {
                         <Download className="h-4 w-4" />
                         {t('common.download')}
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={deleteAttachmentMutation.isPending}
-                            className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {t('common.delete')}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t('orders.confirmDeleteAttachment')}</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {t('orders.confirmDeleteAttachmentDescription')}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteAttachment(attachment.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              {t('common.delete')}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteAttachment(attachment.id)}
+                        disabled={deleteAttachmentMutation.isPending}
+                        className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {t('common.delete')}
+                      </Button>
+                      <DeleteConfirmationDialog
+                        title={t('orders.confirmDeleteAttachment')}
+                        description={t('orders.confirmDeleteAttachmentDescription')}
+                        onConfirm={confirmDeleteAttachment}
+                        isLoading={deleteAttachmentMutation.isPending}
+                        open={!!attachmentToDelete}
+                        onOpenChange={(open) => !open && setAttachmentToDelete(null)}
+                      />
                     </div>
                   </div>
                 ))}

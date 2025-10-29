@@ -53,9 +53,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", authRateLimit, async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      
+
       const user = await storage.getUserByEmail(email);
       if (!user || !(await comparePassword(password, user.password))) {
+        logAuthEvent('LOGIN_FAIL', undefined, { email, reason: 'Invalid credentials' });
+        // Audit logging for failed login
+        await logAuditEvent(req, 'LOGIN_FAIL', 'user', undefined, undefined, { reason: 'Invalid credentials' });
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
@@ -89,10 +92,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         accessToken
       });
-    } catch {
+    } catch (error) {
+      // Log the actual validation error for debugging
+      console.error('Login validation error:', error);
+
       // Audit logging for failed login
       await logAuditEvent(req, 'LOGIN_FAIL', 'user', undefined, undefined, { reason: 'Invalid request data' });
-      res.status(400).json({ error: `Invalid request data. Received: ${JSON.stringify(req.body)}` });
+      res.status(400).json({ error: "Invalid email or password format" });
     }
   });
 
@@ -147,7 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/logout", authenticateToken, async (req, res) => {
     try {
-      const user = req.user!;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = (req as any).user!;
 
       // Revoke current access token
       if (user.jti) {
@@ -219,7 +226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/user", async (req, res) => {
     try {
-      const user = await storage.getUser(req.user!.userId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = await storage.getUser((req as any).user!.userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -243,7 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Valid name required" });
       }
 
-      const user = await storage.updateUser(req.user!.userId, { name: name.trim() });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = await storage.updateUser((req as any).user!.userId, { name: name.trim() });
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -274,7 +283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (theme) updates.theme = theme;
       if (language) updates.language = language;
 
-      const user = await storage.updateUser(req.user!.userId, updates);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = await storage.updateUser((req as any).user!.userId, updates);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -298,7 +308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Current and new passwords required" });
       }
 
-      const user = await storage.getUser(req.user!.userId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = await storage.getUser((req as any).user!.userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -308,7 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUser(req.user!.userId, { password: hashedPassword });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await storage.updateUser((req as any).user!.userId, { password: hashedPassword });
 
       res.json({ message: "Password updated successfully" });
     } catch {
@@ -1542,6 +1554,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Order assignment users endpoint (public for order forms)
+  app.get("/api/order-users", async (_req, res) => {
+    try {
+      const users = await storage.getUsersAssignableToOrders();
+      res.json(users);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch order users" });
+    }
+  });
+
   // Public form options endpoints
   app.get("/api/categories", async (_req, res) => {
     try {
@@ -2069,6 +2091,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Unit deleted successfully" });
     } catch {
       res.status(500).json({ error: "Failed to delete unit" });
+    }
+  });
+
+  // Order Users admin routes (for managing which users can be assigned to orders)
+  app.get("/api/admin/order-users", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await storage.getAllUsers(limit, offset);
+      res.json({ items: result.items, total: result.total });
+    } catch {
+      res.status(500).json({ error: "Failed to fetch order users" });
+    }
+  });
+
+  app.put("/api/admin/order-users/:id/toggle-assignment", requireAdmin, async (req, res) => {
+    try {
+      const { canAssignToOrders } = req.body;
+      if (typeof canAssignToOrders !== 'boolean') {
+        return res.status(400).json({ error: "canAssignToOrders must be a boolean" });
+      }
+
+      const user = await storage.updateUser(req.params.id, { canAssignToOrders });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Don't return password
+      const { password: _, ...userResponse } = user;
+      res.json(userResponse);
+    } catch {
+      res.status(500).json({ error: "Failed to update user assignment status" });
     }
   });
 

@@ -5,11 +5,9 @@ import { auditLogger, getClientIP } from './logger';
 import { insertAuditLogSchema } from '@shared/schema';
 import diff from 'deep-diff';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
+declare module 'express' {
+  interface Request {
+    user?: JWTPayload;
   }
 }
 
@@ -82,7 +80,7 @@ export async function logAuditEvent(
     await storage.createAuditLog(auditData);
 
     // Log to Winston
-    auditLogger.log(`Audit: ${action}`, {
+    auditLogger.info(`Audit: ${action}`, {
       userId,
       action,
       entityType,

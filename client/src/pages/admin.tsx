@@ -18,6 +18,7 @@ import RegionManagement from "@/components/admin/RegionManagement";
 import ProductDetailManagement from "@/components/admin/ProductDetailManagement";
 import ColorTypeManagement from "@/components/admin/ColorTypeManagement";
 import UnitManagement from "@/components/admin/UnitManagement";
+import { OrderUsersManagement } from "@/components/admin/OrderUsersManagement";
 
 /**
  * Admin Dashboard Component
@@ -135,7 +136,7 @@ export default function Admin() {
 
         <TabsContent value="order-management" className="mt-4">
           <Tabs defaultValue="regions">
-            <TabsList className="grid grid-cols-7 w-full p-1">
+            <TabsList className="grid grid-cols-8 w-full p-1">
               <TabsTrigger value="regions">{t('admin.regions')}</TabsTrigger>
               <TabsTrigger value="categories">{t('admin.categories')}</TabsTrigger>
               <TabsTrigger value="product-details">{t('admin.productDetails')}</TabsTrigger>
@@ -143,6 +144,7 @@ export default function Admin() {
               <TabsTrigger value="color-types">{t('admin.colorTypes')}</TabsTrigger>
               <TabsTrigger value="colors">{t('admin.colors')}</TabsTrigger>
               <TabsTrigger value="units">{t('admin.units')}</TabsTrigger>
+              <TabsTrigger value="order-users">{t('admin.orderUsers')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="regions">
@@ -214,6 +216,9 @@ export default function Admin() {
                   <UnitManagement />
                 </CardContent>
               </Card>
+            </TabsContent>
+            <TabsContent value="order-users">
+              <OrderUsersManagement />
             </TabsContent>
           </Tabs>
         </TabsContent>

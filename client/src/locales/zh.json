@@ -41,6 +41,7 @@
     "pickADate": "选择日期",
     "yes": "是",
     "no": "否",
+    "none": "无",
     "download": "下载"
   },
   "login": {
@@ -168,8 +169,12 @@
     "attachments": "附件",
     "confirmDeleteAttachment": "删除附件",
     "confirmDeleteAttachmentDescription": "您确定要删除此附件吗？此操作无法撤销。",
+    "confirmDeleteOrder": "删除订单",
+    "confirmDeleteOrderDescription": "您确定要删除订单吗？此操作无法撤销。",
     "attachmentPreview": "附件预览",
-    "attachmentPreviewDescription": "预览选定的附件文件"
+    "attachmentPreviewDescription": "预览选定的附件文件",
+    "selectDesigner": "选择设计师",
+    "selectSalesRep": "选择销售代表"
   },
   "profile": {
     "backToDashboard": "返回仪表板",
@@ -405,7 +410,15 @@
     "noAuditLogsFound": "未找到审计日志",
     "errorLoadingAuditLogs": "加载审计日志时出错",
     "showingEntries": "显示第 {{start}} 到 {{end}} 条，共 {{total}} 条记录",
-    "system": "系统"
+    "system": "系统",
+    "orderUsers": "订单用户",
+    "orderUsersManagement": "订单用户管理",
+    "orderUsersManagementDescription": "管理哪些用户可以被分配为订单中的设计师和销售代表",
+    "canAssignToOrders": "可以分配到订单",
+    "cannotAssignToOrders": "不能分配到订单",
+    "userAssignmentUpdated": "用户分配已更新",
+    "userAssignmentUpdateFailed": "更新用户分配失败",
+    "noUsersFound": "未找到用户"
   },
   "notFound": {
     "pageNotFound": "404 页面未找到",

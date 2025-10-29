@@ -42,6 +42,11 @@ export default [
       globals: {
         window: 'readonly',
         document: 'readonly',
+        console: 'readonly',
+        alert: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        HTMLInputElement: 'readonly',
         Blob: 'readonly',
         URLSearchParams: 'readonly',
         URL: 'readonly',

@@ -56,8 +56,25 @@ export type Order = {
   estimatedDelivery: string;
   signingDate: Date | null;
 };
+interface Dealer {
+  id: string;
+  name: string;
+}
 
-const getColumns = (t: (key: string) => string, getStatusBadge: (status: string) => JSX.Element, getPaymentStatusBadge: (paymentStatus: string) => JSX.Element, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
+interface ApiOrder {
+  id: string;
+  orderNumber: string;
+  dealerName?: string;
+  dealerId?: string;
+  status: string;
+  paymentStatus?: string;
+  totalValue: number | string;
+  estimatedDelivery?: string;
+  signingDate?: string;
+  createdAt: string;
+}
+
+const getColumns = (t: (key: string) => string, getStatusBadge: (status: string) => React.ReactElement, getPaymentStatusBadge: (paymentStatus: string) => React.ReactElement, onEditClick?: (orderId: string) => void, onDeleteClick?: (orderId: string) => void): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: t('orders.orderNumber'),
@@ -159,8 +176,12 @@ const getColumns = (t: (key: string) => string, getStatusBadge: (status: string)
   },
 ];
 
+interface TableMethods {
+  fetchData: () => void;
+}
+
 interface OrdersDataTableProps {
-  onReady: (table: any) => void;
+  onReady: (table: TableMethods) => void;
   onOrderClick?: (orderId: string) => void;
   onEditClick?: (orderId: string) => void;
   onDeleteClick?: (orderId: string) => void;
@@ -176,7 +197,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   const [totalOrders, setTotalOrders] = React.useState(0);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
-  const { data: dealers = [] } = useQuery<any[]>({
+  const { data: dealers = [] } = useQuery<Dealer[]>({
     queryKey: ['/api/dealers'],
   });
 
@@ -187,7 +208,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
       const result = await response.json();
 
       // Transform orders data
-      const transformedData = (result.items || []).map((order: any) => ({
+      const transformedData = (result.items || []).map((order: ApiOrder) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         dealer: order.dealerName || order.dealerId || 'Unknown',
@@ -218,7 +239,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
   const handleExport = async () => {
     try {
       // Collect current filter state
-      const filters: any = {};
+      const filters: Record<string, string | undefined> = {};
 
       // Dealer filter
       const dealerFilter = table.getColumn("dealer")?.getFilterValue() as string;
@@ -423,12 +444,12 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
       </div>
       <div className="flex items-center py-4 space-x-2">
         <Select
-          value={(table.getColumn("dealer")?.getFilterValue() as string) ? dealers.find((d: any) => d.name === table.getColumn("dealer")?.getFilterValue())?.id || "all" : "all"}
+          value={(table.getColumn("dealer")?.getFilterValue() as string) ? dealers.find((d: Dealer) => d.name === table.getColumn("dealer")?.getFilterValue())?.id || "all" : "all"}
           onValueChange={(value) => {
             if (value === "all") {
               table.getColumn("dealer")?.setFilterValue("");
             } else {
-              const dealer = dealers.find((d: any) => d.id === value);
+              const dealer = dealers.find((d: Dealer) => d.id === value);
               table.getColumn("dealer")?.setFilterValue(dealer?.name || "");
             }
           }}
@@ -438,7 +459,7 @@ export function OrdersDataTable({ onReady, onOrderClick, onEditClick, onDeleteCl
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('orders.allDealers')}</SelectItem>
-            {dealers.map((dealer: any) => (
+            {dealers.map((dealer: Dealer) => (
               <SelectItem key={dealer.id} value={dealer.id}>
                 {dealer.name}
               </SelectItem>

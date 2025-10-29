@@ -817,9 +817,6 @@ function generateSignatureHTML(contractData: ContractData): string {
 }
 
 export function generateContractHTML(contractData: ContractData): string {
-  const logoPath = path.join(docxDir, 'server', 'images', 'agio_kaka_logo.png');
-  const logoBuffer = fs.readFileSync(logoPath);
-  const logoBase64 = logoBuffer.toString('base64');
 
   const introText = '根据《中华人民共和国民法典》合同编及相关法律规定，甲乙双方本着平等、自愿、诚实、信用的基本原则，就甲方向乙方定制花园阳台家具或材料事宜，双方协商一致的基础上签订本合同，以资共同遵守';
 

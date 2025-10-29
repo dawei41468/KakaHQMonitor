@@ -20,8 +20,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { ContractPreview } from "./pdf-preview";
 import { Eye, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { OrderAttachment } from "@shared/schema";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { OrderAttachment, Dealer, Category, Region, ProductDetail, ColorType, Product, Color, Unit, User } from "@shared/schema";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 declare global {
   function alert(message: string): void;
@@ -48,7 +48,21 @@ interface ContractItem {
 
 interface CreateOrderFormProps {
   onOrderCreated: () => void;
-  order?: any;
+  order?: {
+    id: string;
+    orderNumber: string;
+    projectName?: string;
+    signingDate?: string;
+    designer?: string;
+    salesRep?: string;
+    estimatedDelivery?: string;
+    dealerId?: string;
+    buyerCompanyName?: string;
+    buyerAddress?: string;
+    buyerPhone?: string;
+    buyerTaxNumber?: string;
+    contractItems?: ContractItem[];
+  };
   isDialog?: boolean;
 }
 
@@ -81,44 +95,50 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   const [isOpen, setIsOpen] = React.useState(false);
 
   // Fetch dealers for buyer selection
-  const { data: dealers = [] } = useQuery<any[]>({
+  const { data: dealers = [] } = useQuery<Dealer[]>({
     queryKey: ['/api/dealers'],
   });
 
   // Fetch dynamic options
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: () => apiRequest('GET', '/api/categories').then(res => res.json()),
   });
 
-  const { data: regions = [] } = useQuery({
+  const { data: regions = [] } = useQuery<Region[]>({
     queryKey: ['regions'],
     queryFn: () => apiRequest('GET', '/api/regions').then(res => res.json()),
   });
 
-  const { data: productDetails = [] } = useQuery({
+  const { data: productDetails = [] } = useQuery<ProductDetail[]>({
     queryKey: ['product-details'],
     queryFn: () => apiRequest('GET', '/api/product-details').then(res => res.json()),
   });
 
-  const { data: colorTypes = [] } = useQuery({
+  const { data: colorTypes = [] } = useQuery<ColorType[]>({
     queryKey: ['color-types'],
     queryFn: () => apiRequest('GET', '/api/color-types').then(res => res.json()),
   });
 
-  const { data: allProducts = [] } = useQuery({
+  const { data: allProducts = [] } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: () => apiRequest('GET', '/api/products').then(res => res.json()),
   });
 
-  const { data: allColors = [] } = useQuery({
+  const { data: allColors = [] } = useQuery<Color[]>({
     queryKey: ['colors'],
     queryFn: () => apiRequest('GET', '/api/colors').then(res => res.json()),
   });
 
-  const { data: allUnits = [] } = useQuery({
+  const { data: allUnits = [] } = useQuery<Unit[]>({
     queryKey: ['units'],
     queryFn: () => apiRequest('GET', '/api/units').then(res => res.json()),
+  });
+
+  // Fetch users who can be assigned to orders
+  const { data: assignableUsers = [] } = useQuery<User[]>({
+    queryKey: ['order-users'],
+    queryFn: () => apiRequest('GET', '/api/order-users').then(res => res.json()),
   });
 
   // Fetch existing attachments when editing an order
@@ -149,6 +169,10 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   // Attachments state
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [isUploadingAttachments, setIsUploadingAttachments] = React.useState(false);
+  const [attachmentToDelete, setAttachmentToDelete] = React.useState<string | null>(null);
+  const [pdfViewerOpen, setPdfViewerOpen] = React.useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl] = React.useState<string | null>(null);
+  const [pdfViewerLoading, setPdfViewerLoading] = React.useState(false);
 
   const resetForm = React.useCallback(() => {
     setOrderNumber("");
@@ -194,8 +218,8 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
       setBuyerPhone(order.buyerPhone || "");
       setBuyerTaxNumber(order.buyerTaxNumber || "");
       if (order.contractItems && Array.isArray(order.contractItems)) {
-        setContractItems(order.contractItems.map((item: any) => {
-          const isStandardProduct = allProducts.some((p: any) => p.name === item.productName);
+        setContractItems(order.contractItems.map((item: ContractItem) => {
+          const isStandardProduct = allProducts.some((p: Product) => p.name === item.productName);
           return {
             region: item.region || "",
             category: item.category || "",
@@ -204,8 +228,8 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             customProductName: isStandardProduct ? "" : item.productName,
             productDetail: item.productDetail || "",
             specification: item.specification || "",
-            colorType: item.color ? item.color.split(" ")[0] : "",
-            colorCode: item.color ? item.color.split(" ")[1] : "",
+            colorType: item.colorType || "",
+            colorCode: item.colorCode || "",
             quantity: item.quantity || 0,
             unit: item.unit || "",
             retailPrice: item.retailPrice || 0,
@@ -227,7 +251,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   }, [order, resetForm]);
 
   const previewMutation = useMutation({
-    mutationFn: async (contractData: any) => {
+    mutationFn: async (contractData: Record<string, unknown>) => {
       const response = await apiRequest("POST", "/api/orders/preview", contractData);
       return response.json();
     },
@@ -240,7 +264,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   });
 
   const submitMutation = useMutation({
-    mutationFn: async (orderData: any) => {
+    mutationFn: async (orderData: Record<string, unknown>) => {
       const method = order ? "PUT" : "POST";
       const url = order ? `/api/orders/${order.id}` : "/api/orders";
       const response = await apiRequest(method, url, orderData);
@@ -412,20 +436,20 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
     return { retailTotal, dealTotal };
   }, [contractItems]);
 
-  const updateContractItem = (index: number, field: keyof ContractItem, value: any) => {
+  const updateContractItem = (index: number, field: keyof ContractItem, value: string | number) => {
     const updated = [...contractItems];
     updated[index] = { ...updated[index], [field]: value };
 
     // Handle product name logic
     if (field === 'standardProductName') {
-      const product = allProducts.find((p: any) => p.name === value);
+      const product = allProducts.find((p: Product) => p.name === value);
       if (product) {
-        updated[index].productName = value;
+        updated[index].productName = value as string;
         updated[index].specification = product.defaultSpecification;
         updated[index].customProductName = '';
       }
     } else if (field === 'customProductName') {
-      updated[index].productName = value;
+      updated[index].productName = value as string;
       updated[index].standardProductName = '';
     }
 
@@ -452,17 +476,30 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
 
   const handleViewAttachment = async (attachment: OrderAttachment) => {
     try {
+      setPdfViewerLoading(true);
+      setPdfViewerOpen(true);
+
       const response = await apiRequest("GET", `/api/orders/${order?.id}/attachments/${attachment.id}/download`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+
+      setPdfViewerUrl(url);
     } catch (error) {
       toast({
         title: t('common.error'),
         description: error instanceof Error ? error.message : t('orders.downloadFailed'),
         variant: 'destructive',
       });
+      setPdfViewerOpen(false);
+    } finally {
+      setPdfViewerLoading(false);
     }
+  };
+
+  const closePdfViewer = () => {
+    setPdfViewerOpen(false);
+    setPdfViewerUrl(null);
+    setPdfViewerLoading(false);
   };
 
   const handleDownloadAttachment = async (attachment: OrderAttachment) => {
@@ -508,7 +545,14 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
   });
 
   const handleDeleteAttachment = (attachmentId: string) => {
-    deleteAttachmentMutation.mutate(attachmentId);
+    setAttachmentToDelete(attachmentId);
+  };
+
+  const confirmDeleteAttachment = () => {
+    if (attachmentToDelete) {
+      deleteAttachmentMutation.mutate(attachmentToDelete);
+      setAttachmentToDelete(null);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -596,28 +640,44 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                 <Label htmlFor="designer">
                   {t('createOrder.designer')}
                 </Label>
-                <Input
-                  id="designer"
-                  value={designer}
-                  onChange={(e) => setDesigner(e.target.value)}
-                />
+                <Select value={designer} onValueChange={(value) => setDesigner(value === "none" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('createOrder.selectDesigner')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common.none')}</SelectItem>
+                    {assignableUsers.map((user: User) => (
+                      <SelectItem key={user.id} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="salesRep">
                   {t('createOrder.salesRep')}
                 </Label>
-                <Input
-                  id="salesRep"
-                  value={salesRep}
-                  onChange={(e) => setSalesRep(e.target.value)}
-                />
+                <Select value={salesRep} onValueChange={(value) => setSalesRep(value === "none" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('createOrder.selectSalesRep')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common.none')}</SelectItem>
+                    {assignableUsers.map((user: User) => (
+                      <SelectItem key={user.id} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2">
                 <Label htmlFor="buyerCompanyName">
                   {t('createOrder.buyerCompany')}
                 </Label>
                 <Select value={dealerId} onValueChange={(value) => {
-                  const dealer = dealers.find((d: any) => d.id === value);
+                  const dealer = dealers.find((d: Dealer) => d.id === value);
                   setDealerId(value);
                   setBuyerCompanyName(dealer?.name || "");
                 }}>
@@ -625,7 +685,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                     <SelectValue placeholder="选择经销商" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dealers.map((dealer: any) => (
+                    {dealers.map((dealer: Dealer) => (
                       <SelectItem key={dealer.id} value={dealer.id}>
                         {dealer.name}
                       </SelectItem>
@@ -672,8 +732,8 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <Download className="h-4 w-4" />
                               {t('common.download')}
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            <DeleteConfirmationDialog
+                              trigger={
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -683,22 +743,12 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                                   <Trash2 className="h-4 w-4" />
                                   {t('common.delete')}
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>{t('orders.deleteAttachment')}</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    {t('orders.confirmDeleteAttachment')}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteAttachment(attachment.id)}>
-                                    {t('common.delete')}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                              }
+                              title={t('orders.confirmDeleteAttachment')}
+                              description={t('orders.confirmDeleteAttachmentDescription')}
+                              onConfirm={() => handleDeleteAttachment(attachment.id)}
+                              isLoading={deleteAttachmentMutation.isPending}
+                            />
                           </div>
                         </div>
                       ))}
@@ -717,7 +767,8 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
           <TabsContent value="items" className="space-y-4">
             <div className="space-y-4">
               {contractItems.map((item, index) => {
-                const filteredProducts = allProducts.filter((p: any) => !item.category || p.category?.name === item.category);
+                const selectedCategory = categories.find((c: Category) => c.name === item.category);
+                const filteredProducts = allProducts.filter((p: Product) => !item.category || p.categoryId === selectedCategory?.id);
                 const filteredUnits = allUnits;
 
                 return (
@@ -730,7 +781,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                             <SelectValue placeholder="选择地区" />
                           </SelectTrigger>
                           <SelectContent>
-                            {regions.map((r: any) => (
+                            {regions.map((r: Region) => (
                               <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -743,7 +794,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                             <SelectValue placeholder="选择类别" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.map((c: any) => (
+                            {categories.map((c: Category) => (
                               <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -756,7 +807,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                             <SelectValue placeholder="选择产品详情" />
                           </SelectTrigger>
                           <SelectContent>
-                            {productDetails.map((pd: any) => (
+                            {productDetails.map((pd: ProductDetail) => (
                               <SelectItem key={pd.id} value={pd.name}>{pd.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -770,7 +821,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <SelectValue placeholder="选择标准产品" />
                             </SelectTrigger>
                             <SelectContent>
-                              {filteredProducts.map((p: any) => (
+                              {filteredProducts.map((p: Product) => (
                                 <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -798,7 +849,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                                 <SelectValue placeholder="选择类型" />
                               </SelectTrigger>
                               <SelectContent>
-                                {colorTypes.map((ct: any) => (
+                                {colorTypes.map((ct: ColorType) => (
                                   <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -810,7 +861,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                                 <SelectValue placeholder="选择颜色" />
                               </SelectTrigger>
                               <SelectContent>
-                                {allColors.map((c: any) => (
+                                {allColors.map((c: Color) => (
                                   <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -835,7 +886,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                                 <SelectValue placeholder="选择单位" />
                               </SelectTrigger>
                               <SelectContent>
-                                {filteredUnits.map((u: any) => (
+                                {filteredUnits.map((u: Unit) => (
                                   <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -966,6 +1017,40 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* PDF Viewer Modal */}
+      <Dialog open={pdfViewerOpen} onOpenChange={closePdfViewer}>
+        <DialogContent className="sm:max-w-[90vw] max-h-[90vh] w-full">
+          <DialogHeader>
+            <DialogTitle>{t('orders.attachmentPreview')}</DialogTitle>
+            <DialogDescription>
+              {t('orders.attachmentPreviewDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-[600px]">
+            {pdfViewerLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+              </div>
+            ) : pdfViewerUrl ? (
+              <iframe
+                src={pdfViewerUrl}
+                className="w-full h-full min-h-[600px] border-0"
+                title="PDF Preview"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                {t('common.error')}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closePdfViewer}>
+              {t('common.close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
   } else {
@@ -1027,28 +1112,44 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                 <Label htmlFor="designer">
                   {t('createOrder.designer')}
                 </Label>
-                <Input
-                  id="designer"
-                  value={designer}
-                  onChange={(e) => setDesigner(e.target.value)}
-                />
+                <Select value={designer} onValueChange={(value) => setDesigner(value === "none" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('createOrder.selectDesigner')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common.none')}</SelectItem>
+                    {assignableUsers.map((user: User) => (
+                      <SelectItem key={user.id} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="salesRep">
                   {t('createOrder.salesRep')}
                 </Label>
-                <Input
-                  id="salesRep"
-                  value={salesRep}
-                  onChange={(e) => setSalesRep(e.target.value)}
-                />
+                <Select value={salesRep} onValueChange={(value) => setSalesRep(value === "none" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('createOrder.selectSalesRep')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common.none')}</SelectItem>
+                    {assignableUsers.map((user: User) => (
+                      <SelectItem key={user.id} value={user.name}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2">
                 <Label htmlFor="buyerCompanyName">
                   {t('createOrder.buyerCompany')}
                 </Label>
                 <Select value={dealerId} onValueChange={(value) => {
-                  const dealer = dealers.find((d: any) => d.id === value);
+                  const dealer = dealers.find((d: Dealer) => d.id === value);
                   setDealerId(value);
                   setBuyerCompanyName(dealer?.name || "");
                 }}>
@@ -1056,7 +1157,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                     <SelectValue placeholder="选择经销商" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dealers.map((dealer: any) => (
+                    {dealers.map((dealer: Dealer) => (
                       <SelectItem key={dealer.id} value={dealer.id}>
                         {dealer.name}
                       </SelectItem>
@@ -1135,6 +1236,14 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <Trash2 className="h-4 w-4" />
                               {t('common.delete')}
                             </Button>
+                            <DeleteConfirmationDialog
+                              title={t('orders.confirmDeleteAttachment')}
+                              description={t('orders.confirmDeleteAttachmentDescription')}
+                              onConfirm={confirmDeleteAttachment}
+                              isLoading={deleteAttachmentMutation.isPending}
+                              open={!!attachmentToDelete}
+                              onOpenChange={(open) => !open && setAttachmentToDelete(null)}
+                            />
                           </div>
                         </div>
                       ))}
@@ -1153,7 +1262,8 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
           <TabsContent value="items" className="space-y-4">
             <div className="space-y-4">
               {contractItems.map((item, index) => {
-                const filteredProducts = allProducts.filter((p: any) => !item.category || p.category?.name === item.category);
+                const selectedCategory = categories.find((c: Category) => c.name === item.category);
+                const filteredProducts = allProducts.filter((p: Product) => !item.category || p.categoryId === selectedCategory?.id);
                 const filteredUnits = allUnits;
 
                 return (
@@ -1166,7 +1276,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                           <SelectValue placeholder="选择地区" />
                         </SelectTrigger>
                         <SelectContent>
-                          {regions.map((r: any) => (
+                          {regions.map((r: Region) => (
                             <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1179,7 +1289,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                           <SelectValue placeholder="选择类别" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map((c: any) => (
+                          {categories.map((c: Category) => (
                             <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1192,7 +1302,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                           <SelectValue placeholder="选择产品详情" />
                         </SelectTrigger>
                         <SelectContent>
-                          {productDetails.map((pd: any) => (
+                          {productDetails.map((pd: ProductDetail) => (
                             <SelectItem key={pd.id} value={pd.name}>{pd.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -1206,7 +1316,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                             <SelectValue placeholder="选择标准产品" />
                           </SelectTrigger>
                           <SelectContent>
-                            {filteredProducts.map((p: any) => (
+                            {filteredProducts.map((p: Product) => (
                               <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -1234,7 +1344,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <SelectValue placeholder="选择类型" />
                             </SelectTrigger>
                             <SelectContent>
-                              {colorTypes.map((ct: any) => (
+                              {colorTypes.map((ct: ColorType) => (
                                 <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1246,7 +1356,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <SelectValue placeholder="选择颜色" />
                             </SelectTrigger>
                             <SelectContent>
-                              {allColors.map((c: any) => (
+                              {allColors.map((c: Color) => (
                                 <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1271,7 +1381,7 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
                               <SelectValue placeholder="选择单位" />
                             </SelectTrigger>
                             <SelectContent>
-                              {filteredUnits.map((u: any) => (
+                              {filteredUnits.map((u: Unit) => (
                                 <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1395,6 +1505,40 @@ export function CreateOrderForm({ onOrderCreated, order, isDialog = true }: Crea
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* PDF Viewer Modal */}
+        <Dialog open={pdfViewerOpen} onOpenChange={closePdfViewer}>
+          <DialogContent className="sm:max-w-[90vw] max-h-[90vh] w-full">
+            <DialogHeader>
+              <DialogTitle>{t('orders.attachmentPreview')}</DialogTitle>
+              <DialogDescription>
+                {t('orders.attachmentPreviewDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 min-h-[600px]">
+              {pdfViewerLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+                </div>
+              ) : pdfViewerUrl ? (
+                <iframe
+                  src={pdfViewerUrl}
+                  className="w-full h-full min-h-[600px] border-0"
+                  title="PDF Preview"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {t('common.error')}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={closePdfViewer}>
+                {t('common.close')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

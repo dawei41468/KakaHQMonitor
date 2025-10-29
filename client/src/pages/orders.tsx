@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { OrdersDataTable } from "@/components/orders-data-table";
 import { CreateOrderForm } from "@/components/create-order-form";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -8,11 +9,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
+interface TableMethods {
+  fetchData: () => void;
+}
+
 export default function Orders() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  const [dataTable, setDataTable] = React.useState<any>(null);
+  const [dataTable, setDataTable] = React.useState<TableMethods | null>(null);
+  const [orderToDelete, setOrderToDelete] = React.useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -24,12 +30,17 @@ export default function Orders() {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
       dataTable?.fetchData();
+      setOrderToDelete(null);
     },
   });
 
   const handleDeleteOrder = (orderId: string) => {
-    if (confirm('Are you sure you want to delete this order?')) {
-      deleteMutation.mutate(orderId);
+    setOrderToDelete(orderId);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (orderToDelete) {
+      deleteMutation.mutate(orderToDelete);
     }
   };
 
@@ -50,6 +61,15 @@ export default function Orders() {
       </div>
 
       <OrdersDataTable onOrderClick={(id) => navigate(`/orders/${id}`)} onEditClick={(id) => navigate(`/orders/${id}/edit`)} onDeleteClick={handleDeleteOrder} onReady={(table) => setDataTable(table)} />
+
+      <DeleteConfirmationDialog
+        title={t('orders.confirmDeleteOrder')}
+        description={t('orders.confirmDeleteOrderDescription')}
+        onConfirm={confirmDeleteOrder}
+        isLoading={deleteMutation.isPending}
+        open={!!orderToDelete}
+        onOpenChange={(open) => !open && setOrderToDelete(null)}
+      />
     </div>
   );
 }

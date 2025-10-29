@@ -9,6 +9,7 @@ import { checkPaymentOverdueAlerts, resolveCompletedPaymentAlerts, checkOverdueO
 import { storage } from "./storage";
 import * as cron from "node-cron";
 import { logger } from "./logger";
+import { setTimeout as sleep } from "timers/promises";
 
 /**
  * Run all alert checks with retry logic and error handling
@@ -45,7 +46,7 @@ async function runAlertChecks() {
       }
 
       logger.warn(`Retrying alert checks in ${backoffDelay}ms...`, { attempt, backoffDelay });
-      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+      await sleep(backoffDelay);
     }
   }
 }
@@ -60,7 +61,7 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -90,14 +91,16 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  app.use((err: Error | unknown, req: Request, res: Response, _next: NextFunction) => {
+    const isError = err instanceof Error;
+    const status = (isError && 'status' in err && typeof err.status === 'number') ? err.status :
+                   (isError && 'statusCode' in err && typeof err.statusCode === 'number') ? err.statusCode : 500;
+    const message = (isError && err.message) || "Internal Server Error";
 
     // Log the error with context
     logger.error('Request error', {
-      error: err.message,
-      stack: err.stack,
+      error: isError ? err.message : String(err),
+      stack: isError ? err.stack : undefined,
       url: req.url,
       method: req.method,
       ip: req.ip,
@@ -111,7 +114,7 @@ app.use((req, res, next) => {
 
     res.status(status).json({
       message: responseMessage,
-      ...(isDevelopment && { stack: err.stack })
+      ...(isDevelopment && isError && { stack: err.stack })
     });
   });
 

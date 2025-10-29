@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   theme: text("theme").notNull().default("system"), // light | dark | system
   language: text("language").notNull().default("en"), // en | zh
+  canAssignToOrders: boolean("can_assign_to_orders").notNull().default(false), // Can be assigned as designer/sales rep
   refreshTokens: jsonb("refresh_tokens").default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -268,7 +269,7 @@ export const alertsRelations = relations(alerts, ({ one }) => ({
   }),
 }));
 
-export const revokedTokensRelations = relations(revokedTokens, ({}) => ({
+export const revokedTokensRelations = relations(revokedTokens, () => ({
   // No relations needed for revoked tokens
 }));
 
@@ -300,15 +301,15 @@ export const productColorsRelations = relations(productColors, ({ one }) => ({
   }),
 }));
 
-export const regionsRelations = relations(regions, ({}) => ({
+export const regionsRelations = relations(regions, () => ({
   // No relations
 }));
 
-export const productDetailsRelations = relations(productDetails, ({}) => ({
+export const productDetailsRelations = relations(productDetails, () => ({
   // No relations
 }));
 
-export const colorTypesRelations = relations(colorTypes, ({}) => ({
+export const colorTypesRelations = relations(colorTypes, () => ({
   // No relations
 }));
 
