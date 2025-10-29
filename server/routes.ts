@@ -284,10 +284,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (language) updates.language = language;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const oldUser = await storage.getUser((req as any).user!.userId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const user = await storage.updateUser((req as any).user!.userId, updates);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Audit logging
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await logAuditEvent(req, 'USER_PREFERENCES_UPDATE', 'user', (req as any).user!.userId, oldUser ? { theme: oldUser.theme, language: oldUser.language } : undefined, updates);
+
       res.json({
         id: user.id,
         email: user.email,
@@ -321,6 +328,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await hashPassword(newPassword);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await storage.updateUser((req as any).user!.userId, { password: hashedPassword });
+
+      // Audit logging
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await logAuditEvent(req, 'USER_PASSWORD_CHANGE', 'user', (req as any).user!.userId);
 
       res.json({ message: "Password updated successfully" });
     } catch {
@@ -423,6 +434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
        const signingDateTo = req.query.signingDateTo as string;
        const sortBy = req.query.sortBy as string;
        const sortOrder = req.query.sortOrder as string;
+
+       // Audit logging
+       await logAuditEvent(req, 'ORDER_EXPORT', 'order', undefined, undefined, { filters: { dealerFilter, statusFilter, paymentStatusFilter, signingDateFrom, signingDateTo, sortBy, sortOrder } });
 
        // Get all orders first (we'll filter in memory to match frontend logic)
        const allOrders = await storage.getAllOrders();
@@ -834,6 +848,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const attachment = await storage.createOrderAttachment(attachmentData);
+
+      // Audit logging
+      await logAuditEvent(req, 'ATTACHMENT_UPLOAD', 'order_attachment', attachment.id, undefined, { fileName, mimeType, fileSize, orderId: req.params.id });
+
       res.status(201).json(attachment);
     } catch (error) {
       res.status(400).json({ error: "Invalid attachment data", details: error instanceof Error ? error.message : String(error) });
@@ -896,6 +914,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ error: "Attachment not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'ATTACHMENT_DELETE', 'order_attachment', req.params.attachmentId, { fileName: attachment.fileName, mimeType: attachment.mimeType, fileSize: attachment.fileSize, orderId: attachment.orderId });
 
       res.json({ message: "Attachment deleted successfully" });
     } catch {
@@ -1125,10 +1146,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid stock value" });
       }
 
+      const oldMaterial = await storage.getMaterialById(req.params.id);
       const material = await storage.updateMaterialStock(req.params.id, stock);
       if (!material) {
         return res.status(404).json({ error: "Material not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'MATERIAL_STOCK_UPDATE', 'material', req.params.id, oldMaterial ? { currentStock: oldMaterial.currentStock } : undefined, { currentStock: stock });
 
       // Check if we need to create a low stock alert
       if (stock <= material.threshold) {
@@ -1282,6 +1307,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const dealerData = insertDealerSchema.parse(req.body);
       const dealer = await storage.createDealer(dealerData);
+
+      // Audit logging
+      await logAuditEvent(req, 'DEALER_CREATE', 'dealer', dealer.id, undefined, dealerData);
+
       res.status(201).json(dealer);
     } catch {
       res.status(400).json({ error: "Invalid dealer data" });
@@ -1291,10 +1320,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
     try {
       const dealerData = insertDealerSchema.partial().parse(req.body);
+      const oldDealer = await storage.getDealerById(req.params.id);
       const dealer = await storage.updateDealer(req.params.id, dealerData);
       if (!dealer) {
         return res.status(404).json({ error: "Dealer not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'DEALER_UPDATE', 'dealer', req.params.id, oldDealer, dealerData);
+
       res.json(dealer);
     } catch {
       res.status(400).json({ error: "Invalid dealer data" });
@@ -1303,10 +1337,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
     try {
+      const oldDealer = await storage.getDealerById(req.params.id);
       const success = await storage.deleteDealer(req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Dealer not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'DEALER_DELETE', 'dealer', req.params.id, oldDealer);
+
       res.json({ message: "Dealer deleted successfully" });
     } catch {
       res.status(500).json({ error: "Failed to delete dealer" });
@@ -1374,6 +1413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const materialData = insertMaterialSchema.parse(req.body);
       const material = await storage.createMaterial(materialData);
+
+      // Audit logging
+      await logAuditEvent(req, 'MATERIAL_CREATE', 'material', material.id, undefined, materialData);
+
       res.status(201).json(material);
     } catch {
       res.status(400).json({ error: "Invalid material data" });
@@ -1383,10 +1426,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/materials/:id", requireAdmin, async (req, res) => {
     try {
       const materialData = req.body;
+      const oldMaterial = await storage.getMaterialById(req.params.id);
       const material = await storage.updateMaterial(req.params.id, materialData);
       if (!material) {
         return res.status(404).json({ error: "Material not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'MATERIAL_UPDATE', 'material', req.params.id, oldMaterial, materialData);
+
       res.json(material);
     } catch {
       res.status(400).json({ error: "Invalid material data" });
@@ -1395,10 +1443,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/materials/:id", requireAdmin, async (req, res) => {
     try {
+      const oldMaterial = await storage.getMaterialById(req.params.id);
       const success = await storage.deleteMaterial(req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Material not found" });
       }
+
+      // Audit logging
+      await logAuditEvent(req, 'MATERIAL_DELETE', 'material', req.params.id, oldMaterial);
+
       res.json({ message: "Material deleted successfully" });
     } catch {
       res.status(500).json({ error: "Failed to delete material" });
@@ -1517,7 +1570,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Value is required" });
       }
 
+      const oldSettings = await storage.getAllApplicationSettings();
+      const oldSetting = oldSettings.find(s => s.key === key);
       const setting = await storage.updateApplicationSetting(key, value);
+
+      // Audit logging
+      await logAuditEvent(req, 'SETTING_UPDATE', 'application_setting', key, oldSetting ? { value: oldSetting.value } : undefined, { value });
+
       res.json(setting);
     } catch {
       res.status(400).json({ error: "Invalid setting data" });
