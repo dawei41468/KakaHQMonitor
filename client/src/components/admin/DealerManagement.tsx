@@ -10,6 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Dealer, InsertDealer } from "@shared/schema";
 
 /**
  * Dealer Management Component
@@ -29,11 +30,11 @@ function DealerManagement() {
 
   const [newDealer, setNewDealer] = useState({ name: '', territory: '', contactEmail: '', contactPhone: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingDealer, setEditingDealer] = useState<any>(null);
+  const [editingDealer, setEditingDealer] = useState<Partial<Dealer> | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const createDealerMutation = useMutation({
-    mutationFn: async (dealerData: any) => {
+    mutationFn: async (dealerData: InsertDealer) => {
       const response = await apiRequest('POST', '/api/admin/dealers', dealerData);
       return response.json();
     },
@@ -46,7 +47,7 @@ function DealerManagement() {
   });
 
   const updateDealerMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertDealer> }) => {
       const response = await apiRequest('PUT', `/api/admin/dealers/${id}`, data);
       return response.json();
     },
@@ -139,7 +140,7 @@ function DealerManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {dealers?.map((dealer: any) => (
+          {dealers?.map((dealer: Dealer) => (
             <TableRow key={dealer.id}>
               <TableCell>{dealer.name}</TableCell>
               <TableCell>{dealer.territory}</TableCell>
@@ -193,7 +194,7 @@ function DealerManagement() {
                         </div>
                         <Button
                           onClick={() => {
-                            if (editingDealer) {
+                            if (editingDealer && editingDealer.id) {
                               updateDealerMutation.mutate({
                                 id: editingDealer.id,
                                 data: {

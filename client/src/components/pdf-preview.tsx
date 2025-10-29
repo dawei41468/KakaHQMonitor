@@ -9,8 +9,7 @@ interface ContractPreviewProps {
 
 export function ContractPreview({ pdfBase64, htmlString, height = 500 }: ContractPreviewProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shadowRef = useRef<any>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (shadowRef.current && htmlString) {

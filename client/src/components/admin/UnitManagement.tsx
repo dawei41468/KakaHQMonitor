@@ -74,9 +74,8 @@ function UnitManagement() {
     },
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleReorder = (reorderedItems: Array<{ id: string; [key: string]: any }>) => {
-    reorderUnitsMutation.mutate(reorderedItems as Unit[]);
+  const handleReorder = (reorderedItems: Unit[]) => {
+    reorderUnitsMutation.mutate(reorderedItems);
   };
 
   if (isLoading) return <div>{t('common.loading')}</div>;
@@ -111,7 +110,7 @@ function UnitManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <SortableList
+      <SortableList<Unit>
         items={units}
         onReorder={handleReorder}
         renderItem={(unit: Unit) => (

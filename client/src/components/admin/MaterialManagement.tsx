@@ -10,6 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Material, InsertMaterial } from "@shared/schema";
 
 /**
  * Material Management Component
@@ -20,7 +21,7 @@ function MaterialManagement() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const limit = 10;
-  const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
+  const { data: result, isLoading } = useQuery<{ items: Material[], total: number }>({
     queryKey: ['/api/admin/materials', page],
     queryFn: () => apiRequest('GET', `/api/admin/materials?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
   });
@@ -29,10 +30,11 @@ function MaterialManagement() {
 
   const [newMaterial, setNewMaterial] = useState({ name: '', category: '', currentStock: 0, maxStock: 100, threshold: 20, unit: 'units' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  const [editingMaterial, setEditingMaterial] = useState<Partial<Material> | null>(null);
+  const [newStocks, setNewStocks] = useState<Record<string, number>>({});
 
   const createMaterialMutation = useMutation({
-    mutationFn: async (materialData: any) => {
+    mutationFn: async (materialData: InsertMaterial) => {
       const response = await apiRequest('POST', '/api/admin/materials', materialData);
       return response.json();
     },
@@ -44,7 +46,7 @@ function MaterialManagement() {
   });
 
   const updateMaterialMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertMaterial> }) => {
       const response = await apiRequest('PUT', `/api/admin/materials/${id}`, data);
       return response.json();
     },
@@ -127,7 +129,7 @@ function MaterialManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {materials?.map((material: any) => (
+          {materials?.map((material: Material) => (
             <TableRow key={material.id}>
               <TableCell>{material.name}</TableCell>
               <TableCell>{material.category}</TableCell>
@@ -186,7 +188,7 @@ function MaterialManagement() {
                         </div>
                         <Button
                           onClick={() => {
-                            if (editingMaterial) {
+                            if (editingMaterial && editingMaterial.id) {
                               updateMaterialMutation.mutate({
                                 id: editingMaterial.id,
                                 data: {
@@ -212,9 +214,10 @@ function MaterialManagement() {
                       type="number"
                       placeholder={t('admin.newStock')}
                       className="w-20"
-                      onChange={(e) => material.newStock = Number(e.target.value)}
+                      value={newStocks[material.id] || material.currentStock}
+                      onChange={(e) => setNewStocks(prev => ({ ...prev, [material.id]: Number(e.target.value) }))}
                     />
-                    <Button variant="outline" size="sm" onClick={() => updateMaterialMutation.mutate({ id: material.id, data: { currentStock: material.newStock } })}>
+                    <Button variant="outline" size="sm" onClick={() => updateMaterialMutation.mutate({ id: material.id, data: { currentStock: newStocks[material.id] || material.currentStock } })}>
                       {t('admin.updateStock')}
                     </Button>
                   </div>

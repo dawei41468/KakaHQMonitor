@@ -140,10 +140,9 @@ function ProductManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <SortableList
+      <SortableList<Product>
         items={products}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        onReorder={handleReorder}
         renderItem={(product: Product) => {
           const category = categories.find((cat: Category) => cat.id === product.categoryId);
           return (

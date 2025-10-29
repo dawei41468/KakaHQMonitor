@@ -11,6 +11,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Order } from "@shared/schema";
+
+type AdminOrder = Order & { dealerName?: string };
 
 /**
  * Order Management Component
@@ -21,8 +24,8 @@ function OrderManagement() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const limit = 10;
-  const [editingOrder, setEditingOrder] = useState<any>(null);
-  const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
+  const [editingOrder, setEditingOrder] = useState<Partial<Order> | null>(null);
+  const { data: result, isLoading } = useQuery<{ items: AdminOrder[], total: number }>({
     queryKey: ['/api/admin/orders', page],
     queryFn: () => apiRequest('GET', `/api/admin/orders?limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
     placeholderData: (previousData) => previousData,
@@ -73,7 +76,7 @@ function OrderManagement() {
   }, [page]);
 
   const updateOrderMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Order> }) => {
       const response = await apiRequest('PUT', `/api/admin/orders/${id}`, data);
       return response.json();
     },
@@ -99,7 +102,7 @@ function OrderManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders?.map((order: any) => (
+          {orders?.map((order: AdminOrder) => (
             <TableRow key={order.id}>
               <TableCell>{order.orderNumber}</TableCell>
               <TableCell>{order.dealerName || order.dealerId}</TableCell>
@@ -146,7 +149,7 @@ function OrderManagement() {
                         </div>
                         <Button
                           onClick={() => {
-                            if (editingOrder) {
+                            if (editingOrder && editingOrder.id) {
                               updateOrderMutation.mutate({ id: editingOrder.id, data: { notes: editingOrder.notes } });
                               setEditingOrder(null);
                             }

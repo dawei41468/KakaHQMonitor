@@ -70,14 +70,14 @@ function SortableItem({ id, children, disabled }: SortableItemProps) {
   );
 }
 
-interface SortableListProps {
-  items: Array<{ id: string; [key: string]: any }>;
-  onReorder: (items: Array<{ id: string; [key: string]: any }>) => void;
-  renderItem: (item: any) => React.ReactNode;
+interface SortableListProps<T extends { id: string }> {
+  items: T[];
+  onReorder: (items: T[]) => void;
+  renderItem: (item: T) => React.ReactNode;
   disabled?: boolean;
 }
 
-export function SortableList({ items, onReorder, renderItem, disabled }: SortableListProps) {
+export function SortableList<T extends { id: string }>({ items, onReorder, renderItem, disabled }: SortableListProps<T>) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {

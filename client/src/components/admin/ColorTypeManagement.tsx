@@ -110,10 +110,9 @@ function ColorTypeManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <SortableList
+      <SortableList<ColorType>
         items={colorTypes}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        onReorder={handleReorder}
         renderItem={(colorType: ColorType) => (
           <div className="flex items-center justify-between w-full">
             <div>
