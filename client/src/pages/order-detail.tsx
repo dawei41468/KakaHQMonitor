@@ -67,6 +67,7 @@ export default function OrderDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
       toast({
         title: t('orders.statusUpdated'),
         description: t('orders.statusUpdateDescription'),
@@ -81,6 +82,7 @@ export default function OrderDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
       toast({
         title: t('orders.paymentStatusUpdated'),
         description: t('orders.paymentStatusUpdateDescription'),

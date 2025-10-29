@@ -40,6 +40,8 @@ function MaterialManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
       setIsAddDialogOpen(false);
       setNewMaterial({ name: '', category: '', currentStock: 0, maxStock: 100, threshold: 20, unit: 'units' });
     },
@@ -52,6 +54,8 @@ function MaterialManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
     },
   });
 
@@ -65,6 +69,8 @@ function MaterialManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/materials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
     },
   });
 

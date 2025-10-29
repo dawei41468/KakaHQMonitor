@@ -82,6 +82,7 @@ function OrderManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/overview'] });
     },
   });
 
