@@ -39,6 +39,7 @@ function DealerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/dealers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
       setIsAddDialogOpen(false);
       setNewDealer({ name: '', territory: '', contactEmail: '', contactPhone: '' });
     },
@@ -65,6 +66,7 @@ function DealerManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/dealers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dealers'] });
     },
   });
 

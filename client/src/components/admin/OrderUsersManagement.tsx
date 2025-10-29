@@ -26,6 +26,7 @@ export function OrderUsersManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/order-users'] });
+      queryClient.invalidateQueries({ queryKey: ['order-users'] });
       toast({
         title: t('common.success'),
         description: t('admin.userAssignmentUpdated'),
