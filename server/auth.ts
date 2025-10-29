@@ -71,7 +71,7 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload | nul
     }
 
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -92,7 +92,7 @@ export async function verifyRefreshToken(token: string): Promise<RefreshPayload 
     }
 
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -116,7 +116,7 @@ export async function revokeToken(jti: string, userId: string, tokenType: 'acces
 }
 
 // Audit logging function
-export function logAuthEvent(event: string, userId?: string, details?: Record<string, any>): void {
+export function logAuthEvent(event: string, userId?: string, details?: Record<string, unknown>): void {
   const timestamp = new Date().toISOString();
   console.log(`[AUTH AUDIT] ${timestamp} - ${event}${userId ? ` - User: ${userId}` : ''}`, details || '');
 }

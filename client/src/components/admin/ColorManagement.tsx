@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Color, InsertColor } from "@shared/schema";
 
 /**
  * Color Management Component
@@ -25,10 +26,10 @@ function ColorManagement() {
 
   const [newColor, setNewColor] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingColor, setEditingColor] = useState<any>(null);
+  const [editingColor, setEditingColor] = useState<Partial<Color> | null>(null);
 
   const createColorMutation = useMutation({
-    mutationFn: async (colorData: any) => {
+    mutationFn: async (colorData: InsertColor) => {
       const response = await apiRequest('POST', '/api/admin/colors', colorData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function ColorManagement() {
   });
 
   const updateColorMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertColor> }) => {
       const response = await apiRequest('PUT', `/api/admin/colors/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function ColorManagement() {
   });
 
   const reorderColorsMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: Color[]) => {
       const response = await apiRequest('PUT', '/api/admin/colors/reorder', { items });
       return response.json();
     },
@@ -73,7 +74,7 @@ function ColorManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: Color[]) => {
     reorderColorsMutation.mutate(reorderedItems);
   };
 
@@ -111,8 +112,9 @@ function ColorManagement() {
       </div>
       <SortableList
         items={colors}
-        onReorder={handleReorder}
-        renderItem={(color: any) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(color: Color) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{color.name}</div>
@@ -142,7 +144,7 @@ function ColorManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingColor) {
+                        if (editingColor && editingColor.id) {
                           updateColorMutation.mutate({ id: editingColor.id, data: { name: editingColor.name } });
                           setEditingColor(null);
                         }

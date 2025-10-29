@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Product, InsertProduct, Category } from "@shared/schema";
 
 /**
  * Product Management Component
@@ -32,10 +33,10 @@ function ProductManagement() {
 
   const [newProduct, setNewProduct] = useState({ name: '', defaultSpecification: '', categoryId: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
 
   const createProductMutation = useMutation({
-    mutationFn: async (productData: any) => {
+    mutationFn: async (productData: InsertProduct) => {
       const response = await apiRequest('POST', '/api/admin/products', productData);
       return response.json();
     },
@@ -48,7 +49,7 @@ function ProductManagement() {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertProduct> }) => {
       const response = await apiRequest('PUT', `/api/admin/products/${id}`, data);
       return response.json();
     },
@@ -70,7 +71,7 @@ function ProductManagement() {
   });
 
   const reorderProductsMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: Product[]) => {
       const response = await apiRequest('PUT', '/api/admin/products/reorder', { items });
       return response.json();
     },
@@ -80,7 +81,7 @@ function ProductManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: Product[]) => {
     reorderProductsMutation.mutate(reorderedItems);
   };
 
@@ -124,7 +125,7 @@ function ProductManagement() {
                     <SelectValue placeholder={t('admin.selectCategory')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat: any) => (
+                    {categories.map((cat: Category) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
@@ -141,9 +142,10 @@ function ProductManagement() {
       </div>
       <SortableList
         items={products}
-        onReorder={handleReorder}
-        renderItem={(product: any) => {
-          const category = categories.find((cat: any) => cat.id === product.categoryId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(product: Product) => {
+          const category = categories.find((cat: Category) => cat.id === product.categoryId);
           return (
             <div className="flex items-center justify-between w-full">
               <div className="flex-1">
@@ -189,7 +191,7 @@ function ProductManagement() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.map((cat: any) => (
+                            {categories.map((cat: Category) => (
                               <SelectItem key={cat.id} value={cat.id}>
                                 {cat.name}
                               </SelectItem>
@@ -199,7 +201,7 @@ function ProductManagement() {
                       </div>
                       <Button
                         onClick={() => {
-                          if (editingProduct) {
+                          if (editingProduct && editingProduct.id) {
                             updateProductMutation.mutate({
                               id: editingProduct.id,
                               data: {

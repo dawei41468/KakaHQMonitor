@@ -6,10 +6,11 @@ import { apiRateLimit, securityHeaders } from '../security.js';
 import cookieParser from 'cookie-parser';
 import fs from 'fs';
 import path from 'path';
+import { Server } from 'http';
 
 describe('Global Error Handling', () => {
   let app: express.Express;
-  let server: any;
+  let server: Server;
 
   beforeAll(async () => {
     app = express();

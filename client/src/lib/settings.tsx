@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { apiRequest } from './queryClient';
+import { ApplicationSetting } from '@shared/schema';
 
 interface DashboardVisibility {
   standard: {
@@ -68,15 +69,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       const parsedSettings: ApplicationSettings = { ...defaultSettings };
 
-      settingsData.forEach((setting: any) => {
+      settingsData.forEach((setting: ApplicationSetting) => {
         if (setting.key === 'loginTheme') {
-          parsedSettings.loginTheme = setting.value;
+          parsedSettings.loginTheme = setting.value as ApplicationSettings['loginTheme'];
         } else if (setting.key === 'loginLanguage') {
-          parsedSettings.loginLanguage = setting.value;
+          parsedSettings.loginLanguage = setting.value as ApplicationSettings['loginLanguage'];
         } else if (setting.key === 'recentOrdersLimit') {
-          parsedSettings.recentOrdersLimit = setting.value;
+          parsedSettings.recentOrdersLimit = setting.value as ApplicationSettings['recentOrdersLimit'];
         } else if (setting.key === 'dashboardVisibility') {
-          parsedSettings.dashboardVisibility = setting.value;
+          parsedSettings.dashboardVisibility = setting.value as ApplicationSettings['dashboardVisibility'];
         }
       });
 

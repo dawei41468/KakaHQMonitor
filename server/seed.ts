@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 config();
 
 import { db } from './db.js';
-import { users, dealers, orders, materials, alerts } from '@shared/schema.js';
+import { users, dealers, orders, materials, alerts, InsertOrder } from '@shared/schema.js';
 import { hashPassword } from './auth.js';
 import { eq, sql } from 'drizzle-orm';
 
@@ -222,7 +222,7 @@ export async function seedDatabase() {
         const orderNumber = `${prefix}-2024-${String(orderCounter++).padStart(4, '0')}`;
 
         const estimatedDelivery = new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000); // Random date within 30 days
-        const order: any = {
+        const order: InsertOrder = {
           dealerId: createdDealers[target.dealerIndex].id,
           orderNumber,
           status,

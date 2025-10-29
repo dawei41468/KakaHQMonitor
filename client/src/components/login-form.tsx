@@ -41,7 +41,7 @@ export function LoginForm({
     
     try {
       await onLogin(email, password)
-    } catch (error) {
+    } catch {
       // Error handling is done in the parent component
     } finally {
       setIsLoading(false)

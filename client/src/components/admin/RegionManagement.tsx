@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Region, InsertRegion } from "@shared/schema";
 
 /**
  * Region Management Component
@@ -25,10 +26,10 @@ function RegionManagement() {
 
   const [newRegion, setNewRegion] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingRegion, setEditingRegion] = useState<any>(null);
+  const [editingRegion, setEditingRegion] = useState<Partial<Region> | null>(null);
 
   const createRegionMutation = useMutation({
-    mutationFn: async (regionData: any) => {
+    mutationFn: async (regionData: InsertRegion) => {
       const response = await apiRequest('POST', '/api/admin/regions', regionData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function RegionManagement() {
   });
 
   const updateRegionMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertRegion> }) => {
       const response = await apiRequest('PUT', `/api/admin/regions/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function RegionManagement() {
   });
 
   const reorderRegionsMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: Region[]) => {
       const response = await apiRequest('PUT', '/api/admin/regions/reorder', { items });
       return response.json();
     },
@@ -73,7 +74,7 @@ function RegionManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: Region[]) => {
     reorderRegionsMutation.mutate(reorderedItems);
   };
 
@@ -111,8 +112,9 @@ function RegionManagement() {
       </div>
       <SortableList
         items={regions}
-        onReorder={handleReorder}
-        renderItem={(region: any) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(region: Region) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{region.name}</div>
@@ -142,7 +144,7 @@ function RegionManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingRegion) {
+                        if (editingRegion && editingRegion.id) {
                           updateRegionMutation.mutate({ id: editingRegion.id, data: { name: editingRegion.name } });
                           setEditingRegion(null);
                         }

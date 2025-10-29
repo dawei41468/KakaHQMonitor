@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Category, InsertCategory } from "@shared/schema";
 
 /**
  * Category Management Component
@@ -25,10 +26,10 @@ function CategoryManagement() {
 
   const [newCategory, setNewCategory] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
 
   const createCategoryMutation = useMutation({
-    mutationFn: async (categoryData: any) => {
+    mutationFn: async (categoryData: InsertCategory) => {
       const response = await apiRequest('POST', '/api/admin/categories', categoryData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function CategoryManagement() {
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertCategory> }) => {
       const response = await apiRequest('PUT', `/api/admin/categories/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function CategoryManagement() {
   });
 
   const reorderCategoriesMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: Category[]) => {
       const response = await apiRequest('PUT', '/api/admin/categories/reorder', { items });
       return response.json();
     },
@@ -73,7 +74,7 @@ function CategoryManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: Category[]) => {
     reorderCategoriesMutation.mutate(reorderedItems);
   };
 
@@ -111,8 +112,9 @@ function CategoryManagement() {
       </div>
       <SortableList
         items={categories}
-        onReorder={handleReorder}
-        renderItem={(category: any) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(category: Category) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{category.name}</div>
@@ -142,7 +144,7 @@ function CategoryManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingCategory) {
+                        if (editingCategory && editingCategory.id) {
                           updateCategoryMutation.mutate({ id: editingCategory.id, data: { name: editingCategory.name } });
                           setEditingCategory(null);
                         }

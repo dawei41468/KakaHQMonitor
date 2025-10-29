@@ -12,6 +12,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { Alert, InsertAlert } from "@shared/schema";
 
 /**
  * Alert Management Component
@@ -22,18 +23,18 @@ function AlertManagement() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const limit = 10;
-  const { data: result, isLoading } = useQuery<{ items: any[], total: number }>({
+  const { data: result, isLoading } = useQuery<{ items: Alert[], total: number }>({
     queryKey: ['/api/admin/alerts?includeResolved=true', page],
     queryFn: () => apiRequest('GET', `/api/admin/alerts?includeResolved=true&limit=${limit}&offset=${(page - 1) * limit}`).then(res => res.json()),
   });
   const alerts = result?.items || [];
   const total = result?.total || 0;
 
-  const [newAlert, setNewAlert] = useState({ type: 'info', title: '', message: '', priority: 'medium' });
+  const [newAlert, setNewAlert] = useState<InsertAlert>({ type: 'info', title: '', message: '', priority: 'medium' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const createAlertMutation = useMutation({
-    mutationFn: async (alertData: any) => {
+    mutationFn: async (alertData: InsertAlert) => {
       const response = await apiRequest('POST', '/api/admin/alerts', alertData);
       return response.json();
     },
@@ -45,7 +46,7 @@ function AlertManagement() {
   });
 
   const updateAlertMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { resolved: boolean } }) => {
       const response = await apiRequest('PUT', `/api/admin/alerts/${id}`, data);
       return response.json();
     },
@@ -136,7 +137,7 @@ function AlertManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {alerts?.map((alert: any) => (
+          {alerts?.map((alert: Alert) => (
             <TableRow key={alert.id}>
               <TableCell>{t(`admin.${alert.type}`)}</TableCell>
               <TableCell>{alert.title}</TableCell>

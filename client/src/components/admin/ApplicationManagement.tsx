@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/lib/settings";
+import { ApplicationSetting } from "@shared/schema";
 
 /**
  * Application Management Component
@@ -21,7 +22,7 @@ function ApplicationManagement() {
   const queryClient = useQueryClient();
   const { refreshSettings } = useSettings();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<ApplicationSetting[]>({
     queryKey: ['/api/admin/application-settings'],
     queryFn: () => apiRequest('GET', '/api/admin/application-settings').then(res => res.json()),
   });
@@ -52,15 +53,15 @@ function ApplicationManagement() {
   useEffect(() => {
     if (settings) {
       const newFormData = { ...formData };
-      settings.forEach((setting: any) => {
+      settings.forEach((setting: ApplicationSetting) => {
         if (setting.key === 'loginTheme') {
-          newFormData.loginTheme = setting.value;
+          newFormData.loginTheme = setting.value as string;
         } else if (setting.key === 'loginLanguage') {
-          newFormData.loginLanguage = setting.value;
+          newFormData.loginLanguage = setting.value as string;
         } else if (setting.key === 'recentOrdersLimit') {
-          newFormData.recentOrdersLimit = setting.value;
+          newFormData.recentOrdersLimit = setting.value as number;
         } else if (setting.key === 'dashboardVisibility') {
-          newFormData.dashboardVisibility = setting.value;
+          newFormData.dashboardVisibility = setting.value as typeof newFormData.dashboardVisibility;
         }
       });
       setFormData(newFormData);
@@ -68,7 +69,7 @@ function ApplicationManagement() {
   }, [settings]);
 
   const updateSettingMutation = useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: any }) => {
+    mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
       const response = await apiRequest('PUT', `/api/admin/application-settings/${key}`, { value });
       return response.json();
     },
@@ -91,7 +92,7 @@ function ApplicationManagement() {
       updateSettingMutation.mutateAsync({ key: 'dashboardVisibility', value: formData.dashboardVisibility }),
     ];
 
-    Promise.all(updates).catch((error) => {
+    Promise.all(updates).catch((_error) => {
       toast({
         title: t('common.error'),
         description: t('application.settingsSaveError'),

@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, AlertTriangle, Package, Clock, CheckCircle, X, Filter } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useAlerts } from "@/hooks/use-dashboard";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,7 +28,7 @@ const priorityColors = {
 } as const;
 
 // Helper function to translate alert titles and messages
-function translateAlertContent(title: string, message: string, t: any) {
+function translateAlertContent(title: string, message: string, t: TFunction) {
   // Translate known alert titles
   const titleTranslations: Record<string, string> = {
     "Payment Required Before Shipping": t('alerts.alertTitles.paymentRequired'),

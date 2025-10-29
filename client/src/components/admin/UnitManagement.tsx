@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import type { Unit, InsertUnit } from "@shared/schema";
 
 /**
  * Unit Management Component
@@ -25,10 +26,10 @@ function UnitManagement() {
 
   const [newUnit, setNewUnit] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingUnit, setEditingUnit] = useState<any>(null);
+  const [editingUnit, setEditingUnit] = useState<Partial<Unit> | null>(null);
 
   const createUnitMutation = useMutation({
-    mutationFn: async (unitData: any) => {
+    mutationFn: async (unitData: InsertUnit) => {
       const response = await apiRequest('POST', '/api/admin/units', unitData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function UnitManagement() {
   });
 
   const updateUnitMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertUnit> }) => {
       const response = await apiRequest('PUT', `/api/admin/units/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function UnitManagement() {
   });
 
   const reorderUnitsMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: Unit[]) => {
       const response = await apiRequest('PUT', '/api/admin/units/reorder', { items });
       return response.json();
     },
@@ -73,8 +74,9 @@ function UnitManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
-    reorderUnitsMutation.mutate(reorderedItems);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleReorder = (reorderedItems: Array<{ id: string; [key: string]: any }>) => {
+    reorderUnitsMutation.mutate(reorderedItems as Unit[]);
   };
 
   if (isLoading) return <div>{t('common.loading')}</div>;
@@ -112,7 +114,7 @@ function UnitManagement() {
       <SortableList
         items={units}
         onReorder={handleReorder}
-        renderItem={(unit: any) => (
+        renderItem={(unit: Unit) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{unit.name}</div>
@@ -142,7 +144,7 @@ function UnitManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingUnit) {
+                        if (editingUnit && editingUnit.id) {
                           updateUnitMutation.mutate({
                             id: editingUnit.id,
                             data: {

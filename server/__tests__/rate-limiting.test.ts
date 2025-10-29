@@ -4,10 +4,11 @@ import { registerRoutes } from '../routes.js';
 import express from 'express';
 import { apiRateLimit, securityHeaders } from '../security.js';
 import cookieParser from 'cookie-parser';
+import { Server } from 'http';
 
 describe('Rate Limiting', () => {
   let app: express.Express;
-  let server: any;
+  let server: Server;
 
   beforeAll(async () => {
     app = express();

@@ -117,7 +117,7 @@ export function DealerPerformanceChart({
                     ))}
                   </Pie>
                 <Tooltip
-                  formatter={(value: number, _name: string, _props: any) => {
+                  formatter={(value: number, _name: string, _props) => {
                     const total = dealerData.reduce((sum, d) => sum + d.orders, 0);
                     const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
                     return [`${value} (${percentage}%)`, t('dashboard.totalOrders')];

@@ -9,7 +9,7 @@ export interface FileInputProps
 }
 
 const FileInput = React.forwardRef<HTMLInputElement, FileInputProps>(
-  ({ className, onFilesChange, onChange, id, ...props }, ref) => {
+  ({ className: _className, onFilesChange, onChange, id, ...props }, ref) => {
     const { t } = useTranslation();
     const [fileCount, setFileCount] = React.useState(0);
 

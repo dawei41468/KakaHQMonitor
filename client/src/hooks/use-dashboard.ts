@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Order, Dealer } from '@shared/schema';
+import { Order, Dealer, Alert } from '@shared/schema';
 
 interface DashboardOverview {
   metrics: {
@@ -12,8 +12,8 @@ interface DashboardOverview {
     activeAlerts: number;
     lowStockItems: number;
   };
-  recentOrders: any[];
-  alerts: any[];
+  recentOrders: Order[];
+  alerts: Alert[];
 }
 
 interface OrdersResponse {

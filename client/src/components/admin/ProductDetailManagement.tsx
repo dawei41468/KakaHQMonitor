@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { ProductDetail, InsertProductDetail } from "@shared/schema";
 
 /**
  * Product Detail Management Component
@@ -25,10 +26,10 @@ function ProductDetailManagement() {
 
   const [newProductDetail, setNewProductDetail] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProductDetail, setEditingProductDetail] = useState<any>(null);
+  const [editingProductDetail, setEditingProductDetail] = useState<Partial<ProductDetail> | null>(null);
 
   const createProductDetailMutation = useMutation({
-    mutationFn: async (productDetailData: any) => {
+    mutationFn: async (productDetailData: InsertProductDetail) => {
       const response = await apiRequest('POST', '/api/admin/product-details', productDetailData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function ProductDetailManagement() {
   });
 
   const updateProductDetailMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertProductDetail> }) => {
       const response = await apiRequest('PUT', `/api/admin/product-details/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function ProductDetailManagement() {
   });
 
   const reorderProductDetailsMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: ProductDetail[]) => {
       const response = await apiRequest('PUT', '/api/admin/product-details/reorder', { items });
       return response.json();
     },
@@ -73,7 +74,7 @@ function ProductDetailManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: ProductDetail[]) => {
     reorderProductDetailsMutation.mutate(reorderedItems);
   };
 
@@ -111,8 +112,9 @@ function ProductDetailManagement() {
       </div>
       <SortableList
         items={productDetails}
-        onReorder={handleReorder}
-        renderItem={(productDetail: any) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(productDetail: ProductDetail) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{productDetail.name}</div>
@@ -142,7 +144,7 @@ function ProductDetailManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingProductDetail) {
+                        if (editingProductDetail && editingProductDetail.id) {
                           updateProductDetailMutation.mutate({ id: editingProductDetail.id, data: { name: editingProductDetail.name } });
                           setEditingProductDetail(null);
                         }

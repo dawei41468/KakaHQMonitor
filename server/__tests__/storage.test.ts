@@ -13,9 +13,9 @@ jest.mock('../db', () => ({
 }));
 
 const mockTransaction = db.transaction as jest.MockedFunction<typeof db.transaction>;
-const mockInsert = db.insert as jest.Mock;
-const mockSelect = db.select as jest.Mock;
-const mockDelete = db.delete as jest.Mock;
+const _mockInsert = db.insert as jest.Mock;
+const _mockSelect = db.select as jest.Mock;
+const _mockDelete = db.delete as jest.Mock;
 
 describe('DatabaseStorage', () => {
   beforeEach(() => {

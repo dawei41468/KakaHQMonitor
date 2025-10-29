@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { ColorType, InsertColorType } from "@shared/schema";
 
 /**
  * Color Type Management Component
@@ -25,10 +26,10 @@ function ColorTypeManagement() {
 
   const [newColorType, setNewColorType] = useState({ name: '' });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingColorType, setEditingColorType] = useState<any>(null);
+  const [editingColorType, setEditingColorType] = useState<Partial<ColorType> | null>(null);
 
   const createColorTypeMutation = useMutation({
-    mutationFn: async (colorTypeData: any) => {
+    mutationFn: async (colorTypeData: InsertColorType) => {
       const response = await apiRequest('POST', '/api/admin/color-types', colorTypeData);
       return response.json();
     },
@@ -41,7 +42,7 @@ function ColorTypeManagement() {
   });
 
   const updateColorTypeMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertColorType> }) => {
       const response = await apiRequest('PUT', `/api/admin/color-types/${id}`, data);
       return response.json();
     },
@@ -63,7 +64,7 @@ function ColorTypeManagement() {
   });
 
   const reorderColorTypesMutation = useMutation({
-    mutationFn: async (items: any[]) => {
+    mutationFn: async (items: ColorType[]) => {
       const response = await apiRequest('PUT', '/api/admin/color-types/reorder', { items });
       return response.json();
     },
@@ -73,7 +74,7 @@ function ColorTypeManagement() {
     },
   });
 
-  const handleReorder = (reorderedItems: any[]) => {
+  const handleReorder = (reorderedItems: ColorType[]) => {
     reorderColorTypesMutation.mutate(reorderedItems);
   };
 
@@ -111,8 +112,9 @@ function ColorTypeManagement() {
       </div>
       <SortableList
         items={colorTypes}
-        onReorder={handleReorder}
-        renderItem={(colorType: any) => (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onReorder={handleReorder as (items: { id: string; [key: string]: any }[]) => void}
+        renderItem={(colorType: ColorType) => (
           <div className="flex items-center justify-between w-full">
             <div>
               <div className="font-medium">{colorType.name}</div>
@@ -142,7 +144,7 @@ function ColorTypeManagement() {
                     </div>
                     <Button
                       onClick={() => {
-                        if (editingColorType) {
+                        if (editingColorType && editingColorType.id) {
                           updateColorTypeMutation.mutate({ id: editingColorType.id, data: { name: editingColorType.name } });
                           setEditingColorType(null);
                         }

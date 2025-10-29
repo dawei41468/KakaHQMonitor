@@ -29,7 +29,7 @@ export default function Profile() {
       const updatedUser = await response.json();
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-    } catch (error) {
+    } catch {
       // Handle error if needed
     } finally {
       setIsUpdating(false);
@@ -47,7 +47,7 @@ export default function Profile() {
       setConfirmPassword("");
       logout();
       navigate("/");
-    } catch (error) {
+    } catch {
       // Handle error if needed
     } finally {
       setIsChangingPassword(false);

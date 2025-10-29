@@ -5,9 +5,10 @@ import { db } from './db.js';
 import * as schema from '@shared/schema.js';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import type { User } from '@shared/schema.js';
 
 interface ExportedData {
-  [tableName: string]: any[];
+  [tableName: string]: unknown[];
 }
 
 // Tables in order of dependency (no foreign keys first)
@@ -42,7 +43,8 @@ async function exportDatabaseData() {
     for (const tableName of TABLES_ORDER) {
       console.log(`Exporting ${tableName}...`);
 
-      const table = (schema as any)[tableName];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const table = (schema as Record<string, unknown>)[tableName] as any;
       if (!table) {
         console.warn(`⚠️  Table ${tableName} not found in schema, skipping`);
         continue;
@@ -87,9 +89,9 @@ async function generateSeedFile(exportData: ExportedData) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
     // Special handling for users - separate hashed and non-hashed data
-    let usersData: any[] = exportData.users || [];
-    const hashedUsers: any[] = [];
-    const plainUsers: any[] = [];
+    let usersData: User[] = (exportData.users || []) as User[];
+    const hashedUsers: User[] = [];
+    const plainUsers: User[] = [];
 
     for (const user of usersData) {
       if (user.password && !user.password.startsWith('$2')) { // Not already hashed

@@ -4,10 +4,11 @@ import fs from 'fs';
 import path from 'path';
 import { app } from '../index.js';
 import request from 'supertest';
+import { Server } from 'http';
 
 describe('Winston Logging System', () => {
   const logsDir = path.join(process.cwd(), 'logs');
-  let server: any;
+  let server: Server;
 
   beforeAll(async () => {
     server = app.listen(0);
@@ -78,7 +79,7 @@ describe('Winston Logging System', () => {
       logger.info('Test audit log entry', { type: 'audit', userId: 'test-user' });
 
       const files = fs.readdirSync(logsDir);
-      const auditLog = files.find(file => file.startsWith('audit-'));
+      const _auditLog = files.find(file => file.startsWith('audit-'));
       // Audit logs might not be created immediately, but the infrastructure should be ready
       expect(fs.existsSync(logsDir)).toBe(true);
     });
@@ -151,13 +152,13 @@ describe('Winston Logging System', () => {
 
   describe('Request Logging Integration', () => {
     it('should log API requests', async () => {
-      const beforeRequest = new Date();
+      const _beforeRequest = new Date();
 
       await request(app)
         .get('/health')
         .expect(200);
 
-      const afterRequest = new Date();
+      const _afterRequest = new Date();
 
       const files = fs.readdirSync(logsDir);
       const combinedLog = files.find(file => file.startsWith('combined-'));
@@ -185,14 +186,14 @@ describe('Winston Logging System', () => {
     });
 
     it('should log error responses', async () => {
-      const beforeRequest = new Date();
+      const _beforeRequest = new Date();
 
       // Trigger an error by accessing a non-existent route
       await request(app)
         .get('/api/non-existent-route')
         .expect(404);
 
-      const afterRequest = new Date();
+      const _afterRequest = new Date();
 
       const files = fs.readdirSync(logsDir);
       const combinedLog = files.find(file => file.startsWith('combined-'));
