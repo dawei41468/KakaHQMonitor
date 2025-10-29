@@ -459,6 +459,8 @@
     "signingDate": "签订日期",
     "designer": "设计师",
     "salesRep": "业务代表",
+    "selectDesigner": "选择设计师",
+    "selectSalesRep": "选择销售代表",
     "estimatedShipDate": "预计交付日期",
     "buyerCompany": "买方公司",
     "buyerAddress": "买方地址",

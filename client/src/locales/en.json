@@ -459,6 +459,8 @@
     "signingDate": "Signing Date",
     "designer": "Designer",
     "salesRep": "Sales Rep",
+    "selectDesigner": "Select Designer",
+    "selectSalesRep": "Select Sales Rep",
     "estimatedShipDate": "Est. Delivery Date",
     "buyerCompany": "Buyer Company",
     "buyerAddress": "Buyer Address",
